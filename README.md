@@ -11,8 +11,8 @@ The project is in planning. The feature set, architecture, and milestones live i
 ## Documentation
 
 - [Roadmap and architecture](ROADMAP.md)
-- [Documentation index](docs/README.md)
-- [Changelog](docs/changelogs/CHANGELOG.md)
+- [Documentation index](docs/index.md)
+- [Changelog](docs/changelogs/index.md)
 
 ## Licence
 

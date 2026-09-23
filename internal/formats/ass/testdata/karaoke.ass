@@ -1,0 +1,29 @@
+; karaoke.ass — karaoke fixture for the swag ASS reader tests.
+; Exercises: \k (duration from unsung colour), \K and \kf (sweep),
+; \ko (sweep with outline hole), secondary colour, karaoke transparency
+; (\2a), combined karaoke with inline colours, and a karaoke line with a
+; per-syllable style reset. Written fresh for swag.
+[Script Info]
+Title: swag karaoke fixture
+ScriptType: v4.00+
+WrapStyle: 0
+Collisions: Normal
+PlayResX: 1280
+PlayResY: 720
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,20,&H00FFFFFF,&H00777777,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1
+Style: KaraokeBox,Verdana,25,&H0000FFFF,&H00888888,&H00000000,&H00000000,0,0,0,0,100,100,0,0,3,2,0,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:06.00,Default,,0,0,0,,{\k42}Ny{\k38}an {\k50}pa{\k45}ssu{\k52}ru {\k60}hotto {\k65}keeki
+Dialogue: 0,0:00:06.50,0:00:11.00,Default,,0,0,0,,{\k50}Ta{\k50}ke {\k40}my {\k45}hand, {\k55}we will {\k60}fly
+Dialogue: 0,0:00:11.50,0:00:16.00,Default,,0,0,0,,{\K80}Sweep{\K80}ing {\K70}the {\K80}whole {\K80}word
+Dialogue: 0,0:00:16.50,0:00:21.00,Default,,0,0,0,,{\ko60}Hole{\ko60} in {\ko60}the {\ko60}outline {\ko80}sweep
+Dialogue: 0,0:00:21.50,0:00:26.00,Default,,0,0,0,,{\2a&HFF&}Invisible unsung text {\k50}then {\k50}sung
+Dialogue: 0,0:00:26.50,0:00:31.00,Default,,0,0,0,,{\k45}Mix{\k45}ed {\c&H00FF00&}col{\c}ours {\k45}and {\i1}ta{\i0}gs
+Dialogue: 0,0:00:31.50,0:00:37.00,KaraokeBox,,0,0,0,,{\k60}Bo{\k60}xed {\k60}ka{\k60}ra {\k60}o {\k60}ke
+Dialogue: 0,0:00:37.50,0:00:42.00,Default,,0,0,0,,{\k50}Ta{\k50}g {\rDefault}after {\k50}syllable reset
+Dialogue: 0,0:00:42.50,0:00:46.00,Default,,0,0,0,,{\k25}Fi{\k25}rst {\k25}syllable of a line that ends untimed

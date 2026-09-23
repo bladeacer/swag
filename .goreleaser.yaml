@@ -1,0 +1,78 @@
+# GoReleaser v2 configuration for swag.
+# Snapshot:   goreleaser release --snapshot --clean
+# Release:    goreleaser release --clean (CI tags it)
+version: 2
+
+project_name: swag
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: swag
+    main: ./cmd/swag
+    binary: swag
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+  # The wasm build ships the library for the browser demo under docs/demo/.
+  # It has no main package until v1.0.0, so it stays behind a build id and
+  # only runs when cmd/swag-wasm exists.
+  - id: swag-wasm
+    build_details:
+      mod_timestamp: "{{ .CommitTimestamp }}"
+    main: ./cmd/swag-wasm
+    binary: swag
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - js
+    goarch:
+      - wasm
+    ldflags:
+      - -s -w
+    skip: true # flip to false when cmd/swag-wasm lands (v1.0.0)
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  draft: true
+  mode: append
+  header: |
+    See docs/changelogs/ for the notes of this release.

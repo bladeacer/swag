@@ -1,0 +1,31 @@
+; cjk.ass — CJK and direction fixture for the swag ASS reader tests.
+; Exercises: \ytruby with default and explicit positions (8 = over, 2 =
+; under), \ytvert modes 9, 7, 1, and 3, \ytpack packing, \ytdir4 embedded
+; right-to-left sentences, and ruby combined with karaoke timing.
+; Written fresh for swag.
+[Script Info]
+Title: swag CJK and direction fixture
+ScriptType: v4.00+
+WrapStyle: 0
+Collisions: Normal
+PlayResX: 1280
+PlayResY: 720
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,20,&H00FFFFFF,&H00777777,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:05.00,Default,,0,0,0,,{\ytruby}これは[漢/かん][字/じ]です
+Dialogue: 0,0:00:05.50,0:00:09.00,Default,,0,0,0,,{\ytruby8}上に[振/ふ]る[仮名/がな]の一行
+Dialogue: 0,0:00:09.50,0:00:13.00,Default,,0,0,0,,{\ytruby2}下に[振/ふ]る[仮名/がな]の一行
+Dialogue: 0,0:00:13.50,0:00:17.00,Default,,0,0,0,,{\ytvert9}右から左への縦書き
+Dialogue: 0,0:00:17.50,0:00:21.00,Default,,0,0,0,,{\ytvert7}左から右への縦書き
+Dialogue: 0,0:00:21.50,0:00:25.00,Default,,0,0,0,,{\ytvert1}回転した縦書き
+Dialogue: 0,0:00:25.50,0:00:29.00,Default,,0,0,0,,{\ytvert3}反転回転の縦書き
+Dialogue: 0,0:00:29.50,0:00:33.00,Default,,0,0,0,,{\ytvert9}{\ytpack1}組版のある縦書き
+Dialogue: 0,0:00:33.50,0:00:37.00,Default,,0,0,0,,{\ytvert9}{\ytpack1}Packed {\ytpack0}mixed with latin
+Dialogue: 0,0:00:37.50,0:00:41.00,Default,,0,0,0,,An English line with a {\ytdir4}جملة عربية} inside.
+Dialogue: 0,0:00:41.50,0:00:45.00,Default,,0,0,0,,{\ytruby}{\k40}こ{\k40}れ[漢/かん]は[字/じ]です
+Dialogue: 0,0:00:45.50,0:00:49.00,Default,,0,0,0,,{\ytruby}Ruby with a [空/から]annotation carrying no base before it

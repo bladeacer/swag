@@ -35,11 +35,10 @@
 
 ## Changelog, roadmap, and docs
 
-1. The changelog lives at `docs/changelogs/CHANGELOG.md`. It follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 1.1.0. The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-2. Add a note to the `Unreleased` section in the same change that changes user-visible behaviour. Categorise notes under Added, Changed, Deprecated, Removed, Fixed, or Security.
-3. The roadmap lives at `ROADMAP.md`. Tick a checkbox in the same change that completes the work behind it. Move a deferred item to `Unreleased` in the changelog when you defer it.
-4. User-facing documentation lives under `docs/`. Keep `docs/README.md` as the index. One topic per file, linked from the index.
-5. Release commits update the changelog (move Unreleased to the version, add the date) and the roadmap in the same commit.
+1. Release notes live under `docs/changelogs/`, one file per release, with `docs/changelogs/index.md` as the index. They follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 1.1.0. The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+2. Unreleased work lands in the file for the next planned version. The release commit moves the status to released, adds the date, and adds the link to the index.
+3. The roadmap lives at `ROADMAP.md`. Tick a checkbox in the same change that completes the work behind it. Move a deferred item to the changelog when you defer it.
+4. User-facing documentation lives under `docs/`, with `docs/index.md` as the index. One topic per file, linked from the index.
 
 ## Build and release
 

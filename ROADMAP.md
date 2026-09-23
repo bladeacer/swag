@@ -34,8 +34,8 @@ internal/formats/         One package per format: Reader, Writer, Name()
   ├─ kdenlive/            Kdenlive subtitle module (JSON)
   ├─ json1/               FCPXML-capable JSON subtitle exchange
   └─ scc/                 Scenarist Closed Caption (stretch)
-internal/model/           Core IR types: Cue, Style, TextSpan, colours
-internal/model/query/     IR helpers: traversal, merging, span indexing
+internal/model/           Core IR types: Cue, Style, TextSpan, colours,
+                          plus style resolution helpers
 internal/richtext/        ASS-style tag parser and serialiser (shared)
 internal/i18n/            Message catalogue, locales (en-GB default)
 pkg/sub/                  Public API: Identify, Parse, Render, Convert
@@ -46,37 +46,49 @@ pkg/sub/                  Public API: Identify, Parse, Render, Convert
 The IR splits timing (cue level) from rendering (span level). One cue holds spans, an optional layout, and an optional animation list.
 
 ```
-model.Document    Metadata, Styles (by name), Cues, VideoDimensions
-model.Cue         Start, End, Spans [], Layout *Layout, Animations []
-model.Style       Name, Font, Size, Bold, Italic, Underline,
-                  Primary, Secondary, Outline, Shadow, OutlineWidth,
-                  ShadowDepth, Alignment, Fringe bool
-model.TextSpan    Text, Start, End (karaoke, zero when untimed),
+model.Document    Metadata map[string]string, Styles []Style (at least one),
+                  Cues []Cue, VideoDimensions Point
+model.Cue         Start, End time.Duration (from media start),
+                  Spans []TextSpan, Layout *Layout, Animations []Animation
+model.Style       Name, Font string, Size float64,
+                  Bold, Italic, Underline bool,
+                  Primary, Secondary, Outline, Shadow Colour,
+                  OutlineWidth, ShadowDepth float64,
+                  Alignment Anchor, Box bool
+model.TextSpan    Text string,
+                  Start, End time.Duration (offsets from cue start;
+                  both zero means untimed),
                   Font *string, Size *float64, Bold/Italic/Underline *bool,
-                  Fore, Back *Colour, Outline *Colour, Shadow *Colour,
-                  Vertical *Vertical, Ruby *Ruby, Script *Script,
-                  Packed *bool, Direction *Direction
+                  Fore, Secondary, Back *Colour,
+                  Shadows []Shadow, OutlineWidth *float64,
+                  Vertical *Vertical, Script *Script, Direction *Direction,
+                  Packed *bool, Ruby *Ruby (annotation spans only)
+model.Shadow      Kind (SoftShadow | HardShadow | Bevel | Glow), Colour
 model.Colour      R, G, B, A uint8
-model.Layout      Position *Point, Anchor Anchor, Fade *Fade,
-                  Move *Move, Transform []Keyframe
+model.Layout      Position *Point, Anchor *Anchor, Fade *Fade, Move *Move
 model.Vertical    Mode (None | ColumnsRTL | ColumnsLTR | RotatedCCW |
                   RotatedCCWReversed), Packed bool
-model.Ruby        Text string, Position (Over | Under | Parenthetical),
-                  IsBase bool
+model.Ruby        Position (Over | Under | Parenthetical)
 model.Script      Kind (Regular | Subscript | Superscript)
 model.Direction   (LeftToRight | RightToLeft)
-model.Animation   Kind (Shake | Chroma | KaraokeCursor | Fade | Move),
-                  parameters per kind
+model.Animation   one of: Fade{In,Out}, Move{From,To,Start,End},
+                  Shake{RadiusX,RadiusY,Start,End},
+                  Chroma{Offsets,InTime,OutTime},
+                  Keyframes{Start,End,Easing,Steps}
+model.Anchor      uint8 in numpad numbering: 1 = bottom-left, 5 = centre,
+                  9 = top-right (ASS alignment values; YTT ap values map)
 ```
 
 Rules:
 
-1. Pointer fields mean "the source set this". Nil means "inherit from the style". Writers and style resolvers never guess.
-2. Colours carry alpha everywhere. Formats without alpha write a loss note.
-3. Karaoke timing lives on `TextSpan.Start/End` as offsets from the cue start. A cue with any timed span is a karaoke cue.
-4. Ruby works as spans marked `IsBase` plus a companion span marked with `Ruby{Text, Position}`. This mirrors how YTT encodes ruby and survives ASS round-trips.
-5. `Vertical`, `Script`, `Direction` are span-level overrides of the cue-level layout where the format allows it.
-6. Every field the IR gains carries a zero value that means "unset", so old readers keep compiling.
+1. Pointer and slice fields mean "the source set this". Nil or empty means "inherit from the style". Bare fields always carry a value, and readers fill their defaults. A `Colour` has no unset state, so an optional colour is a pointer.
+2. Colours carry alpha everywhere. A format without alpha writes a loss note.
+3. Karaoke: spans carry `Start`/`End` offsets from the cue start. A cue is a karaoke cue when any span has a non-zero offset. The unsung colour comes from `Style.Secondary`, or from `span.Secondary` when the source set it.
+4. Ruby: a base span is followed immediately in `Spans` by one or more annotation spans that carry `Ruby`. The annotation inherits the timing of its base. Converters must not separate a base from its annotations, and render parenthetical ruby as bracketed text on formats without ruby support.
+5. `Vertical`, `Script`, `Direction`, and `Packed` are span-level overrides. `Layout` carries cue-level placement: position, anchor, and motion.
+6. Shadows are a list with at most one shadow per kind, in the fixed order soft, hard, bevel, glow. YTT carries one shadow per pen, so its writer layers duplicated lines. ASS carries one shadow, so its writer keeps the first shadow and records a loss note.
+7. `Style` carries the defaults of a format: font, size, colours, widths, alignment, and the box flag (`BorderStyle` 3 in ASS). A reader always emits at least one style per document.
+8. New fields use pointers or slices, so the zero value keeps its meaning and old readers stay valid.
 
 ## Format support matrix
 
@@ -112,14 +124,14 @@ Font allow-list (YouTube): Arial, Arial Black, Arial Narrow, Comic Sans MS, Cour
 ## Milestones
 
 ### v0.1.0 — foundation
-- [ ] `go.mod` (module path `freebuff.dev/swag` or final repo path), Go 1.24 toolchain directive
-- [ ] `internal/model`: Colour (RGBA), Cue, TextSpan, Style, Layout types with constructors and zero-value semantics
-- [ ] Unit tests for colour parsing, rounding, and alpha edge cases
-- [ ] `.air.toml` for hot reload during development
-- [ ] `.goreleaser.yaml` v2: linux/darwin/windows (amd64, arm64) + js/wasm, `CGO_ENABLED=0`, `-s -w`, checksums
-- [ ] `Makefile`: build, test, cover, vet, fmt, snapshot release
-- [ ] CI workflow: vet, test with coverage floor 75%, `goreleaser check`
-- [ ] `internal/i18n` skeleton with message catalogue and `en-GB`
+- [x] `go.mod` (module path `freebuff.dev/swag` or final repo path), Go 1.24 toolchain directive
+- [x] `internal/model`: Colour (RGBA), Cue, TextSpan, Style, Layout types with constructors and zero-value semantics
+- [x] Unit tests for colour parsing, rounding, and alpha edge cases
+- [x] `.air.toml` for hot reload during development
+- [x] `.goreleaser.yaml` v2: linux/darwin/windows (amd64, arm64) + js/wasm, `CGO_ENABLED=0`, `-s -w`, checksums (the wasm build id stays skipped until `cmd/swag-wasm` lands at v1.0.0)
+- [x] `Makefile`: build, test, cover, vet, fmt, snapshot release
+- [x] CI workflow: vet, test with coverage floor 75%, `goreleaser check`
+- [x] `internal/i18n` skeleton with message catalogue and `en-GB`
 
 ### v0.2.0 — plain formats
 - [ ] `internal/formats/srt` reader and writer

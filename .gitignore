@@ -1,0 +1,13 @@
+# Build and test artefacts
+/bin/
+/dist/
+coverage.out
+build-errors.log
+
+# Air hot-reload artefacts
+*.log
+
+# Editor and OS noise
+.idea/
+.vscode/
+.DS_Store

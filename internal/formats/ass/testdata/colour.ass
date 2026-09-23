@@ -1,0 +1,41 @@
+; colour.ass — colour and styling fixture for the swag ASS reader tests.
+; Exercises: styles and the Default-style size baseline, inline font, size,
+; bold, italic, underline, primary/outline/shadow colours with alpha,
+; background box (BorderStyle 3), alignment, \pos, \move, \fad, \t,
+; superscript and subscript, and style reset. Written fresh for swag.
+[Script Info]
+Title: swag colour-coded dialogue fixture
+ScriptType: v4.00+
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+Collisions: Normal
+PlayResX: 1280
+PlayResY: 720
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1
+Style: Boxed,Verdana,20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,3,2,0,2,10,10,10,1
+Style: OutlineHeavy,Trebuchet MS,15,&H0000FFFF,&H000000FF,&H00202020,&H96000000,1,0,0,0,100,100,0,0,1,4,3,2,10,10,10,1
+Style: TopTitle,Some Custom Font,40,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,2,2,8,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:04.00,Default,,0,0,0,,Plain line with the Default style.
+Dialogue: 0,0:00:04.50,0:00:08.00,Default,,0,0,0,,{\b1}Bold{\b0}, {\i1}italic{\i0} and {\u1}underlined{\u0} on one line.
+Dialogue: 0,0:00:08.50,0:00:12.00,Default,,0,0,0,,{\fnComic Sans MS}Comic Sans MS{\fn} and {\fnFancy Font}a font that snaps to Roboto{\fn}.
+Dialogue: 0,0:00:12.50,0:00:16.00,Default,,0,0,0,,{\fs40}Twice the baseline{\fs}{\fs15}and three quarters of it{\fs}.
+Dialogue: 0,0:00:16.50,0:00:20.00,Default,,0,0,0,,{\c&H0000FF&}Red{\c} {\1c&H00FF00&}green{\1c} {\3c&H00FFFF&}cyan outline{\3c} {\4c&H202020&}dark shadow{\4c}.
+Dialogue: 0,0:00:20.50,0:00:24.00,Default,,0,0,0,,{\alpha&H40&}All parts at 75% opacity{\alpha} and back to opaque.
+Dialogue: 0,0:00:24.50,0:00:28.00,Default,,0,0,0,,{\1a&H80&}Half transparent text{\1a}{\3a&H40&}with a firmer outline{\3a}.
+Dialogue: 0,0:00:28.50,0:00:32.00,Boxed,,0,0,0,,A line with an opaque background box instead of an outline.
+Dialogue: 0,0:00:32.50,0:00:36.00,OutlineHeavy,,0,0,0,,A heavy outline with a soft shadow from the style.
+Dialogue: 0,0:00:36.50,0:00:40.00,Default,,0,0,0,,{\an7}{\pos(100,100)}A top-left line at a fixed position.
+Dialogue: 0,0:00:40.50,0:00:44.00,Default,,0,0,0,,{\an5}{\pos(640,360)}A centred line at a fixed position.
+Dialogue: 0,0:00:44.50,0:00:48.00,Default,,0,0,0,,{\move(200,600,1080,600,0,1500)}A line that moves along the bottom.
+Dialogue: 0,0:00:48.50,0:00:52.00,Default,,0,0,0,,{\fad(500,500)}A line that fades in and out.
+Dialogue: 0,0:00:52.50,0:00:56.00,Default,,0,0,0,,{\t(0,1000,\c&H0000FF&)}A line that changes colour in the first second.
+Dialogue: 0,0:00:56.50,0:01:00.00,Default,,0,0,0,,{\t(0,500,\fs30)}A line that grows once at the start.
+Dialogue: 0,0:01:00.50,0:01:04.00,Default,,0,0,0,,Regular{\ytsup}superscript{\ytsur} then {\ytsub}subscript{\ytsur} then regular.
+Dialogue: 0,0:01:04.50,0:01:08.00,Default,,0,0,0,,{\rOutlineHeavy}Reset to a named style{\r}then back to the dialogue style.
+Dialogue: 0,0:01:08.50,0:01:12.00,TopTitle,,0,0,0,,A top title with a font outside the allow-list.

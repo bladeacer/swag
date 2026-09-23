@@ -148,6 +148,9 @@ Font allow-list (YouTube): Arial, Arial Black, Arial Narrow, Comic Sans MS, Cour
 - [ ] Font allow-list table and scale re-mapping with tests
 - [ ] Karaoke timing model tests (zero-duration bump, offset ordering)
 - [ ] Sample-driven tests from real YTT/SRV3 fixtures
+- [ ] Pull sample files from upstream YTSubConverter repo for e2e and other testing purposes
+- [ ] Adapt ../ocd coverage.svg rendering, place code coverage badge in README
+- [ ] Create .goreleaser.yml configuration file like ../ocd,  goreleaser in CI should push release when running make tag, not just create the tag and draft release.
 
 ### v0.4.0 — ASS reader
 - [ ] `internal/richtext`: tag lexer, escape resolution, tag argument grammar

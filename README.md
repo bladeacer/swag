@@ -14,6 +14,10 @@ The project is in planning. The feature set, architecture, and milestones live i
 - [Documentation index](docs/index.md)
 - [Changelog](docs/changelogs/index.md)
 
+## LLM Usage Disclaimer
+
+AI Assistance is used when working on the codebase.
+
 ## Licence
 
 [Apache 2.0](LICENSE). The `simple-english` skill vendored under `.agents/skills/simple-english/` keeps its MIT licence (see the file header).

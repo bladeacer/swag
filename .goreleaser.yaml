@@ -29,11 +29,8 @@ builds:
       - -X main.commit={{.Commit}}
       - -X main.date={{.Date}}
   # The wasm build ships the library for the browser demo under docs/demo/.
-  # It has no main package until v1.0.0, so it stays behind a build id and
-  # only runs when cmd/swag-wasm exists.
+  # It has no main package until v1.0.0, so the build id stays skipped.
   - id: swag-wasm
-    build_details:
-      mod_timestamp: "{{ .CommitTimestamp }}"
     main: ./cmd/swag-wasm
     binary: swag
     env:

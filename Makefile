@@ -1,46 +1,84 @@
+# swag (Subtitles With A Gopher) — Makefile
+# Default goal prints the help text.
+
 BINARY := bin/swag
-COVER_PROFILE := coverage.out
+GO ?= go
+GORELEASER ?= goreleaser
 COVERAGE_FLOOR := 75
 
-.PHONY: all build test cover cover-verify vet fmt tidy clean snapshot tools
+.DEFAULT_GOAL := help
 
-all: vet test build
+.PHONY: help build run test cover cover-html cover-verify vet fmt tidy watch \
+        release-test tag snapshot clean
 
-build:
-	go build -trimpath -ldflags "-s -w" -o $(BINARY) ./cmd/swag
+help: ## Show this help
+	@printf "swag — Subtitles With A Gopher\n\n"
+	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
-test:
-	go test ./...
+build: ## Build the swag binary into bin/
+	$(GO) build -trimpath -ldflags "-s -w" -o $(BINARY) ./cmd/swag
 
-cover:
-	go test -coverprofile=$(COVER_PROFILE) ./...
-	go tool cover -func=$(COVER_PROFILE) | tail -1
-	@rm -f $(COVER_PROFILE)
+run: ## Run the CLI (extra args after --)
+	$(GO) run ./cmd/swag -- $(filter-out $@,$(MAKECMDGOALS))
 
-cover-verify:
-	go test -coverprofile=$(COVER_PROFILE) ./...
-	@total=$$(go tool cover -func=$(COVER_PROFILE) | awk '/^total:/ {gsub("%",""); print $$3}'); \
+test: ## Run all tests with coverage summary
+	$(GO) test -cover ./...
+
+cover: ## Run tests and print the per-function coverage breakdown
+	$(GO) test -coverpkg=./... -coverprofile=coverage.out ./... -count=1
+	@$(GO) tool cover -func=coverage.out
+
+cover-html: ## Run tests and open the HTML coverage report in a browser
+	$(GO) test -coverpkg=./... -coverprofile=coverage.out ./... -count=1
+	$(GO) tool cover -html=coverage.out
+
+cover-verify: ## Fail when module coverage sits below the 75% floor
+	$(GO) test -coverpkg=./... -coverprofile=coverage.out ./... -count=1
+	@total=$$($(GO) tool cover -func=coverage.out | awk '/^total:/ {gsub("%",""); print $$3}'); \
 	echo "total coverage: $$total% (floor $(COVERAGE_FLOOR)%)"; \
-	rm -f $(COVER_PROFILE); \
+	rm -f coverage.out; \
 	if [ "$$(echo "$$total < $(COVERAGE_FLOOR)" | bc -l)" = "1" ]; then \
 		echo "coverage below the $(COVERAGE_FLOOR)% floor" >&2; exit 1; \
 	fi
 
-vet:
-	go vet ./...
+vet: ## Run go vet over all packages
+	$(GO) vet ./...
 
-fmt:
-	gofmt -l -w .
+fmt: ## Format all Go source with gofmt
+	gofmt -w .
 
-tidy:
-	go mod tidy
+tidy: ## Tidy the Go module files
+	$(GO) mod tidy
 
-clean:
-	rm -rf bin coverage.out dist
+watch: ## Hot-reload cmd/swag on save (needs air)
+	@air 2>/dev/null || echo "air not installed (install with: $(MAKE) tools)"
 
-snapshot: clean
-	goreleaser release --snapshot --clean
+release-test: ## Dry-run the release: build every target into dist/ (no upload)
+	$(MAKE) build
+	$(MAKE) snapshot
 
-tools:
+snapshot: ## Test GoReleaser locally in snapshot mode
+	$(GORELEASER) release --snapshot --clean
+
+tag: ## Bump the version, tag, and push (the tag triggers the release)
+	@CURRENT=$$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"); \
+	MAJOR=$$(echo "$$CURRENT" | sed 's/^v//' | cut -d. -f1); \
+	MINOR=$$(echo "$$CURRENT" | sed 's/^v//' | cut -d. -f2); \
+	SUGGEST="v$$MAJOR.$$(($$MINOR + 1)).0"; \
+	read -p "Enter version [$$SUGGEST]: " TAG; \
+	TAG=$${TAG:-$$SUGGEST}; \
+	if git rev-parse "$$TAG" >/dev/null 2>&1; then \
+		echo "Tag $$TAG already exists, pushing..."; \
+	else \
+		git tag -a "$$TAG" -m "Release $$TAG" && echo "Created tag $$TAG."; \
+	fi; \
+	git push origin "$$TAG"
+
+clean: ## Remove build artefacts
+	$(GO) clean -cache -test-cache 2>/dev/null || true
+	rm -rf bin dist coverage.out build-errors.log
+
+tools: ## Install the development tools (air, goreleaser)
 	go install github.com/air-verse/air@latest
 	go install github.com/goreleaser/goreleaser/v2@latest

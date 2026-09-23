@@ -8,8 +8,8 @@ COVERAGE_FLOOR := 75
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run test cover cover-html cover-verify vet fmt tidy watch \
-        release-test tag snapshot clean
+.PHONY: help build install run test cover cover-html cover-verify vet fmt tidy \
+        watch release-test tag snapshot clean
 
 help: ## Show this help
 	@printf "swag — Subtitles With A Gopher\n\n"
@@ -18,6 +18,9 @@ help: ## Show this help
 
 build: ## Build the swag binary into bin/
 	$(GO) build -trimpath -ldflags "-s -w" -o $(BINARY) ./cmd/swag
+
+install: ## Install the CLI into $GOPATH/bin (go install)
+	$(GO) install -trimpath -ldflags "-s -w" ./cmd/swag
 
 run: ## Run the CLI (extra args after --)
 	$(GO) run ./cmd/swag -- $(filter-out $@,$(MAKECMDGOALS))
@@ -52,7 +55,7 @@ tidy: ## Tidy the Go module files
 	$(GO) mod tidy
 
 watch: ## Hot-reload cmd/swag on save (needs air)
-	@air 2>/dev/null || echo "air not installed (install with: $(MAKE) tools)"
+	air
 
 release-test: ## Dry-run the release: build every target into dist/ (no upload)
 	$(MAKE) build

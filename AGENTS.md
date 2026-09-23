@@ -1,15 +1,15 @@
 # AGENTS.md — swag
 
-`swag` (Subtitles With A Gopher) is a clean-room Go tool for reading, writing, and converting subtitle files. We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as the inspiration for the supported feature set. We wrote all code from scratch. Read `NOTICE` for the attribution rules.
+`swag` (Subtitles With A Gopher) is a clean-room Go tool for reading, writing, and converting subtitle files. We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as the inspiration for the supported feature set. We wrote all code from scratch. Read `docs/third-party-notices.md` for the attribution rules.
 
 ## Documentation language: use the vendored simple-english skill
 
-1. Load the skill `.agents/skills/simple-english/SKILL.md` before you write or change any prose. Prose means: `README.md`, everything under `docs/`, CLI help text, comments that ship to users, commit messages, and pull request descriptions.
-2. The skill is vendored in this repository. Do not fetch it from the network. Do not edit the upstream text except through the documented project override.
-3. The project override in this repository is British English spelling. Apply the rules in `.agents/skills/simple-english/references/spelling.md` to all prose. Keep identifiers, flags, format names, and quoted errors unchanged.
+1. Load the skill `skills/simple-english/SKILL.md` before you write or change any prose. Prose means: `README.md`, everything under `docs/`, CLI help text, comments that ship to users, commit messages, and pull request descriptions.
+2. The skill is vendored in this repository under `skills/`. Do not fetch it from the network. Do not edit the upstream text except through the documented project override.
+3. The project override in this repository is British English spelling. Apply the rules in `skills/simple-english/references/spelling.md` to all prose. Keep identifiers, flags, format names, and quoted errors unchanged.
 4. Follow the skill in two places: documents follow The Document rules, and your chat replies follow The Reply rules.
-5. For changelogs, release notes, and error messages, read `.agents/skills/simple-english/references/use-cases.md` before you draft.
-6. When you check existing text, follow the CHECK mode in the skill. Quote the rule number from `.agents/skills/simple-english/references/rule-catalog.md` for each finding.
+5. For changelogs, release notes, and error messages, read `skills/simple-english/references/use-cases.md` before you draft.
+6. When you check existing text, follow the CHECK mode in the skill. Quote the rule number from `skills/simple-english/references/rule-catalog.md` for each finding.
 
 ## Code rules
 
@@ -43,10 +43,11 @@
 ## Build and release
 
 1. Release builds compile with `CGO_ENABLED=0` and Go linker flags `-s -w`. The configuration lives in `.goreleaser.yaml`.
-2. Local development uses air with the configuration in `.air.toml`.
-3. CI must run `go vet`, `go test -cover ./...`, and `goreleaser check` on every pull request.
+2. `go install github.com/bladeacer/swag/cmd/swag@latest` must keep working. Do not add build tags or dependencies that break a plain `go install`.
+3. Local development uses air with the configuration in `.air.toml`. `make watch` starts it.
+4. CI must run `go vet`, `go test -cover ./...`, and `goreleaser check` on every pull request.
 
 ## Licence and attribution
 
 1. New source files carry the Apache-2.0 header comment.
-2. Do not copy code, comments, or data tables from YTSubConverter or its forks. Behaviour may match, expression must be our own. See `NOTICE`.
+2. Do not copy code, comments, or data tables from YTSubConverter or its forks. Behaviour may match, expression must be our own. See `docs/third-party-notices.md`.

@@ -10,7 +10,7 @@ import (
 // srtFormat adapts the internal SRT package to the public registry.
 type srtFormat struct{}
 
-func (srtFormat) Name() string       { return srt.FormatName }
+func (srtFormat) Name() string         { return srt.FormatName }
 func (srtFormat) Extensions() []string { return []string{"srt"} }
 
 func (srtFormat) Parse(source io.Reader) (*Document, error) {

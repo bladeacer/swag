@@ -2,7 +2,7 @@
 
 `swag` (Subtitles With A Gopher) is a clean-room Go library and CLI for reading, writing, and converting subtitles. This document fixes the scope, the architecture, and the ordered milestones to v1.0.0. Agent contributors: tick a checkbox in the same change that completes the work behind it. Documentation follows the vendored `simple-english` skill with the British English override (see `AGENTS.md`).
 
-We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as the source of inspiration for the feature set. We wrote all code from scratch. See `NOTICE`.
+We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as the source of inspiration for the feature set. We wrote all code from scratch. See `docs/third-party-notices.md`.
 
 ## How to read this document
 
@@ -134,12 +134,12 @@ Font allow-list (YouTube): Arial, Arial Black, Arial Narrow, Comic Sans MS, Cour
 - [x] `internal/i18n` skeleton with message catalogue and `en-GB`
 
 ### v0.2.0 — plain formats
-- [ ] `internal/formats/srt` reader and writer
-- [ ] `internal/formats/sbv` reader and writer
-- [ ] `pkg/sub.Identify` and `pkg/sub.Parse` with format auto-detection
-- [ ] Round-trip fixtures and tests for both formats
-- [ ] `cmd/swag` with kong (`-i`, `-o`, `-f`, `--verbose`) and pterm banner, warnings, and result output
-- [ ] Conversion report (list of feature losses) printed with pterm when `--verbose`
+- [x] `internal/formats/srt` reader and writer
+- [x] `internal/formats/sbv` reader and writer
+- [x] `pkg/sub.Identify` and `pkg/sub.Parse` with format auto-detection
+- [x] Round-trip fixtures and tests for both formats
+- [x] `cmd/swag` with kong (`-i`, `-o`, `-f`, `--verbose`) and pterm banner, warnings, and result output
+- [x] Conversion report (list of feature losses) printed with pterm when `--verbose`
 
 ### v0.3.0 — the YouTube pair
 - [ ] `internal/formats/ytt` reader: pens, window positions/styles, ruby groups, karaoke offsets

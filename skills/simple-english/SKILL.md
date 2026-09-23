@@ -32,6 +32,7 @@ metadata:
 > from upstream. Apply the British spelling rules in
 > `references/spelling.md` to every document and reply written in this
 > repository. The upstream license (MIT) covers this derivative.
+> This copy lives at `skills/simple-english/` in the swag repository.
 
 Write plain English that a smart reader outside your field understands on one read. The rules come from ASD-STE100, the controlled language aerospace uses so a tired mechanic cannot misread an instruction. Two registers exist: the document you write or rewrite, and the reply you type in chat. Each has its own short rule set below. Nothing else in this file is optional.
 

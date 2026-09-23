@@ -2,7 +2,17 @@
 
 `swag` (Subtitles With A Gopher) is a tool for reading, writing, and converting subtitles. It converts between YouTube subtitle formats (YTT, SRV3), Advanced SubStation Alpha (ASS), and the plain formats (SRT, SBV, TTML, WebVTT), and it keeps the styling, colour, effects, positioning, CJK layout, ruby text, and karaoke timing that those formats can express.
 
-The project started as a clean-room reimagining of [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter). We thank that project for the inspiration. All code here is original. See `NOTICE` for attribution.
+The project started as a clean-room reimagining of [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter). We thank that project for the inspiration. All code here is original. See [third-party notices](docs/third-party-notices.md) for attribution.
+
+## Install
+
+Install the CLI with the Go toolchain (Go 1.24 or newer):
+
+```sh
+go install github.com/bladeacer/swag/cmd/swag@latest
+```
+
+The `convert` command is available from v0.2.0. Build from a clone with `make build` instead when you need the library itself.
 
 ## Status
 
@@ -20,4 +30,4 @@ AI Assistance is used when working on the codebase.
 
 ## Licence
 
-[Apache 2.0](LICENSE). The `simple-english` skill vendored under `.agents/skills/simple-english/` keeps its MIT licence (see the file header).
+[Apache 2.0](LICENSE). The `simple-english` skill vendored under [`skills/simple-english/`](skills/simple-english/SKILL.md) keeps its MIT licence (see the file header). Third-party attributions: [docs/third-party-notices.md](docs/third-party-notices.md).

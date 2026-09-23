@@ -6,4 +6,5 @@ Unreleased work lands in the file for the next planned version. The release comm
 
 ## Releases
 
+- [v0.2.0](v0.2.0.md) — plain formats: SRT and SBV conversion, the public library, and the CLI
 - [v0.1.0](v0.1.0.md) — foundation: intermediate representation, i18n skeleton, build tooling

@@ -14,6 +14,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/pterm/pterm"
 
+	"github.com/bladeacer/swag/internal/config"
 	"github.com/bladeacer/swag/internal/i18n"
 	"github.com/bladeacer/swag/pkg/sub"
 )
@@ -127,11 +128,12 @@ func (c *ConvertCmd) runFile(ictx *runContext) error {
 	return nil
 }
 
-// runContext carries the parsed CLI and the message catalogue into
-// command Run methods.
+// runContext carries the parsed CLI, the loaded configuration, and the
+// message catalogue into command Run methods.
 type runContext struct {
-	CLI *CLI
-	T   *i18n.T
+	CLI      *CLI
+	T        *i18n.T
+	Settings config.Settings
 }
 
 // checkInput fails early when the input file is missing or a directory.
@@ -297,18 +299,20 @@ func run(args []string) int {
 	// The parser needs its description before the flags are parsed, so the
 	// description comes from the environment locale.
 	envCopy := i18n.New(os.Getenv("SWAG_LOCALE"))
-	if bareRun(args) {
-		banner(envCopy)
-		pterm.Info.Println(envCopy.S(i18n.MsgUsageBare))
-		return 0
-	}
+	settings, settingsErr := settingsFromFile()
 
 	cli := CLI{}
-	parser := kong.Must(&cli,
+	options := []kong.Option{
 		kong.Name("swag"),
 		kong.Description(envCopy.S(i18n.MsgCliDescription)),
 		kong.Vars{"version": versionLine(envCopy)},
-	)
+	}
+	// A file that cannot be read must not stop the help page or the version
+	// line, so the resolver joins the parser only when the file is sound.
+	if settingsErr == nil {
+		options = append(options, kong.Resolvers(configResolver(settings)))
+	}
+	parser := kong.Must(&cli, options...)
 	if isHelp(args) {
 		if err := printHelp(parser, helpArgs(args), envCopy); err != nil {
 			pterm.Error.Printf(envCopy.S(i18n.MsgUsageFailed), err)
@@ -320,9 +324,18 @@ func run(args []string) int {
 		pterm.Println(versionLine(envCopy))
 		return 0
 	}
+	if settingsErr != nil {
+		pterm.Error.Println(envCopy.F(i18n.MsgConfigInvalid, settingsErr))
+		return 1
+	}
+	if bareRun(args) {
+		banner(envCopy)
+		pterm.Info.Println(envCopy.S(i18n.MsgUsageBare))
+		return 0
+	}
 
 	kongCtx, err := parser.Parse(args)
-	ictx := &runContext{CLI: &cli, T: i18n.New(cli.Locale)}
+	ictx := &runContext{CLI: &cli, T: i18n.New(cli.Locale), Settings: settings}
 	if err != nil {
 		pterm.Error.Printf(ictx.T.S(i18n.MsgUsageFailed), err)
 		return 1
@@ -332,7 +345,7 @@ func run(args []string) int {
 		return 1
 	}
 	if err := kongCtx.Run(ictx); err != nil {
-		pterm.Error.Printf(ictx.T.S(i18n.MsgConvertFailed), err)
+		pterm.Error.Printf(ictx.T.S(i18n.MsgCommandFailed), err)
 		return 1
 	}
 	return 0

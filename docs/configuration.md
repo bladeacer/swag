@@ -1,6 +1,6 @@
 # Configuration
 
-`swag` resolves one configuration file per user, and it follows the convention of the platform. This page records where the file lives and how to move it. [The roadmap](../ROADMAP.md) carries the file format, which lands with v0.9.0. Until then the tool reads no configuration and uses its own defaults.
+`swag` resolves one configuration file per user, and it follows the convention of the platform. This page records where the file lives, how to move it, and which settings it carries. The tool reads the file on every run, and a missing file changes no behaviour.
 
 ## The location
 
@@ -41,10 +41,86 @@ swag config
  INFO  This build runs on linux/amd64.
 ```
 
-The command creates nothing. A directory appears only when a later release writes the file.
+## Write the default file
+
+`swag config --init` writes the commented default file to the resolved path and creates the directory. The command refuses to replace an existing file, so a hand-edited file never disappears:
+
+```sh
+swag config --init
+```
+
+The written file holds every setting as a comment, so writing it changes no behaviour until you edit it.
+
+## Precedence
+
+One setting can arrive from four places. The first source that carries a value wins:
+
+1. The command line.
+2. The environment, for example `SWAG_LOCALE`.
+3. The configuration file.
+4. The built-in default.
 
 ## The file format
 
-The file is TOML. [The roadmap](../ROADMAP.md) scopes the schema, its defaults, and its comments to v0.9.0. The planned settings carry feature parity with the command line: the default flags, the flag options, the locale, the preferred formats, the vim inspired keybinds, and the leader key.
+The file is TOML, and every setting is optional. An unknown key is an error, so a typo never passes in silence. The written file carries the schema:
 
-[The internationalisation page](i18n.md) covers the locale settings, and [the usage page](usage.md) covers the flags that the file will carry. [The terminal palette page](terminal-palette.md) covers the theme source that sits behind the file.
+```toml
+# The swag configuration file.
+#
+# Every setting is optional. A setting that is absent keeps the default of the
+# tool, so this file starts with every setting commented out.
+#
+# The command line wins over the environment, the environment wins over this
+# file, and this file wins over the built-in default.
+
+# The message locale. The shipped locales are en-GB and en-US.
+# locale = "en-US"
+
+# Print the conversion report, as the -v flag does.
+# verbose = true
+
+# Fail a conversion that drops a feature, as the -s flag does.
+# strict = true
+
+# Write no integrity block, as the -c flag does.
+# strict_compat = true
+
+# Replace the font of every style and span, as the -n flag does.
+# font = "Verdana"
+
+# The input format, as the -F flag does. An empty value detects the format.
+# from = "ass"
+
+# The target format, as the -f flag does. An empty value uses the output
+# extension.
+# format = "vtt"
+
+# The target formats that a batch run writes when -f is absent. The same list
+# orders the target question of the interactive mode. Every name must be a
+# registered format.
+# preferred = ["srt", "vtt"]
+
+# The keys of the interactive mode. Each entry maps an action onto a key. The
+# keybinds land with the interactive keybind work, so the tool reads this
+# table and takes no action yet.
+# [keybinds]
+# input = "i"
+# target = "t"
+# output = "o"
+# convert = "c"
+# quit = "q"
+```
+
+| Setting | Type | Meaning |
+|---|---|---|
+| `locale` | string | The message locale, as `--locale` does. |
+| `verbose` | bool | Print the conversion report, as `--verbose` does. |
+| `strict` | bool | Fail a conversion that drops a feature, as `--strict` does. |
+| `strict_compat` | bool | Write no integrity block, as `--strict-compat` does. |
+| `font` | string | Replace the font, as `--font` does. |
+| `from` | string | The input format, as `--from` does. |
+| `format` | string | The target format, as `--format` does. The interactive command reads the same setting from `--target`. |
+| `preferred` | list of strings | The target formats of a batch run with no `-f`, and the first choices of the interactive picker. |
+| `keybinds` | table | The keys of the interactive mode. The table is read now, and it takes effect with the keybind work. |
+
+[The internationalisation page](i18n.md) covers the locale settings, and [the usage page](usage.md) covers the flags. [The terminal palette page](terminal-palette.md) covers the theme source that sits behind the file.

@@ -185,7 +185,7 @@ func (c *InteractiveCmd) Run(ictx *runContext) error {
 
 	target := c.Target
 	if target == "" {
-		answer, err := p.askChoice(t.S(i18n.MsgInteractiveTarget), sub.Registered(), detected)
+		answer, err := p.askChoice(t.S(i18n.MsgInteractiveTarget), orderFormats(ictx.Settings.Preferred, sub.Registered()), detected)
 		if err != nil {
 			return err
 		}
@@ -261,6 +261,33 @@ func resultLayout(t *i18n.T, input, detected, target, output string, losses []st
 	layout.Status = t.F(i18n.MsgInteractiveLosses, len(losses))
 	layout.Rows = append(layout.Rows, losses...)
 	return layout
+}
+
+// orderFormats puts the preferred formats first, in their listed order, then
+// the rest of the registry. A preferred name that no format claims is
+// dropped, and an empty list leaves the registry order alone.
+func orderFormats(preferred, all []string) []string {
+	if len(preferred) == 0 {
+		return all
+	}
+	known := make(map[string]bool, len(all))
+	for _, name := range all {
+		known[name] = true
+	}
+	ordered := make([]string, 0, len(all))
+	seen := make(map[string]bool, len(all))
+	for _, name := range preferred {
+		if known[name] && !seen[name] {
+			ordered = append(ordered, name)
+			seen[name] = true
+		}
+	}
+	for _, name := range all {
+		if !seen[name] {
+			ordered = append(ordered, name)
+		}
+	}
+	return ordered
 }
 
 // swapExtension replaces the extension of path with the name of the target

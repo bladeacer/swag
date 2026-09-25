@@ -551,6 +551,26 @@ func TestRunInteractiveAsksForInput(t *testing.T) {
 	}
 }
 
+// TestOrderFormats covers the target order of the interactive picker: the
+// preferred formats first, then the rest of the registry.
+func TestOrderFormats(t *testing.T) {
+	all := []string{"ass", "json1", "kdenlive", "sbv", "srt", "ttml", "vtt", "ytt"}
+	got := orderFormats([]string{"vtt", "srt", "bogus", "vtt"}, all)
+	want := []string{"vtt", "srt", "ass", "json1", "kdenlive", "sbv", "ttml", "ytt"}
+	if len(got) != len(want) {
+		t.Fatalf("orderFormats = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("orderFormats = %v, want %v", got, want)
+		}
+	}
+	// An empty list keeps the registry order.
+	if got := orderFormats(nil, all); len(got) != len(all) || got[0] != all[0] {
+		t.Fatalf("an empty preferred list = %v, want %v", got, all)
+	}
+}
+
 // TestRunInteractiveStrictCompat proves the flag reaches the write of the
 // interactive command.
 func TestRunInteractiveStrictCompat(t *testing.T) {

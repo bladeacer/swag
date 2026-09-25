@@ -83,7 +83,7 @@ const (
 	MsgOutputStdout     Key = "output.stdout"
 	MsgConvertStart     Key = "convert.start"
 	MsgConvertSuccess   Key = "convert.success"
-	MsgConvertFailed    Key = "convert.failed"
+	MsgCommandFailed    Key = "command.failed"
 	MsgConvertLosses    Key = "convert.losses"
 	MsgUsageFailed      Key = "error.usage"
 	MsgUsageBare        Key = "usage.bare"
@@ -133,6 +133,10 @@ const (
 	MsgConfigAbsent   Key = "config.absent"
 	MsgConfigPlatform Key = "config.platform"
 	MsgConfigError    Key = "config.error"
+	MsgConfigInvalid  Key = "config.invalid"
+	MsgConfigInit     Key = "config.init"
+	MsgConfigExists   Key = "config.exists"
+	MsgConfigWrite    Key = "config.write"
 )
 
 // enGB is the default message set. Values follow the simple-english rules:
@@ -145,7 +149,7 @@ var enGB = map[Key]string{
 	MsgOutputStdout:     "standard output",
 	MsgConvertStart:     "Converting %s to %s format.",
 	MsgConvertSuccess:   "Wrote %s.",
-	MsgConvertFailed:    "Conversion failed. %s",
+	MsgCommandFailed:    "The command failed. %s",
 	MsgConvertLosses:    "Features the target format does not carry (%d):",
 	MsgUsageFailed:      "The command line could not be read. %s",
 	MsgUsageBare:        "Give the input file with -i and the target format with -f. Run swag --help to read every flag.",
@@ -191,10 +195,14 @@ var enGB = map[Key]string{
 	MsgPreviewStatus:   "%d styles, %d cues.",
 
 	MsgConfigFile:     "The configuration file is %s.",
-	MsgConfigPresent:  "The file is present. A later release reads it and reports what it carries.",
+	MsgConfigPresent:  "The file is present, and the tool reads it.",
 	MsgConfigAbsent:   "The file is absent, so the tool uses its own defaults.",
 	MsgConfigPlatform: "This build runs on %s/%s.",
 	MsgConfigError:    "The configuration location could not be resolved. %s",
+	MsgConfigInvalid:  "The configuration could not be read. %s",
+	MsgConfigInit:     "Wrote the default configuration file to %s.",
+	MsgConfigExists:   "The file %s is already present. Move it aside before you write the default.",
+	MsgConfigWrite:    "The configuration file could not be written. %s",
 }
 
 // T is a catalogue bound to one locale. It is safe for concurrent use.

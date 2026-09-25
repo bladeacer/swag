@@ -59,6 +59,7 @@ The vendored copy carries one project-level change: British English spelling rep
 
 | Package | Licence | Use |
 |---|---|---|
+| [the BurntSushi TOML decoder](https://github.com/BurntSushi/toml) | MIT | The configuration file |
 | [the kong command line parser](https://github.com/alecthomas/kong) | MIT | CLI flag grammar |
 | [the pterm terminal toolkit](https://github.com/pterm/pterm) | MIT | Styled terminal output |
 

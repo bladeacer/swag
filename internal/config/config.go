@@ -12,8 +12,9 @@
 // The SWAG_CONFIG_DIR environment variable names the directory outright and
 // SWAG_CONFIG names the file, so a portable install needs no platform rule.
 //
-// The file format lands with v0.9.0. This package answers where the file
-// lives, so every command looks in one place.
+// The package also carries the settings of the file. Load reads them, Flag
+// maps a command line flag name onto its setting, and Write creates the
+// commented default file. Every command looks in one place.
 package config
 
 import (

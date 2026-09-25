@@ -107,7 +107,8 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 
 ### v0.9.0: configuration, compatibility, and release candidate
 - [ ] Vim inspired keybinds for the interactive mode, with support for multi-key chords such as `Ctrl+Shift+R` and `Alt+Y`, and a leader key that a bind writes as `<leader>`
-- [ ] A TOML configuration file with feature parity to the command line: default flags, flag options, the locale, the preferred formats, and custom keybinds. The repository ships the file with its defaults, its other valid options, and comments for each setting
+- [x] A TOML configuration file with feature parity to the command line: default flags, flag options, the locale, the preferred formats, and custom keybinds. The repository ships the file with its defaults, its other valid options, and comments for each setting
+  - The file carries the `keybinds` table now, and the table takes action with the keybind item below. The `preferred` list is the default target set of a batch run and the first choices of the interactive picker.
 - [x] `--strict-compat`: turn the integrity block off, so a read and a write stay inside the original specification of the format. The flag is off by default, because a reader that ignores the block still reads the cues
 - [ ] Locale selection from the active operating system locale. An unsupported locale falls back to `en-US`, this also means changing the default locale to `en-US` as it is a more sensible default for most users
 - [ ] A parallel conversion flag that spreads the work across the CPU cores. The default is `max_cores - 2`, a caller can name a count, and zero uses every core

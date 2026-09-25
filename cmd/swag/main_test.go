@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bladeacer/swag/internal/config"
 	"github.com/bladeacer/swag/internal/i18n"
 	"github.com/bladeacer/swag/pkg/sub"
 )
@@ -151,7 +152,11 @@ func TestBannerDoesNotPanic(t *testing.T) {
 
 // newRunContext returns the runContext a kong run would inject.
 func newRunContext(verbose bool) *runContext {
-	return &runContext{CLI: &CLI{Verbose: verbose}, T: i18n.New("en-GB")}
+	return &runContext{
+		CLI:      &CLI{Verbose: verbose},
+		T:        i18n.New("en-GB"),
+		Settings: config.Default(),
+	}
 }
 
 func TestConvertCmdRunWritesFile(t *testing.T) {

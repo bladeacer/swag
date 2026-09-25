@@ -323,6 +323,22 @@ func TestRunBatchStrictCompat(t *testing.T) {
 	}
 }
 
+// TestRunBatchUsesPreferredFormats covers the fallback of a batch run that
+// carries no -f flag: the preferred formats of the configuration file.
+func TestRunBatchUsesPreferredFormats(t *testing.T) {
+	dir := t.TempDir()
+	writeFileIn(t, dir, "a.ass", assKaraokeFixture)
+	t.Setenv("SWAG_CONFIG", writeFileIn(t, t.TempDir(), "config.toml", "preferred = [\"srt\"]\n"))
+	capturePterm(t)
+
+	if code := run([]string{"convert", "-i", dir}); code != 0 {
+		t.Fatalf("run exit code = %d, want 0", code)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "a.srt")); err != nil {
+		t.Fatalf("the preferred output is missing: %v", err)
+	}
+}
+
 // TestRunBatchThroughTheParser covers the command word and the flag path of
 // a batch run.
 func TestRunBatchThroughTheParser(t *testing.T) {

@@ -1,0 +1,44 @@
+# The swag configuration file.
+#
+# Every setting is optional. A setting that is absent keeps the default of the
+# tool, so this file starts with every setting commented out.
+#
+# The command line wins over the environment, the environment wins over this
+# file, and this file wins over the built-in default.
+
+# The message locale. The shipped locales are en-GB and en-US.
+# locale = "en-US"
+
+# Print the conversion report, as the -v flag does.
+# verbose = true
+
+# Fail a conversion that drops a feature, as the -s flag does.
+# strict = true
+
+# Write no integrity block, as the -c flag does.
+# strict_compat = true
+
+# Replace the font of every style and span, as the -n flag does.
+# font = "Verdana"
+
+# The input format, as the -F flag does. An empty value detects the format.
+# from = "ass"
+
+# The target format, as the -f flag does. An empty value uses the output
+# extension.
+# format = "vtt"
+
+# The target formats that a batch run writes when -f is absent. The same list
+# orders the target question of the interactive mode. Every name must be a
+# registered format.
+# preferred = ["srt", "vtt"]
+
+# The keys of the interactive mode. Each entry maps an action onto a key. The
+# keybinds land with the interactive keybind work, so the tool reads this
+# table and takes no action yet.
+# [keybinds]
+# input = "i"
+# target = "t"
+# output = "o"
+# convert = "c"
+# quit = "q"

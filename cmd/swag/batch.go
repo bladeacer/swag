@@ -91,6 +91,11 @@ func batchOutput(root, outDir, base, target string) string {
 func (c *ConvertCmd) runBatch(ictx *runContext) error {
 	t := ictx.T
 	targets := batchTargets(c.Format)
+	// A batch run without -f falls back to the preferred formats of the
+	// configuration file.
+	if len(targets) == 0 {
+		targets = ictx.Settings.Preferred
+	}
 	if len(targets) == 0 {
 		return fmt.Errorf("%s", t.S(i18n.MsgBatchFormatMissing))
 	}

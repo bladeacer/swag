@@ -36,6 +36,12 @@ type eventState struct {
 	packed    *bool
 	ruby      *model.RubyPosition
 
+	// outlineSet and shadowSet report that an inline tag changed the
+	// outline or shadow colour, so the span needs an explicit shadow even
+	// when the style thickness is unchanged.
+	outlineSet bool
+	shadowSet  bool
+
 	kTime  time.Duration
 	kStart time.Duration
 	kEnd   time.Duration
@@ -192,19 +198,21 @@ func (st *eventState) applyDiff(sp *model.TextSpan) {
 		v := eff.OutlineWidth
 		sp.OutlineWidth = &v
 	}
-	if eff.Box && !base.Box {
+	// The ASS outline colour doubles as the box colour of a BorderStyle 3
+	// style, and the IR carries it on the span as the background colour.
+	switch {
+	case eff.Box && !base.Box:
+		v := eff.Outline
+		sp.Back = &v
+	case st.outlineSet:
+		v := eff.Outline
+		sp.Back = &v
+	case eff.OutlineWidth > 0 && !eff.Box && eff.Outline != base.Outline:
 		v := eff.Outline
 		sp.Back = &v
 	}
-	var shadows []model.Shadow
-	if eff.OutlineWidth > 0 && !eff.Box && eff.Outline != base.Outline {
-		shadows = append(shadows, model.Shadow{Kind: model.ShadowGlow, Colour: eff.Outline})
-	}
-	if eff.ShadowDepth != base.ShadowDepth && eff.ShadowDepth > 0 {
-		shadows = append(shadows, model.Shadow{Kind: model.ShadowHard, Colour: eff.Shadow})
-	}
-	if len(shadows) > 0 {
-		sp.Shadows = shadows
+	if st.shadowSet || (eff.ShadowDepth != base.ShadowDepth && eff.ShadowDepth > 0) {
+		sp.Shadows = []model.Shadow{{Kind: model.ShadowHard, Colour: eff.Shadow}}
 	}
 	if st.vertical != nil {
 		v := *st.vertical
@@ -235,9 +243,6 @@ func (st *eventState) layout() *model.Layout {
 // animations builds the cue-level effects from the tags that were seen.
 func (st *eventState) animations() []model.Animation {
 	var out []model.Animation
-	if st.fade != nil {
-		out = append(out, model.Animation{Fade: st.fade})
-	}
 	if len(st.keys) > 0 {
 		out = append(out, model.Animation{Keyframes: st.keys})
 	}
@@ -288,9 +293,23 @@ func (st *eventState) applyTag(tag richtext.Tag) {
 		st.setColour(&st.eff.Secondary, tag.Value, st.cueStyle.Secondary)
 	case "3c":
 		st.setColour(&st.eff.Outline, tag.Value, st.cueStyle.Outline)
+		st.outlineSet = tag.Value != ""
 	case "4c":
 		st.setColour(&st.eff.Shadow, tag.Value, st.cueStyle.Shadow)
-	case "1a", "2a", "3a", "4a":
+		st.shadowSet = tag.Value != ""
+	case "3a":
+		st.setAlpha("3a", tag.Value)
+		st.outlineSet = tag.Value != ""
+	case "4a":
+		st.setAlpha("4a", tag.Value)
+		st.shadowSet = tag.Value != ""
+	case "bord":
+		if tag.Value == "" {
+			st.eff.OutlineWidth = st.cueStyle.OutlineWidth
+		} else if v, err := strconv.ParseFloat(strings.TrimSpace(tag.Value), 64); err == nil {
+			st.eff.OutlineWidth = v
+		}
+	case "1a", "2a":
 		st.setAlpha(tag.Name, tag.Value)
 	case "alpha":
 		st.setAllAlpha(tag.Value)
@@ -426,11 +445,11 @@ func (st *eventState) reset(value string) {
 	name := strings.TrimSpace(value)
 	if name == "" {
 		st.eff = st.cueStyle
-		return
-	}
-	if s, ok := st.styles[strings.ToLower(name)]; ok {
+	} else if s, ok := st.styles[strings.ToLower(name)]; ok {
 		st.eff = s
 	}
+	st.outlineSet = false
+	st.shadowSet = false
 }
 
 func (st *eventState) setScript(kind model.ScriptKind) {

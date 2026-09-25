@@ -21,7 +21,7 @@ The `convert` command is available from v0.2.0. Build from a clone with `make bu
 
 ## Status
 
-The project is in development. The feature set, architecture, and milestones live in [ROADMAP.md](ROADMAP.md). The v0.4.0 release adds the Advanced SubStation Alpha (ASS) reader, with styles, karaoke, animations, ruby text, vertical layout, and direction. The v0.3.0 release adds the YouTube pair: YouTube Timed Text (YTT) and SRV3 in and out, with the platform quirks that the upload path expects. The plain formats (SRT, SBV) ship in v0.2.0. [docs/formats.md](docs/formats.md) lists every format and its degradation notes.
+The project is in development. The feature set, architecture, and milestones live in [ROADMAP.md](ROADMAP.md). The v0.5.0 release adds the Advanced SubStation Alpha (ASS) writer. ASS is now a conversion target, with a semantic round-trip test and a cross-check against YouTube Timed Text. The v0.4.0 release adds the ASS reader, with styles, karaoke, animations, ruby text, vertical layout, and direction. The v0.3.0 release adds the YouTube pair: YouTube Timed Text (YTT) and SRV3 in and out, with the platform quirks that the upload path expects. The plain formats (SRT, SBV) ship in v0.2.0. [docs/formats.md](docs/formats.md) lists every format and its degradation notes.
 
 The coverage badge shows the statement coverage of the module. Regenerate it with `make coverage-svg`.
 

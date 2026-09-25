@@ -202,11 +202,11 @@ func TestParseLayoutTags(t *testing.T) {
 func TestParseAnimations(t *testing.T) {
 	doc := parseFixture(t, "colour.ass")
 	faded := doc.Cues[12]
-	if len(faded.Animations) == 0 || faded.Animations[0].Fade == nil {
-		t.Fatalf("\\fad missing: %+v", faded.Animations)
+	if faded.Layout == nil || faded.Layout.Fade == nil {
+		t.Fatalf("\\fad missing: %+v", faded.Layout)
 	}
-	if faded.Animations[0].Fade.In != 500*time.Millisecond {
-		t.Fatalf("fade in = %v", faded.Animations[0].Fade.In)
+	if faded.Layout.Fade.In != 500*time.Millisecond {
+		t.Fatalf("fade in = %v", faded.Layout.Fade.In)
 	}
 	keyed := doc.Cues[13]
 	var steps []model.KeyframeStep

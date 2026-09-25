@@ -10,6 +10,7 @@ Planning and governance:
 Reference documents (written with the vendored `simple-english` skill, British English):
 
 - `changelogs/index.md` — release notes index in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
+- `changelogs/v0.5.0.md` — notes for the ASS-writer release
 - `changelogs/v0.4.0.md` — notes for the ASS-reader release
 - `changelogs/v0.3.0.md` — notes for the YouTube-pair release
 - `changelogs/v0.2.0.md` — notes for the plain-formats release

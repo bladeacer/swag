@@ -19,9 +19,9 @@ base="https://raw.githubusercontent.com/arcusmaximus/YTSubConverter/master"
 dest="testdata/upstream"
 
 mkdir -p "$dest"
-# The YouTube pair. Add further names here when a later milestone needs
-# them.
-for name in ytt.ytt; do
+# The YouTube pair, the ASS samples, and the end-to-end cases. Add further
+# names here when a later milestone needs them.
+for name in ytt.ytt sample1.ass sample2.ass; do
     echo "fetching $name"
     curl -fsSL "$base/$name" -o "$dest/$name"
 done

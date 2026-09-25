@@ -163,11 +163,11 @@ Font allow-list (YouTube): Arial, Arial Black, Arial Narrow, Comic Sans MS, Cour
 - [x] Fixtures: karaoke sample and colour sample in the YTSubConverter style, written fresh for this project
 
 ### v0.5.0 — ASS writer
-- [ ] IR-to-tag emission for tiers 1 to 3
-- [ ] Outline, shadow, and box (BorderStyle) emission with alpha
-- [ ] Animation emission and degradation notes where YouTube limits apply
-- [ ] Round-trip test: ASS → IR → ASS stays semantically equal (colour and timing equality, not byte equality)
-- [ ] Cross-check suite: ASS → YTT → IR → ASS loses only documented features
+- [x] IR-to-tag emission for tiers 1 to 3
+- [x] Outline, shadow, and box (BorderStyle) emission with alpha
+- [x] Animation emission and degradation notes where YouTube limits apply
+- [x] Round-trip test: ASS → IR → ASS stays semantically equal (colour and timing equality, not byte equality)
+- [x] Cross-check suite: ASS → YTT → IR → ASS loses only documented features
 
 ### v0.6.0 — TTML, WebVTT, editor formats
 - [ ] `internal/formats/ttml`: YouTube dialect reader, general writer

@@ -38,8 +38,7 @@ func (sbvFormat) Render(doc *Document, sink io.Writer) ([]string, error) {
 	return sbv.NewWriter().Render(doc, sink)
 }
 
-// assFormat adapts the internal ASS reader to the public registry. The
-// writer lands with v0.5.0, so the format reads only for now.
+// assFormat adapts the internal ASS package to the public registry.
 type assFormat struct{}
 
 func (assFormat) Name() string         { return ass.FormatName }
@@ -47,6 +46,10 @@ func (assFormat) Extensions() []string { return []string{"ass", "ssa"} }
 
 func (assFormat) Parse(source io.Reader) (*Document, error) {
 	return ass.NewReader().Parse(source)
+}
+
+func (assFormat) Render(doc *Document, sink io.Writer) ([]string, error) {
+	return ass.NewWriter().Render(doc, sink)
 }
 
 // yttFormat adapts the internal YTT package to the public registry.

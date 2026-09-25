@@ -123,15 +123,15 @@ func TestKaraokeTypes(t *testing.T) {
 
 func TestComplexFade(t *testing.T) {
 	doc := parseSynthetic(t)
-	fade := firstAnimation(doc.Cues[11], func(a model.Animation) bool { return a.Fade != nil })
-	if fade == nil {
-		t.Fatalf("complex fade missing: %+v", doc.Cues[11].Animations)
+	layout := doc.Cues[11].Layout
+	if layout == nil || layout.Fade == nil {
+		t.Fatalf("complex fade missing: %+v", layout)
 	}
-	if fade.Fade.StartAlpha != 255 || fade.Fade.EndAlpha != 255 {
-		t.Fatalf("fade alphas = %+v", fade.Fade)
+	if layout.Fade.StartAlpha != 255 || layout.Fade.EndAlpha != 255 {
+		t.Fatalf("fade alphas = %+v", layout.Fade)
 	}
-	if fade.Fade.EndOut != 3*time.Second {
-		t.Fatalf("fade end = %v", fade.Fade.EndOut)
+	if layout.Fade.EndOut != 3*time.Second {
+		t.Fatalf("fade end = %v", layout.Fade.EndOut)
 	}
 }
 
@@ -185,12 +185,15 @@ func TestIncompleteTagsAreIgnored(t *testing.T) {
 	doc := parseSynthetic(t)
 	cue := doc.Cues[17]
 	// \an99 is out of range, and the argument tags carry too few values, so
-	// none of them may change the cue.
+	// none of them can change the cue.
 	if cue.Layout != nil && cue.Layout.Move != nil {
 		t.Fatalf("incomplete move must be ignored: %+v", cue.Layout.Move)
 	}
 	if len(cue.Animations) != 0 {
 		t.Fatalf("incomplete fade and keyframe must be ignored: %+v", cue.Animations)
+	}
+	if cue.Layout != nil && cue.Layout.Fade != nil {
+		t.Fatalf("incomplete fade must be ignored: %+v", cue.Layout.Fade)
 	}
 }
 

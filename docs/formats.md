@@ -10,7 +10,7 @@ Legend: R reads, W writes.
 | YouTube SBV | `sbv` | `sbv` | R, W |
 | YouTube Timed Text | `ytt` | `ytt` | R, W |
 | YouTube SRV3 | `srv3` | `srv3` | R, W |
-| Advanced SubStation Alpha | `ass` | `ass`, `ssa` | R |
+| Advanced SubStation Alpha | `ass` | `ass`, `ssa` | R, W |
 
 A writer returns a loss report, which is one entry per degraded feature. The command line interface prints the report when `-v` is set.
 
@@ -52,9 +52,11 @@ ASS carries a Script Info section, a V4+ Styles section, and an Events section. 
 
 The reader supports the Tier 1 tags (`\b`, `\i`, `\u`, `\fn`, `\fs`, the colour tags, the alpha tags, `\k` and its variants, `\r`, `\an`, and `\pos`), the Tier 2 effects (`\move`, `\fad`, `\fade`, `\t`, `\ytshake`, `\ytchroma`, and the `\ytkt` karaoke types), and the Tier 3 tags (`\ytruby`, `\ytvert`, `\ytpack`, `\ytdir4`, and `\ytdir6`). A tag outside those tiers is accepted and ignored.
 
-Two limitations apply. The outline colour of a style that is not the base style becomes a glow shadow on the span, because the IR carries an outline colour only on the style. Karaoke text keeps the timing of its syllable, so several spans can share one karaoke window.
+The writer emits those same tiers. It writes the style table in a fixed field order and one Dialogue line per cue. It emits the vertical mode and the reading direction where they change, so a direction applies from the tag onward. A background box or an outline colour writes through the `\3c` and `\3a` tags, a hard shadow writes through `\4c` and `\4a`, and a box style writes BorderStyle 3. A colour tag carries the transparency of the channel, where 0 is opaque.
 
-The ASS writer lands with v0.5.0.
+The writer reports the features it cannot express: a shadow that is not hard, a chroma effect with more than one copy, a run that leaves vertical text, a karaoke gap, and a ruby base with more than one reading.
+
+Two limitations apply. The outline colour of a style that is not the base style becomes a glow shadow on the span, because the IR carries an outline colour only on the style. Karaoke text keeps the timing of its syllable, so several spans can share one karaoke window.
 
 ## Karaoke
 

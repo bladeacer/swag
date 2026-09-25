@@ -6,6 +6,7 @@ Unreleased work lands in the file for the next planned version. The release comm
 
 ## Releases
 
+- [v0.5.0](v0.5.0.md) — ASS writer: Tier 1 to 3 emission, degradation notes, and the YouTube Timed Text cross-check (unreleased)
 - [v0.4.0](v0.4.0.md) — ASS reader: styles, karaoke, animations, ruby, and vertical text (unreleased)
 - [v0.3.0](v0.3.0.md) — the YouTube pair: YTT and SRV3 in and out (unreleased)
 - [v0.2.0](v0.2.0.md) — plain formats: SRT and SBV conversion, the public library, and the CLI

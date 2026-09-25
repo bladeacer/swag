@@ -145,6 +145,9 @@ type InteractiveCmd struct {
 	Output string `help:"Output file. Asked for when it is empty." short:"o"`
 	Font   string `help:"Replace the font of every style and span." short:"n"`
 	Strict bool   `help:"Fail when the target format drops a feature." short:"s"`
+	// StrictCompat turns the integrity block off, so the output stays
+	// inside the original specification of the target format.
+	StrictCompat bool `help:"Write no integrity block, so the output stays inside the original format." short:"c"`
 }
 
 // Run asks for the missing choices, converts the file, and paints two
@@ -215,7 +218,7 @@ func (c *InteractiveCmd) Run(ictx *runContext) error {
 	}
 	defer closer()
 
-	opts := sub.Options{Target: target, Format: c.From, Font: c.Font}
+	opts := sub.Options{Target: target, Format: c.From, Font: c.Font, StrictCompat: c.StrictCompat}
 	if c.Strict {
 		opts.Loss = sub.LossStrict
 	}

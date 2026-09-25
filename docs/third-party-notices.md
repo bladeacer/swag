@@ -30,6 +30,16 @@ Clean-room statement: the maintainers studied the behaviour and public documenta
 
 `swag` names the tag tiers after the public Aegisub tag manual. No text from the manual is copied into this repository.
 
+### termenv
+
+| | |
+|---|---|
+| Upstream | [the termenv repository](https://github.com/muesli/termenv) |
+| Licence | [the MIT licence](https://github.com/muesli/termenv/blob/master/LICENSE) |
+| Use | Reference for the terminal palette query sequence |
+
+The plan for the terminal palette follows the sequence that termenv documents in public: a wait on the file descriptor, a change of the terminal mode, and a cursor position sentinel. No termenv code or comments are copied into this repository. [The terminal palette page](terminal-palette.md) records the plan.
+
 ## Vendored agent skill
 
 ### SimpleEnglish

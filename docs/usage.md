@@ -26,6 +26,7 @@ swag -i -- -odd-name.srt -f vtt
 | `--format` | `-f` | The target format name, for example `srt`. Overrides the output extension. The alias `--to` does the same. |
 | `--font` | `-n` | Replace the font of every style and every span before the write. |
 | `--strict` | `-s` | Fail when the target format drops a feature. |
+| `--strict-compat` | `-c` | Write no integrity block, so the output stays inside the original specification of the target format. |
 | `--verbose` | `-v` | Print the conversion report. |
 | `--locale` | `-l` | The message locale, `en-GB` or `en-US`. The `SWAG_LOCALE` environment variable sets the default. |
 | `--version` | `-V` | Print the version, the commit, and the build date. |
@@ -33,7 +34,7 @@ swag -i -- -odd-name.srt -f vtt
 
 `--strict` and `--font` work with the long form and with the short form. `-v` prints the report, and `-V` prints the version.
 
-The other commands carry the flags they need. `interactive` takes `-i`, `-F`, `-f` for the target, `-o`, `-n`, and `-s`. `preview` takes `-i`, `-F`, and `--limit` (`-m`), which bounds the cue rows.
+The other commands carry the flags they need. `interactive` takes `-i`, `-F`, `-f` for the target, `-o`, `-n`, `-s`, and `-c`. `preview` takes `-i`, `-F`, and `--limit` (`-m`), which bounds the cue rows.
 
 ## Examples
 
@@ -66,6 +67,12 @@ Fail a build when a conversion would drop a feature:
 
 ```sh
 swag -i in.ass -o out.srt --strict
+```
+
+Write a plain file for a tool outside `swag`:
+
+```sh
+swag -i in.ass -o out.srt --strict-compat
 ```
 
 ## Interactive mode
@@ -150,6 +157,8 @@ The result is that a three-way conversion keeps the exact content:
 swag -i in.ass -o mid.srt
 swag -i mid.srt -o out.ass   # identically named styles, ruby, karaoke, and effects
 ```
+
+The `--strict-compat` flag writes no block, so the output holds the plain cues and nothing else. The loss report stays complete, so the command still names every feature that the target drops. Use the flag when another tool must read the file and must not meet the block.
 
 ## Exit codes
 

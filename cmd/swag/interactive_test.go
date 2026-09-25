@@ -551,6 +551,31 @@ func TestRunInteractiveAsksForInput(t *testing.T) {
 	}
 }
 
+// TestRunInteractiveStrictCompat proves the flag reaches the write of the
+// interactive command.
+func TestRunInteractiveStrictCompat(t *testing.T) {
+	dir := t.TempDir()
+	in := filepath.Join(dir, "in.ass")
+	if err := os.WriteFile(in, []byte(assKaraokeFixture), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	out := filepath.Join(dir, "out.srt")
+	var screen strings.Builder
+	scriptInteractive(t, "", &screen)
+
+	code := run([]string{"interactive", "-i", in, "-f", "srt", "-o", out, "--strict-compat"})
+	if code != 0 {
+		t.Fatalf("run exit code = %d, want 0", code)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if strings.Contains(string(data), "NOTE swag-ir") {
+		t.Errorf("a strict interactive write must carry no block:\n%s", data)
+	}
+}
+
 // TestInteractiveHelpPage covers the help page of the new command.
 func TestInteractiveHelpPage(t *testing.T) {
 	if code := run([]string{"interactive", "--help"}); code != 0 {

@@ -67,6 +67,9 @@ type ConvertCmd struct {
 	Format string `help:"Target format name, for example srt or sbv. Overrides the output extension." short:"f" aliases:"to"`
 	Font   string `help:"Replace the font of every style and span." short:"n"`
 	Strict bool   `help:"Fail when the target format drops a feature." short:"s"`
+	// StrictCompat turns the integrity block off, so the output stays
+	// inside the original specification of the target format.
+	StrictCompat bool `help:"Write no integrity block, so the output stays inside the original format." short:"c"`
 }
 
 // Run executes the conversion command. A file input converts once. A
@@ -105,7 +108,7 @@ func (c *ConvertCmd) runFile(ictx *runContext) error {
 	}
 	defer closer()
 
-	opts := sub.Options{Target: target, Format: c.From, Font: c.Font}
+	opts := sub.Options{Target: target, Format: c.From, Font: c.Font, StrictCompat: c.StrictCompat}
 	if c.Strict {
 		opts.Loss = sub.LossStrict
 	}

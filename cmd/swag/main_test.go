@@ -300,6 +300,56 @@ func TestConvertCmdRunStrictFails(t *testing.T) {
 	}
 }
 
+// TestConvertCmdRunStrictCompat proves the flag removes the integrity block
+// from the written file, while the default write keeps it.
+func TestConvertCmdRunStrictCompat(t *testing.T) {
+	in := writeSubtitle(t, "in.ass", assKaraokeFixture)
+
+	loose := filepath.Join(t.TempDir(), "loose.srt")
+	if err := (&ConvertCmd{Input: in, Output: loose}).Run(newRunContext(false)); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if data, err := os.ReadFile(loose); err != nil {
+		t.Fatalf("read output: %v", err)
+	} else if !strings.Contains(string(data), "NOTE swag-ir") {
+		t.Fatalf("the default write must carry the block:\n%s", data)
+	}
+
+	strict := filepath.Join(t.TempDir(), "strict.srt")
+	c := &ConvertCmd{Input: in, Output: strict, StrictCompat: true}
+	if err := c.Run(newRunContext(false)); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	data, err := os.ReadFile(strict)
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if strings.Contains(string(data), "NOTE swag-ir") {
+		t.Errorf("a strict write must carry no block:\n%s", data)
+	}
+}
+
+// TestRunStrictCompatFlag covers the flag name and its short form through
+// the parser.
+func TestRunStrictCompatFlag(t *testing.T) {
+	in := writeSubtitle(t, "in.ass", assKaraokeFixture)
+	for _, flag := range []string{"--strict-compat", "-c"} {
+		t.Run(flag, func(t *testing.T) {
+			out := filepath.Join(t.TempDir(), "out.srt")
+			if code := run([]string{"convert", "-i", in, "-o", out, flag}); code != 0 {
+				t.Fatalf("run exit code = %d, want 0", code)
+			}
+			data, err := os.ReadFile(out)
+			if err != nil {
+				t.Fatalf("read output: %v", err)
+			}
+			if strings.Contains(string(data), "NOTE swag-ir") {
+				t.Errorf("%s must remove the block:\n%s", flag, data)
+			}
+		})
+	}
+}
+
 // TestBareRunArgs covers the shapes that carry no work: a bare run under
 // air, and the separator that `make run` passes.
 func TestBareRunArgs(t *testing.T) {

@@ -1,8 +1,11 @@
 package sub
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+
+	"github.com/bladeacer/swag/internal/envelope"
 )
 
 // LossPolicy decides what ConvertWith does with a degraded write.
@@ -32,6 +35,12 @@ type Options struct {
 	Font string
 	// Loss decides the handling of a degraded write.
 	Loss LossPolicy
+	// StrictCompat turns the integrity block off, so the output stays
+	// inside the original specification of the target format. A lossy
+	// write still reports every dropped feature, and it appends no block.
+	// The flag is off by default, because a reader outside swag ignores
+	// the block and reads the cues.
+	StrictCompat bool
 }
 
 // ConvertWith parses source with the options and renders the document to
@@ -46,7 +55,7 @@ func ConvertWith(fileName string, source io.Reader, opts Options, sink io.Writer
 		return nil, err
 	}
 	applyOptions(doc, opts)
-	losses, err := Render(doc, opts.Target, sink)
+	losses, err := renderTarget(doc, opts, sink)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +66,29 @@ func ConvertWith(fileName string, source io.Reader, opts Options, sink io.Writer
 		}
 	case LossSilent:
 		return nil, nil
+	}
+	return losses, nil
+}
+
+// renderTarget renders doc to sink. A strict conversion renders into
+// memory first, removes the integrity block, and writes the plain result.
+// The block is an extension of this project, and a target format that
+// cannot hold it never gains one.
+func renderTarget(doc *Document, opts Options, sink io.Writer) ([]string, error) {
+	target := sink
+	var buf bytes.Buffer
+	if opts.StrictCompat {
+		target = &buf
+	}
+	losses, err := Render(doc, opts.Target, target)
+	if err != nil {
+		return nil, err
+	}
+	if !opts.StrictCompat {
+		return losses, nil
+	}
+	if _, err := sink.Write(envelope.Strip(buf.Bytes())); err != nil {
+		return nil, fmt.Errorf("render %s: %w", opts.Target, err)
 	}
 	return losses, nil
 }

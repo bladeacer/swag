@@ -209,6 +209,72 @@ func payloadOf(t *testing.T, doc *model.Document) string {
 	return payload
 }
 
+func TestStripPlainBlock(t *testing.T) {
+	var out strings.Builder
+	out.WriteString("1\n00:00:01,000 --> 00:00:04,000\nplain\n\n")
+	if err := Write(&out, richDocument()); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	stripped := string(Strip([]byte(out.String())))
+	if strings.Contains(stripped, Marker) {
+		t.Errorf("the marker survived the strip:\n%s", stripped)
+	}
+	if !strings.HasSuffix(stripped, "plain\n") {
+		t.Errorf("the cue text did not survive:\n%q", stripped)
+	}
+}
+
+// TestStripPlainMarkerWithoutVersion covers the exact marker form, which
+// carries no version field.
+func TestStripPlainMarkerWithoutVersion(t *testing.T) {
+	got := string(Strip([]byte("cue\n" + Marker + "\nPAYLOAD\n")))
+	if got != "cue" {
+		t.Errorf("Strip = %q, want %q", got, "cue")
+	}
+}
+
+func TestStripXMLBlock(t *testing.T) {
+	var out strings.Builder
+	out.WriteString("<tt>\n  <body>\n")
+	if err := WriteXML(&out, "  ", richDocument()); err != nil {
+		t.Fatalf("WriteXML: %v", err)
+	}
+	out.WriteString("  </body>\n</tt>\n")
+	stripped := string(Strip([]byte(out.String())))
+	if strings.Contains(stripped, XMLMarker) || strings.Contains(stripped, xmlClose) {
+		t.Errorf("the comment survived the strip:\n%s", stripped)
+	}
+	want := "<tt>\n  <body>\n  </body>\n</tt>\n"
+	if stripped != want {
+		t.Errorf("Strip = %q, want %q", stripped, want)
+	}
+}
+
+// TestStripXMLMarkerWithoutVersion covers the exact XML marker form.
+func TestStripXMLMarkerWithoutVersion(t *testing.T) {
+	got := string(Strip([]byte("<tt>\n" + XMLMarker + "\nPAYLOAD\n" + xmlClose + "\n</tt>\n")))
+	want := "<tt>\n</tt>\n"
+	if got != want {
+		t.Errorf("Strip = %q, want %q", got, want)
+	}
+}
+
+// TestStripOpenComment covers a comment with no closing line. The input must
+// stay unchanged, so a damaged render does not lose its tail.
+func TestStripOpenComment(t *testing.T) {
+	in := []byte("<tt>\n" + XMLMarker + " " + Version + "\nPAYLOAD\n</tt>\n")
+	if got := Strip(in); string(got) != string(in) {
+		t.Errorf("an open comment must leave the input unchanged, got %q", got)
+	}
+}
+
+func TestStripWithoutBlock(t *testing.T) {
+	in := []byte("1\n00:00:01,000 --> 00:00:02,000\nplain\n")
+	if got := Strip(in); string(got) != string(in) {
+		t.Errorf("Strip changed a plain document: %q", got)
+	}
+}
+
 func TestWriteXMLSinkErrors(t *testing.T) {
 	counter := &countWriter{}
 	if err := WriteXML(counter, "  ", richDocument()); err != nil {

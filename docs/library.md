@@ -58,6 +58,7 @@ losses, err := sub.ConvertWith(fileName, source, sub.Options{
 - `Styles` renames a style on the way out. The key is the source name and the value the target name. A missing key keeps the name.
 - `Font` replaces the font of every style and every span. A writer may then snap the name to its own font list.
 - `Loss` decides the handling of a degraded write.
+- `StrictCompat` writes no integrity block, so the output stays inside the specification of the target format. The loss report stays complete. [The integrity page](integrity.md) describes the block.
 
 `LossPolicy` has three values:
 

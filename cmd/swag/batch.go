@@ -150,7 +150,7 @@ func (c *ConvertCmd) convertOne(plan batchPlan, t *i18n.T) ([]string, error) {
 		return nil, err
 	}
 	defer closer()
-	opts := sub.Options{Format: c.From, Target: plan.Target, Font: c.Font}
+	opts := sub.Options{Format: c.From, Target: plan.Target, Font: c.Font, StrictCompat: c.StrictCompat}
 	if c.Strict {
 		opts.Loss = sub.LossStrict
 	}

@@ -306,6 +306,23 @@ func TestConvertOneErrors(t *testing.T) {
 	}
 }
 
+// TestRunBatchStrictCompat proves the flag reaches every write of a batch
+// run, so no output gains an integrity block.
+func TestRunBatchStrictCompat(t *testing.T) {
+	dir := t.TempDir()
+	writeFileIn(t, dir, "a.ass", assKaraokeFixture)
+	if code := run([]string{"convert", "-i", dir, "-f", "srt", "--strict-compat"}); code != 0 {
+		t.Fatalf("run exit code = %d, want 0", code)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "a.srt"))
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if strings.Contains(string(data), "NOTE swag-ir") {
+		t.Errorf("a strict batch write must carry no block:\n%s", data)
+	}
+}
+
 // TestRunBatchThroughTheParser covers the command word and the flag path of
 // a batch run.
 func TestRunBatchThroughTheParser(t *testing.T) {

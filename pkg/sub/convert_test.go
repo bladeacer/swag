@@ -77,6 +77,61 @@ func TestConvertWithParseError(t *testing.T) {
 	}
 }
 
+// TestConvertWithStrictCompat proves the flag removes the integrity block
+// from the output and keeps the loss report.
+func TestConvertWithStrictCompat(t *testing.T) {
+	doc := assFixture(t, "karaoke.ass")
+	var assText strings.Builder
+	if _, err := Render(doc, "ass", &assText); err != nil {
+		t.Fatalf("render ass: %v", err)
+	}
+
+	var loose strings.Builder
+	losses, err := ConvertWith("in.ass", strings.NewReader(assText.String()), Options{Target: "srt"}, &loose)
+	if err != nil {
+		t.Fatalf("ConvertWith: %v", err)
+	}
+	if len(losses) == 0 {
+		t.Fatal("the fixture must provoke a loss")
+	}
+	if !strings.Contains(loose.String(), "NOTE swag-ir") {
+		t.Fatalf("the default write must carry the block:\n%s", loose.String())
+	}
+
+	var strict strings.Builder
+	strictLosses, err := ConvertWith("in.ass", strings.NewReader(assText.String()), Options{
+		Target:       "srt",
+		StrictCompat: true,
+	}, &strict)
+	if err != nil {
+		t.Fatalf("ConvertWith strict: %v", err)
+	}
+	if strings.Contains(strict.String(), "NOTE swag-ir") {
+		t.Errorf("a strict write must carry no block:\n%s", strict.String())
+	}
+	if len(strictLosses) != len(losses) {
+		t.Errorf("the loss report changed: strict %v, loose %v", strictLosses, losses)
+	}
+	// The block sits at the end, so the plain body is a prefix of the full
+	// output.
+	if !strings.HasPrefix(loose.String(), strict.String()) {
+		t.Errorf("the plain body changed:\nloose  %q\nstrict %q", loose.String(), strict.String())
+	}
+}
+
+func TestConvertWithSinkError(t *testing.T) {
+	if _, err := ConvertWith("in.srt", strings.NewReader(srtSample), Options{Target: "srt"}, failWriter{}); err == nil {
+		t.Fatal("a failing sink must surface an error")
+	}
+}
+
+func TestConvertWithStrictCompatSinkError(t *testing.T) {
+	opts := Options{Target: "srt", StrictCompat: true}
+	if _, err := ConvertWith("in.srt", strings.NewReader(srtSample), opts, failWriter{}); err == nil {
+		t.Fatal("a failing sink must surface an error in strict mode")
+	}
+}
+
 func TestConvertWithFormatOverride(t *testing.T) {
 	var out strings.Builder
 	losses, err := ConvertWith("in.unknown", strings.NewReader(srtSample), Options{

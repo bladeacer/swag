@@ -180,6 +180,46 @@ func Extract(lines []string) ([]string, *model.Document, error) {
 	return lines, nil, nil
 }
 
+// Strip removes an integrity block from a rendered document. It returns the
+// input unchanged when the document carries no block. A caller uses it for a
+// write that must stay inside the specification of the format, where the
+// block is an extension.
+//
+// The plain form sits at the end of the file, so the text before the marker
+// remains. The XML form sits inside a comment, so the comment leaves the
+// file and the elements around it stay.
+func Strip(data []byte) []byte {
+	lines := strings.Split(string(data), "\n")
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case trimmed == Marker || strings.HasPrefix(trimmed, Marker+" "):
+			return []byte(strings.Join(lines[:i], "\n"))
+		case trimmed == XMLMarker || strings.HasPrefix(trimmed, XMLMarker+" "):
+			end := commentEnd(lines, i)
+			if end < 0 {
+				return data
+			}
+			kept := make([]string, 0, len(lines))
+			kept = append(kept, lines[:i]...)
+			kept = append(kept, lines[end+1:]...)
+			return []byte(strings.Join(kept, "\n"))
+		}
+	}
+	return data
+}
+
+// commentEnd returns the index of the line that closes the XML comment that
+// opens at start, or -1 when the comment stays open.
+func commentEnd(lines []string, start int) int {
+	for i := start + 1; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) == xmlClose {
+			return i
+		}
+	}
+	return -1
+}
+
 // ExtractXML returns the document that the block of an XML file carries, or
 // nil when the file has no block. The block sits inside a comment, so the
 // XML reader of the format ignores it and no line has to be removed.

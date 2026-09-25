@@ -51,7 +51,7 @@ SubRip has no comment form, so the marker line reads as text to a strict parser.
 - A reader restores the embedded document in place of the plain cues. It does not merge the two.
 - A damaged block is an error, not a fallback. A file that looks truncated does not pass as a plain file.
 - An unsupported block version is an error, so a newer file never reads as an older one by accident.
-- The block reads and writes by default. A planned `--strict-compat` flag, scoped to v0.9.0, turns it off for a caller that must stay inside the original specification of the format. [The roadmap](../ROADMAP.md) carries the milestone.
+- The block writes by default. The `--strict-compat` flag turns the write off, so the output stays inside the original specification of the target format. The loss report stays complete, and a reader still restores the block that an input file carries. [The usage page](usage.md) records the flag.
 
 ## What this buys
 

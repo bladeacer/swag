@@ -47,4 +47,4 @@ The command creates nothing. A directory appears only when a later release write
 
 The file is TOML. [The roadmap](../ROADMAP.md) scopes the schema, its defaults, and its comments to v0.9.0. The planned settings carry feature parity with the command line: the default flags, the flag options, the locale, the preferred formats, the vim inspired keybinds, and the leader key.
 
-[The internationalisation page](i18n.md) covers the locale settings, and [the usage page](usage.md) covers the flags that the file will carry.
+[The internationalisation page](i18n.md) covers the locale settings, and [the usage page](usage.md) covers the flags that the file will carry. [The terminal palette page](terminal-palette.md) covers the theme source that sits behind the file.

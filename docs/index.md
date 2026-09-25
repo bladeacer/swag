@@ -21,6 +21,7 @@ Reference and governance:
 
 - [the architecture page](architecture.md): packages, the intermediate representation, the format matrix, and the ASS tag tiers
 - [the internationalisation page](i18n.md): the message catalogue, the locales, and how to add a language
+- [the terminal palette page](terminal-palette.md): the OSC query for the terminal colours, what the prototype found, and the plan for theming
 - [the testing notes](testing.md): coverage, fuzzing, and benchmarks
 - [the roadmap](../ROADMAP.md): scope and the ordered milestones to v1.0.0
 - [the contributor rules](../AGENTS.md): conventions for agent contributors, including the documentation language

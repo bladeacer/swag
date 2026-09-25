@@ -375,9 +375,11 @@ func TestRunConvertsEveryFormat(t *testing.T) {
 	}
 }
 
-func TestRunReportsADirectoryInput(t *testing.T) {
+// TestRunBatchNeedsATarget covers a directory input with no target format.
+// A batch run needs the format, because no output extension names it.
+func TestRunBatchNeedsATarget(t *testing.T) {
 	dir := t.TempDir()
-	if code := run([]string{"convert", "-i", dir, "-o", filepath.Join(dir, "out.sbv")}); code != 1 {
+	if code := run([]string{"convert", "-i", dir, "-o", filepath.Join(dir, "out")}); code != 1 {
 		t.Fatalf("run exit code = %d, want 1", code)
 	}
 }

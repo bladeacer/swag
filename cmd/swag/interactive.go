@@ -19,12 +19,12 @@ import (
 	"github.com/bladeacer/swag/pkg/sub"
 )
 
-// The interactive command reads its answers from interactiveIn and paints
-// its frames on interactiveOut. A test replaces the pair with a scripted
-// reader and a buffer.
+// The terminal commands read their answers from terminalIn and paint their
+// frames on terminalOut. A test replaces the pair with a scripted reader and
+// a buffer.
 var (
-	interactiveIn  io.Reader = os.Stdin
-	interactiveOut io.Writer = os.Stdout
+	terminalIn  io.Reader = os.Stdin
+	terminalOut io.Writer = os.Stdout
 )
 
 // prompter gathers the answers of the interactive command.
@@ -42,6 +42,10 @@ type prompter interface {
 var newPrompter = func(in io.Reader, out io.Writer, t *i18n.T) prompter {
 	return &linePrompter{in: bufio.NewReader(in), out: out, t: t}
 }
+
+// identify reports the format of the input file. It is a variable so a test
+// can force the failure branch.
+var identify = sub.Identify
 
 // linePrompter reads one answer per line and prints the questions with
 // pterm styling. It holds no terminal state, so it works on a pipe as well
@@ -87,7 +91,11 @@ func (p *linePrompter) askChoice(label string, options []string, defaultOption s
 			return "", err
 		}
 	}
-	if _, err := fmt.Fprintln(p.out, p.t.F(i18n.MsgInteractivePick, defaultOption)); err != nil {
+	question := p.t.F(i18n.MsgInteractivePick, defaultOption)
+	if defaultOption == "" {
+		question = p.t.S(i18n.MsgInteractivePickBare)
+	}
+	if _, err := fmt.Fprintln(p.out, question); err != nil {
 		return "", err
 	}
 	answer, err := p.readLine()
@@ -132,6 +140,7 @@ func (p *linePrompter) readLine() (string, error) {
 // result. A value given on the command line skips its question.
 type InteractiveCmd struct {
 	Input  string `help:"Input subtitle file. Asked for when it is empty." short:"i"`
+	From   string `help:"Input format name. The content decides when it is empty." short:"F" aliases:"input-format"`
 	Target string `help:"Target format name. Asked for when it is empty." short:"f" aliases:"to"`
 	Output string `help:"Output file. Asked for when it is empty." short:"o"`
 	Font   string `help:"Replace the font of every style and span." short:"n"`
@@ -143,8 +152,8 @@ type InteractiveCmd struct {
 // the rows that differ between the two.
 func (c *InteractiveCmd) Run(ictx *runContext) error {
 	t := ictx.T
-	p := newPrompter(interactiveIn, interactiveOut, t)
-	renderer := tui.NewRenderer(interactiveOut)
+	p := newPrompter(terminalIn, terminalOut, t)
+	renderer := tui.NewRenderer(terminalOut)
 
 	input := c.Input
 	if input == "" {
@@ -166,7 +175,7 @@ func (c *InteractiveCmd) Run(ictx *runContext) error {
 	if err != nil {
 		return fmt.Errorf("%s", t.F(i18n.MsgInputUnreadable, err))
 	}
-	detected, err := sub.Identify(input, bytes.NewReader(data))
+	detected, err := identify(input, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
@@ -189,6 +198,13 @@ func (c *InteractiveCmd) Run(ictx *runContext) error {
 		output = answer
 	}
 
+	// The preview needs the document, so the parse happens here and an
+	// unreadable file fails before the first frame.
+	doc, err := sub.Parse(input, bytes.NewReader(data), c.From)
+	if err != nil {
+		return err
+	}
+
 	if _, err := renderer.Draw(gatherLayout(t, input, detected, target, output)); err != nil {
 		return err
 	}
@@ -199,7 +215,7 @@ func (c *InteractiveCmd) Run(ictx *runContext) error {
 	}
 	defer closer()
 
-	opts := sub.Options{Target: target, Font: c.Font}
+	opts := sub.Options{Target: target, Format: c.From, Font: c.Font}
 	if c.Strict {
 		opts.Loss = sub.LossStrict
 	}
@@ -207,11 +223,18 @@ func (c *InteractiveCmd) Run(ictx *runContext) error {
 	if err != nil {
 		return err
 	}
-	if _, err := renderer.Draw(resultLayout(t, input, detected, target, output, losses)); err != nil {
+	result := resultLayout(t, input, detected, target, output, losses)
+	result.Rows = append(result.Rows, "")
+	result.Rows = append(result.Rows, previewRows(t, doc, interactivePreviewLimit, terminalColour())...)
+	if _, err := renderer.Draw(result); err != nil {
 		return err
 	}
 	return nil
 }
+
+// interactivePreviewLimit is the number of cue rows the interactive result
+// shows before it summarises the rest.
+const interactivePreviewLimit = 10
 
 // gatherLayout is the frame that shows the chosen conversion.
 func gatherLayout(t *i18n.T, input, detected, target, output string) tui.Layout {

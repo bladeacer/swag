@@ -37,6 +37,18 @@ A conversion that must not drop a feature fails instead, which suits a build or 
 swag -i in.ass -o out.srt --strict
 ```
 
+Prefer a prompt to a flag list? The interactive command asks for the input, the target, and the output, then shows the result:
+
+```sh
+swag interactive
+```
+
+Convert a whole directory, and write several formats at once:
+
+```sh
+swag -i captions/ -f srt,vtt -o converted/
+```
+
 A three-way conversion keeps the exact document. A plain writer appends an integrity block that holds the whole document, so SubRip and SBV carry ruby text, karaoke, and styling through the tool while a plain player shows plain subtitles:
 
 ```sh
@@ -44,7 +56,7 @@ swag -i in.ass -o mid.srt
 swag -i mid.srt -o out.ass
 ```
 
-[The usage page](docs/usage.md) covers the flags, the format detection, and the exit codes. [The install page](docs/install.md) covers releases, builds from source, and the development loop.
+[The usage page](docs/usage.md) covers the flags, the interactive mode, the batch conversion, the preview, the format detection, and the exit codes. [The install page](docs/install.md) covers releases, builds from source, and the development loop.
 
 ## Supported formats
 
@@ -65,11 +77,11 @@ swag -i mid.srt -o out.ass
 ## What makes it different
 
 - **No silent loss.** Every writer returns a complete loss report for its target, and `--strict` turns a report into a failure. [The loss report review](docs/loss-report.md) documents every entry.
-- **Fidelity across a chain.** [The integrity block](docs/integrity.md) keeps a full document inside a plain SubRip or SBV file, so a conversion through a plain format returns the same document.
+- **Fidelity across a chain.** [The integrity block](docs/integrity.md) keeps a full document inside a SubRip, SBV, WebVTT, or TTML file, so a conversion through one of those formats returns the same document.
 - **Platform quirks handled.** The YouTube writer applies the quirks of the upload path, from the font allow-list to the zero-width space that keeps a pen. [The format notes](docs/formats.md) list them.
 - **A library as well as a command.** [The library guide](docs/library.md) covers the conversion API, with style renaming, a font override, and a loss policy.
 - **Tested to the last statement.** The module holds 100 percent statement coverage, a fuzz target for every reader, and benchmarks over a ten-thousand-cue document. [The testing notes](docs/testing.md) cover all three.
-- **Localised output.** Every user-facing message comes from the message catalogue, with `en-GB` as the default and `fr-FR` as the second locale. [The internationalisation page](docs/i18n.md) shows how to add a language.
+- **Localised output.** Every user-facing message comes from the message catalogue, with `en-GB` as the default and `en-US` as the second locale. [The internationalisation page](docs/i18n.md) shows how to add a language and states the translation guidelines.
 
 ## Library
 
@@ -98,7 +110,7 @@ losses, err := sub.Render(doc, "vtt", sink)
 
 ## Status
 
-The project is in development. [The roadmap](ROADMAP.md) carries the milestones to v1.0.0 and [the changelog index](docs/changelogs/index.md) carries the releases. The v0.7.0 release adds the configured conversion API, the integrity block for the plain formats, the JSON1 version chain, the WebVTT voice span, the second locale, and the reference docs. The v0.6.0 release closes the ASS tag list and adds the TTML, WebVTT, Kdenlive, and JSON1 formats. The v0.5.0 release adds the ASS writer, and the v0.4.0 release adds the ASS reader. The YouTube pair (YTT and SRV3) arrives in v0.3.0, and the plain formats (SRT and SBV) in v0.2.0.
+The project is in development. [The roadmap](ROADMAP.md) carries the milestones to v1.0.0 and [the changelog index](docs/changelogs/index.md) carries the releases. The v0.8.0 release adds the interactive mode, the layout-diffing renderer, the `--from` flag, the shorthands, and the widened integrity block. The v0.7.0 release adds the configured conversion API, the integrity block for the plain formats, the JSON1 version chain, the WebVTT voice span, the second locale, and the reference docs. The v0.6.0 release closes the ASS tag list and adds the TTML, WebVTT, Kdenlive, and JSON1 formats. The v0.5.0 release adds the ASS writer, and the v0.4.0 release adds the ASS reader. The YouTube pair (YTT and SRV3) arrives in v0.3.0, and the plain formats (SRT and SBV) in v0.2.0.
 
 The project started as a clean-room reimagining of [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter). We thank that project for the inspiration. All code here is original. [The third-party notices](docs/third-party-notices.md) record the attribution.
 

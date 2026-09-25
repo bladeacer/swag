@@ -87,6 +87,7 @@ const (
 	MsgConvertLosses    Key = "convert.losses"
 	MsgUsageFailed      Key = "error.usage"
 	MsgUsageBare        Key = "usage.bare"
+	MsgUsageCommands    Key = "usage.commands"
 	MsgInputMissing     Key = "error.input-missing"
 	MsgInputUnreadable  Key = "error.input-unreadable"
 	MsgInputIsDirectory Key = "error.input-is-directory"
@@ -102,6 +103,7 @@ const (
 	MsgInteractivePrompt     Key = "interactive.prompt"
 	MsgInteractivePromptBare Key = "interactive.prompt-bare"
 	MsgInteractivePick       Key = "interactive.pick"
+	MsgInteractivePickBare   Key = "interactive.pick-bare"
 	MsgInteractiveChoice     Key = "interactive.choice"
 	MsgInteractiveRead       Key = "interactive.read"
 	MsgInteractiveNone       Key = "interactive.none"
@@ -109,6 +111,22 @@ const (
 	MsgInteractiveTargetLine Key = "interactive.line.target"
 	MsgInteractiveOutputLine Key = "interactive.line.output"
 	MsgInteractiveLosses     Key = "interactive.losses"
+
+	MsgBatchFormatMissing Key = "batch.format-missing"
+	MsgBatchTitle         Key = "batch.title"
+	MsgBatchDone          Key = "batch.done"
+	MsgBatchEmpty         Key = "batch.empty"
+	MsgBatchRead          Key = "batch.read"
+	MsgBatchFailed        Key = "batch.failed"
+	MsgBatchLosses        Key = "batch.losses"
+
+	MsgPreviewTitle    Key = "preview.title"
+	MsgPreviewStyles   Key = "preview.styles"
+	MsgPreviewTimeline Key = "preview.timeline"
+	MsgPreviewNoStyles Key = "preview.no-styles"
+	MsgPreviewNoCues   Key = "preview.no-cues"
+	MsgPreviewMore     Key = "preview.more"
+	MsgPreviewStatus   Key = "preview.status"
 )
 
 // enGB is the default message set. Values follow the simple-english rules:
@@ -125,6 +143,7 @@ var enGB = map[Key]string{
 	MsgConvertLosses:    "Features the target format does not carry (%d):",
 	MsgUsageFailed:      "The command line could not be read. %s",
 	MsgUsageBare:        "Give the input file with -i and the target format with -f. Run swag --help to read every flag.",
+	MsgUsageCommands:    "The commands are %s. A bare run converts, because convert is the default command. Run swag <command> --help for the flags of one command.",
 	MsgInputMissing:     "The input file does not exist. Give the path of a subtitle file with -i.",
 	MsgInputUnreadable:  "The input file could not be read. %s",
 	MsgInputIsDirectory: "The input path %s is a directory. Give the path of a subtitle file.",
@@ -140,6 +159,7 @@ var enGB = map[Key]string{
 	MsgInteractivePrompt:     "%s [%s]:",
 	MsgInteractivePromptBare: "%s:",
 	MsgInteractivePick:       "Choose a number, or press Enter for %s:",
+	MsgInteractivePickBare:   "Choose a number:",
 	MsgInteractiveChoice:     "The answer %s is not one of the numbers. Answer with the number of a choice.",
 	MsgInteractiveRead:       "The answer could not be read. %s",
 	MsgInteractiveNone:       "No format is registered, so there is nothing to choose.",
@@ -147,6 +167,22 @@ var enGB = map[Key]string{
 	MsgInteractiveTargetLine: "Target: %s",
 	MsgInteractiveOutputLine: "Output: %s",
 	MsgInteractiveLosses:     "The target format does not carry %d features.",
+
+	MsgBatchFormatMissing: "A directory needs a target format. Name one with -f, for example -f vtt. A comma separates several targets.",
+	MsgBatchTitle:         "Converting %d files",
+	MsgBatchDone:          "Converted %d files.",
+	MsgBatchEmpty:         "No subtitle file was found in %s.",
+	MsgBatchRead:          "The directory %s could not be read.",
+	MsgBatchFailed:        "%d files failed. The first failure: %s",
+	MsgBatchLosses:        "%s lost %d features.",
+
+	MsgPreviewTitle:    "swag preview",
+	MsgPreviewStyles:   "Styles",
+	MsgPreviewTimeline: "Timeline",
+	MsgPreviewNoStyles: "The document carries no style.",
+	MsgPreviewNoCues:   "The document carries no cue.",
+	MsgPreviewMore:     "and %d more cues",
+	MsgPreviewStatus:   "%d styles, %d cues.",
 }
 
 // T is a catalogue bound to one locale. It is safe for concurrent use.

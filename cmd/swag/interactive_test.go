@@ -14,13 +14,13 @@ import (
 	"github.com/bladeacer/swag/internal/tui"
 )
 
-// scriptInteractive replaces the two streams of the interactive command
-// with a scripted reader and a buffer, and restores them afterwards.
+// scriptInteractive replaces the two streams of the terminal commands with
+// a scripted reader and a buffer, and restores them afterwards.
 func scriptInteractive(t *testing.T, script string, out io.Writer) {
 	t.Helper()
-	originalIn, originalOut := interactiveIn, interactiveOut
-	interactiveIn, interactiveOut = strings.NewReader(script), out
-	t.Cleanup(func() { interactiveIn, interactiveOut = originalIn, originalOut })
+	originalIn, originalOut := terminalIn, terminalOut
+	terminalIn, terminalOut = strings.NewReader(script), out
+	t.Cleanup(func() { terminalIn, terminalOut = originalIn, originalOut })
 }
 
 // stubPrompter returns fixed answers and writes nothing.
@@ -187,10 +187,30 @@ func TestLinePrompterAskChoiceErrors(t *testing.T) {
 		t.Fatal("an empty input must fail the read")
 	}
 
-	// So does a write error on the option list.
-	p = newPrompter(strings.NewReader("1\n"), &failAtWriter{failAt: 2}, i18n.New("en-GB")).(*linePrompter)
-	if _, err := p.askChoice("Target format", options, "ass"); err == nil {
-		t.Fatal("a failing sink must surface the error")
+	// So does a write error on every line of the question: the label, an
+	// option, and the pick line.
+	for _, failAt := range []int{1, 2, len(options) + 2} {
+		p = newPrompter(strings.NewReader("1\n"), &failAtWriter{failAt: failAt}, i18n.New("en-GB")).(*linePrompter)
+		if _, err := p.askChoice("Target format", options, "ass"); err == nil {
+			t.Errorf("a sink that fails on write %d must surface the error", failAt)
+		}
+	}
+}
+
+// TestLinePrompterAskChoiceWithoutDefault covers the pick line of a
+// question with no default, which carries no value to name.
+func TestLinePrompterAskChoiceWithoutDefault(t *testing.T) {
+	var out strings.Builder
+	p := newPrompter(strings.NewReader("1\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	answer, err := p.askChoice("Target format", []string{"ass", "srt"}, "")
+	if err != nil {
+		t.Fatalf("askChoice: %v", err)
+	}
+	if answer != "ass" {
+		t.Fatalf("askChoice = %q, want the first option", answer)
+	}
+	if strings.Contains(out.String(), "Enter for") {
+		t.Fatalf("a question with no default must not promise one:\n%s", out.String())
 	}
 }
 
@@ -330,17 +350,12 @@ func TestInteractiveCmdRunErrors(t *testing.T) {
 	if err := os.WriteFile(good, []byte(srtFixture), 0o644); err != nil {
 		t.Fatalf("write fixture: %v", err)
 	}
-	odd := filepath.Join(dir, "in.txt")
-	if err := os.WriteFile(odd, []byte("not a subtitle\n"), 0o644); err != nil {
-		t.Fatalf("write fixture: %v", err)
-	}
 
 	tests := []struct {
 		name string
 		cmd  InteractiveCmd
 	}{
 		{"missing input", InteractiveCmd{Input: filepath.Join(dir, "nope.srt"), Target: "vtt"}},
-		{"no format", InteractiveCmd{Input: odd, Target: "vtt"}},
 		{"bad target", InteractiveCmd{Input: good, Target: "bogus", Output: filepath.Join(dir, "o.bin")}},
 		{"bad output", InteractiveCmd{Input: good, Target: "vtt", Output: filepath.Join(dir, "no", "o.vtt")}},
 	}
@@ -356,23 +371,88 @@ func TestInteractiveCmdRunErrors(t *testing.T) {
 	}
 }
 
-// TestInteractiveCmdRunReadErrors covers a failing open and a failing read
-// of the input file.
+// TestInteractiveCmdRunUnknownContent covers a file that exists but carries
+// no signature the tool knows, so the target question arrives with no
+// default to offer.
+func TestInteractiveCmdRunUnknownContent(t *testing.T) {
+	dir := t.TempDir()
+	odd := filepath.Join(dir, "in.txt")
+	if err := os.WriteFile(odd, []byte("not a subtitle\n"), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	out := filepath.Join(dir, "out.srt")
+	var screen strings.Builder
+	// The target answer by name, then the output answer. The input format
+	// comes from the flag, because the content carries no signature.
+	scriptInteractive(t, "srt\n"+out+"\n", &screen)
+
+	cmd := &InteractiveCmd{Input: odd, From: "srt"}
+	if err := cmd.Run(newRunContext(false)); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if !strings.Contains(screen.String(), "Target format") {
+		t.Fatalf("the target question is missing:\n%s", screen.String())
+	}
+	if !strings.Contains(screen.String(), "Choose a number:") {
+		t.Fatalf("a question with no default must not promise one:\n%s", screen.String())
+	}
+}
+
+// TestInteractiveCmdRunBadInputFormat covers a named input format that the
+// registry cannot read, so the parse fails before the first frame.
+func TestInteractiveCmdRunBadInputFormat(t *testing.T) {
+	dir := t.TempDir()
+	in := filepath.Join(dir, "in.srt")
+	if err := os.WriteFile(in, []byte(srtFixture), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	var screen strings.Builder
+	scriptInteractive(t, "", &screen)
+
+	cmd := &InteractiveCmd{Input: in, From: "bogus", Target: "vtt", Output: filepath.Join(dir, "out.vtt")}
+	if err := cmd.Run(newRunContext(false)); err == nil {
+		t.Fatal("an unknown input format must fail")
+	}
+}
+
+// TestInteractiveCmdRunReadErrors covers a failing open, a failing read, and
+// a failing identification of the input file. Each case needs a real file,
+// because the input check runs first.
 func TestInteractiveCmdRunReadErrors(t *testing.T) {
-	original := openInput
-	t.Cleanup(func() { openInput = original })
+	dir := t.TempDir()
+	good := filepath.Join(dir, "in.srt")
+	if err := os.WriteFile(good, []byte(srtFixture), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	originalOpen, originalIdentify := openInput, identify
+	t.Cleanup(func() { openInput, identify = originalOpen, originalIdentify })
 	tr := newRunContext(false)
 
 	var screen strings.Builder
 	scriptInteractive(t, "", &screen)
+
 	openInput = func(string) (io.ReadCloser, error) { return nil, errors.New("denied") }
-	if err := (&InteractiveCmd{Input: "in.srt", Target: "vtt"}).Run(tr); err == nil {
+	if err := (&InteractiveCmd{Input: good, Target: "vtt"}).Run(tr); err == nil {
 		t.Fatal("a failed open must fail the command")
 	}
 
 	openInput = func(string) (io.ReadCloser, error) { return brokenReadCloser{}, nil }
-	if err := (&InteractiveCmd{Input: "in.srt", Target: "vtt"}).Run(tr); err == nil {
+	if err := (&InteractiveCmd{Input: good, Target: "vtt"}).Run(tr); err == nil {
 		t.Fatal("a failed read must fail the command")
+	}
+
+	openInput = originalOpen
+	identify = func(string, io.Reader) (string, error) { return "", errors.New("boom") }
+	if err := (&InteractiveCmd{Input: good, Target: "vtt"}).Run(tr); err == nil {
+		t.Fatal("a failed identification must fail the command")
+	}
+	identify = originalIdentify
+
+	// The round trip back to the real identification still works, and the
+	// font override reaches the conversion.
+	out := filepath.Join(dir, "out.vtt")
+	if err := (&InteractiveCmd{Input: good, Target: "vtt", Output: out, Font: "Courier"}).Run(tr); err != nil {
+		t.Fatalf("Run with a font override: %v", err)
 	}
 }
 
@@ -415,11 +495,11 @@ func TestInteractiveCmdRunDrawErrors(t *testing.T) {
 	}
 
 	for _, failAt := range []int{1, 2} {
-		original := interactiveOut
-		interactiveOut = &failAtWriter{failAt: failAt}
+		original := terminalOut
+		terminalOut = &failAtWriter{failAt: failAt}
 		cmd := &InteractiveCmd{Input: in, Target: "vtt", Output: filepath.Join(dir, "out.vtt")}
 		err := cmd.Run(tr)
-		interactiveOut = original
+		terminalOut = original
 		if err == nil {
 			t.Errorf("a screen that fails on write %d must fail the command", failAt)
 		}

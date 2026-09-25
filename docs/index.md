@@ -28,6 +28,7 @@ Reference and governance:
 Release notes, in Keep a Changelog form:
 
 - [the changelog index](changelogs/index.md): every release
+- [the v0.8.0 notes](changelogs/v0.8.0.md): the interactive command, the layout-diffing renderer, and the command line ergonomics
 - [the v0.7.0 notes](changelogs/v0.7.0.md): the conversion API, the plain format integrity block, and the reference docs
 - [the v0.6.0 notes](changelogs/v0.6.0.md): the ASS tag closure and the new formats
 - [the v0.5.0 notes](changelogs/v0.5.0.md): the ASS writer release

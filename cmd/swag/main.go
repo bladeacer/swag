@@ -30,6 +30,17 @@ var (
 // flags.
 const convertCommand = "convert"
 
+// interactiveCommand names the command that asks for the conversion
+// choices, and previewCommand the command that paints a document.
+const (
+	interactiveCommand = "interactive"
+	previewCommand     = "preview"
+)
+
+// commandNames lists the commands of the grammar, in the order the help page
+// names them. The struct fields below carry the same names.
+var commandNames = []string{convertCommand, interactiveCommand, previewCommand}
+
 // CLI is the kong grammar of the command. Every flag carries a short form,
 // so `-i in.srt` and `--input in.srt` both work.
 type CLI struct {
@@ -42,6 +53,7 @@ type CLI struct {
 	// the command word.
 	Convert     ConvertCmd     `cmd:"" help:"Convert a subtitle file to another format." default:"withargs"`
 	Interactive InteractiveCmd `cmd:"" help:"Ask for the input, the target, and the output, then show the result."`
+	Preview     PreviewCmd     `cmd:"" help:"Paint the colours, the styles, and the karaoke timeline of a document."`
 }
 
 // ConvertCmd carries the conversion flags.
@@ -54,13 +66,24 @@ type ConvertCmd struct {
 	Strict bool   `help:"Fail when the target format drops a feature." short:"s"`
 }
 
-// Run executes the conversion command.
+// Run executes the conversion command. A file input converts once. A
+// directory input converts every subtitle under it, one output per target
+// format.
 func (c *ConvertCmd) Run(ictx *runContext) error {
+	info, err := os.Stat(c.Input)
+	if err != nil {
+		return fmt.Errorf("%s", ictx.T.S(i18n.MsgInputMissing))
+	}
+	if info.IsDir() {
+		return c.runBatch(ictx)
+	}
+	return c.runFile(ictx)
+}
+
+// runFile converts one input file.
+func (c *ConvertCmd) runFile(ictx *runContext) error {
 	verbose := ictx.CLI.Verbose
 
-	if err := checkInput(c.Input, ictx.T); err != nil {
-		return err
-	}
 	target, err := resolveTarget(c, ictx.T)
 	if err != nil {
 		return err
@@ -235,11 +258,14 @@ func helpArgs(args []string) []string {
 }
 
 // printHelp prints the help page. It traces the remaining arguments, so a
-// run that names a command shows the page of that command, and an empty one
-// shows the page of the default command, which lists every flag. A bad
-// argument reports an error instead of gaining a page of its own.
-func printHelp(parser *kong.Kong, args []string) error {
+// run that names a command shows the page of that command. A bare run names
+// the commands first, then shows the page of the default command, which
+// carries the conversion flags. A bad argument reports an error instead of
+// gaining a page of its own.
+func printHelp(parser *kong.Kong, args []string, t *i18n.T) error {
 	if len(args) == 0 {
+		pterm.Println(t.F(i18n.MsgUsageCommands, strings.Join(commandNames, ", ")))
+		pterm.Println()
 		args = []string{convertCommand}
 	}
 	// Trace reports a bad argument in the context, and its own error return
@@ -278,7 +304,7 @@ func run(args []string) int {
 		kong.Vars{"version": versionLine(envCopy)},
 	)
 	if isHelp(args) {
-		if err := printHelp(parser, helpArgs(args)); err != nil {
+		if err := printHelp(parser, helpArgs(args), envCopy); err != nil {
 			pterm.Error.Printf(envCopy.S(i18n.MsgUsageFailed), err)
 			return 1
 		}

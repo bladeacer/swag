@@ -108,6 +108,8 @@ The reader is narrower than the specification in these places:
 - Class spans (`<c.class>`), language spans, and timestamp tags are dropped with their text kept.
 - A `position` setting becomes a percentage of the video width, so a position written from another format returns as the same percentage rather than as the same pixel.
 
+A lossy write appends [the integrity block](integrity.md) as a `NOTE` block, which WebVTT treats as a comment. The format therefore keeps a document whole inside `swag` while a plain player sees plain cues.
+
 ## TTML (ttml)
 
 **Support.** The reader covers the YouTube TTML dialect. It reads the named styles of the `styling` section and the placements of the `layout` section, then maps a style onto the document styles and onto the spans of its paragraph. A style reference may extend another style, and the reader merges the chain. It maps a region onto the cue anchor and position. It reads the timing from the `begin` and `end` attributes, or from `begin` and `dur`, and the karaoke timing from the `begin` attribute of a run. It accepts the clock forms `HH:MM:SS`, `HH:MM:SS.mmm`, `HH:MM:SS:FF`, and `MM:SS`, plus the offset forms with an `h`, `m`, `s`, `ms`, or `f` unit.
@@ -118,6 +120,8 @@ The writer emits general TTML: one `style` element per document style, one `regi
 
 **Caveats and limitations.** The writer reports a cue fade, a cue move, an animation, a glyph scale, a shadow, vertical text, packing, a right-to-left marking, a script offset, ruby text, and a voice name. A ruby reading falls back to bracketed text. The writer emits clock times and no `ttp:` frame rate attributes, so a frame-based source writes as clock values. The reader takes a frame value as one thirtieth of a second, because it does not read the frame rate of the document. The reader is deliberately lenient, so it accepts a document that a strict validator would refuse.
 
+A lossy write appends [the integrity block](integrity.md) as an XML comment inside the body. Every XML reader ignores a comment, so the document stays valid, and the block sits inside the root element.
+
 ## Kdenlive subtitle JSON (kdenlive)
 
 **Support.** Kdenlive keeps a subtitle track as a JSON array. Each element carries a `layer`, the `startPos` in seconds, and the `dialogue` as an ASS event line. The event line holds the layer, the start, the end, the style, the name, the margins, the effect, and the text, with the two-character sequence `\N` for a line break.
@@ -127,6 +131,8 @@ The reader takes the start from `startPos` and the end from the event line. It t
 **Specification.** [The Kdenlive subtitle tool](https://docs.kdenlive.org/en/effects_and_filters/subtitles.html) documents the feature from the user side, and [the subtitle model source](https://invent.kde.org/multimedia/kdenlive/-/blob/master/src/bin/model/subtitlemodel.cpp) carries the file shape. The format has no published schema, so this reader follows the fields that Kdenlive writes.
 
 **Caveats and limitations.** The writer reports karaoke timing, positioning, an animation, inline styling, a glyph scale, vertical text, packing, a right-to-left marking, a script offset, ruby text, and a voice name. Kdenlive writes a start position in seconds as a floating point value, so a time below one microsecond cannot be carried exactly. The reader needs the dialogue field to hold a well formed event line; an element without one is an error rather than a skipped entry.
+
+The format carries no integrity block. Kdenlive keeps a subtitle track as a strict JSON array, so the file has no place for a comment or a marker. The writer reports the loss, and a conversion through JSON1 keeps the content.
 
 ## Lossless JSON exchange (json1)
 

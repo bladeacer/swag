@@ -95,12 +95,20 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 - [x] Docs: per-format notes with the specification, the support, and the caveats and limits of each format, a library usage guide, an install page, a usage page, a file integrity page, a JSON1 page, and an internationalisation page
 
 ### v0.8.0: terminal UI
-- [ ] `swag interactive`: pterm interactive mode (pick input, detect format, pick target, show report)
-- [ ] Batch conversion (`swag convert dir/`) with pterm progress bars and multi-writer output
-- [ ] Colour and style previews rendered in the terminal (ANSI, best effort)
-- [ ] Karaoke timeline preview in the terminal
+- [x] `swag interactive`: pick the input, detect the format, pick the target, show the result
+- [x] A layout-diffing renderer (`internal/tui`) that writes no bytes for an unchanged frame and repaints only the changed rows
+- [x] `--from`/`-F`, a short form for every flag, the `--` separator, the `help` and `convert` words, and a theme-neutral banner
+- [x] The integrity block for WebVTT and TTML, with the XML comment form for the XML format
+- [x] Batch conversion (`swag convert dir/`) with pterm progress bars and multi-writer output
+- [x] Colour and style previews rendered in the terminal (ANSI, best effort), as `swag preview` and in the interactive result frame
+- [x] Karaoke timeline preview in the terminal
 
-### v0.9.0: release candidate
+### v0.9.0: configuration, compatibility, and release candidate
+- [ ] Vim inspired keybinds for the interactive mode, with support for multi-key chords such as `Ctrl+Shift+R` and `Alt+Y`, and a leader key that a bind writes as `<leader>`
+- [ ] A TOML configuration file with feature parity to the command line: default flags, flag options, the locale, the preferred formats, and custom keybinds. The repository ships the file with its defaults, its other valid options, and comments for each setting
+- [ ] `--strict-compat`: turn the integrity block off, so a read and a write stay inside the original specification of the format. The flag is off by default, because a reader that ignores the block still reads the cues
+- [ ] Locale selection from the active operating system locale. An unsupported locale falls back to `en-US`, this also means changing the default locale to `en-US` as it is a more sensible default for most users
+- [ ] A parallel conversion flag that spreads the work across the CPU cores. The default is `max_cores - 2`, a caller can name a count, and zero uses every core
 - [ ] Public API freeze review. Deprecation notes for anything we cut.
 - [ ] Full doc sweep under `docs/` with the simple-english skill (CHECK mode pass)
 - [ ] Compatibility notes: tested players and platforms matrix published
@@ -108,6 +116,7 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 - [ ] Signed release tags and changelog discipline verified from v0.1.0 onward
 
 ### v1.0.0: stable
+- [ ] A performance audit with the Go profiling tools (`pprof` and `go tool trace`) as well as `strace` and `perf`, over the parse, the render, and the conversion of every format, with the bottlenecks it finds recorded and either fixed or documented
 - [ ] SemVer stability guarantee published for `pkg/sub` (breaking changes only at 2.0.0)
 - [ ] Guilt-free WASM: `swag` compiles and runs core conversions in a browser demo page
 - [ ] All matrix cells shipped or explicitly deferred with an issue link
@@ -115,6 +124,7 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 
 ## Stretch goals (post-1.0 candidates)
 
+- [ ] Survey the subtitle formats that the tool does not support, and add the ones that carry the most value. The candidates include SSA version 4, MicroDVD, SAMI, WebVTT regions and chapters, Universal Subtitle Format, and the broadcast formats below.
 - [ ] Simple subtitle editor: start terminal-native with pterm (cue list editor, style editor, live karaoke preview). Web (WASM + a light widget layer) after 1.0 if the terminal editor finds users. Native widget toolkit stays out of scope until then.
 - [ ] SCC/CEA-608 writer on the 32-column grid
 - [ ] FCPXML caption writer for NLE round-trips

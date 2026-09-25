@@ -8,19 +8,22 @@ Run `go test -cover ./...` for a package summary, or `make cover` for the per-fu
 
 Each package carries its own tests next to the code. Reader and writer pairs have a round-trip test over a fixture under `internal/formats/<format>/testdata/`. Every shipped writer also appears in [the cross-check suite](../internal/formats/ass/crosscheck_test.go), which runs an ASS fixture through the writer and asserts its loss report.
 
-Four suites sit above the package tests:
+Several suites sit above the package tests:
 
 - [The cross-check chains](../internal/formats/ass/crosscheck_test.go) run one fixture per reader through a sequence of two or more formats and back, so the readers and the writers compose.
 - [The integrity test](../pkg/sub/integrity_test.go) proves that a conversion through SubRip or SBV returns the exact document. It covers the ASS fixtures and the karaoke fixture.
 - [The exchange suite](../pkg/sub/e2e_test.go) reads every format, writes the document as JSON1, and reads it back, so the lossless hop holds for every reader.
 - [The voice span suite](../pkg/sub/voice_test.go) pins what each format does with a speaker name, from the formats that keep it to the ones that report the loss.
 - [The command line suite](../cmd/swag/main_test.go) walks every registered target through the real command and back, including the bare run and the default command form.
+- [The renderer suite](../internal/tui/tui_test.go) proves the layout diff: an unchanged frame writes no bytes, a changed frame repaints only the changed rows, and a shorter frame clears the rows it leaves out.
+- [The interactive suite](../cmd/swag/interactive_test.go) drives the prompts and the frames through a scripted reader, so a whole conversion runs with no terminal.
+- [The batch and preview suites](../cmd/swag/batch_test.go) cover the directory walk, the target list, the output directory, and the preview rows.
 
 ## Fuzzing
 
 Every reader has a fuzz target in [the fuzz file](../pkg/sub/fuzz_test.go). A target parses an arbitrary string, then renders the result as JSON1, so a reader must not panic and a document it accepts must render. The targets run their seed corpus during a normal test run.
 
-A longer search runs in [the nightly fuzz workflow](../.github/workflows/fuzz.yml). The workflow runs each target for three minutes on a schedule, which spends about half an hour in total, and it uploads a crash corpus on a failure. Fuzzing found a crash in the ASS reader: a `\t` tag with two arguments read past the end of its argument list. [The regression test](../internal/formats/ass/gaps_test.go) covers that input.
+A longer search runs in [the nightly fuzz workflow](../.github/workflows/fuzz.yml). The workflow runs each target for three minutes on a schedule, which spends about half an hour in total, and it uploads a crash corpus on a failure. Fuzzing found a crash in the ASS reader: a `\t` tag with two arguments read past the end of its argument list. [The regression test](../internal/formats/ass/gaps_test.go) covers that input. A later short run of all nine targets, about twenty seconds each, found no further crash.
 
 Run one target by hand with:
 

@@ -1,13 +1,13 @@
 # The JSON1 exchange format
 
-JSON1 is the lossless exchange format of `swag`. It carries the whole intermediate representation (IR), so a document that converts into it and back out keeps every field: styles, span overrides, ruby readings, karaoke timing, animations, and voice names. Use it to hold a document between two tools, or to move a document between two runs of the command line.
+JSON1 is the lossless exchange format of `swag`. It carries the whole intermediate representation (IR). A document that converts into it and back out keeps every field: styles, span overrides, ruby readings, karaoke timing, animations, and voice names. Use it to hold a document between two tools, or to move a document between two runs of the command line.
 
 ```sh
 swag -i in.ass -o in.json1
 swag -i in.json1 -o out.vtt
 ```
 
-The name reads as "JSON, version one family": the file carries its own version, and the reader lifts an older file to the current shape. [The integrity block](integrity.md) of a plain subtitle file carries the same format, so a SubRip or SBV file holds a document that a plain player ignores.
+The name reads as "JSON, version one family": the file carries its own version, and the reader lifts an older file to the current shape. [The integrity block](integrity.md) of a plain subtitle file carries the same format. A SubRip or SBV file then holds a document that a plain player ignores.
 
 ## The file
 
@@ -103,7 +103,7 @@ The writer indents with two spaces. Every field of the IR appears under `documen
 
 The sample is shortened: the real file indents every nested object on its own lines.
 
-Two conventions of the IR matter to a reader of the file. A pointer field that is `null` means "the source set nothing, inherit from the style", and a colour has no unset state, so an optional colour is a pointer and a plain colour is always present. [The architecture page](architecture.md) describes the IR in full.
+Two conventions of the IR matter to a reader of the file. A pointer field that is `null` means "the source set nothing, inherit from the style". A colour has no unset state, so an optional colour is a pointer and a plain colour is always present. [The architecture page](architecture.md) describes the IR in full.
 
 ## Field notes
 
@@ -118,7 +118,7 @@ Two conventions of the IR matter to a reader of the file. A pointer field that i
 | `Colour` | object | Four channels, `R`, `G`, `B`, and `A`, each 0 to 255. |
 | `Voice` | string or null | The speaker of the span, as WebVTT carries it. |
 
-A tool that does not know a field leaves it out or sets it to `null`. The reader treats a missing field as the zero value of the field, so a file written by hand reads as long as the fields it does carry are well formed.
+A tool that does not know a field leaves it out or sets it to `null`. The reader treats a missing field as the zero value of the field. A file written by hand then reads as long as the fields it does carry are well formed.
 
 ## Version policy
 
@@ -168,7 +168,7 @@ To add a version, do three things in the same change:
 2. Add a step to the table that lifts the previous version to it. A step that has nothing to change records why.
 3. Add a test that reads a file of the previous shape and asserts the new field. [The JSON1 tests](../internal/formats/json1/json1_test.go) carry one such test per step.
 
-A version 1 file has no `Voice` field on a span, and an empty name has no meaning in that shape, so the step only supplies the metadata map that version 1 can leave out. The reader reports the migrated document, and a nil voice keeps its meaning of "no voice".
+A version 1 file has no `Voice` field on a span, and an empty name has no meaning in that shape. The step supplies only the metadata map that version 1 can leave out. The reader reports the migrated document, and a nil voice keeps its meaning of "no voice".
 
 ## Limits
 

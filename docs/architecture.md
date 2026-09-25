@@ -84,7 +84,7 @@ Rules:
 3. Karaoke: spans carry `Start`/`End` offsets from the cue start. A cue is a karaoke cue when any span has a non-zero offset. The unsung colour comes from `Style.Secondary`, or from `span.Secondary` when the source set it.
 4. Ruby: one or more annotation spans that carry `Ruby` come immediately after their base span in `Spans`. An annotation inherits the timing of its base. Converters must not separate a base from its annotations, and render parenthetical ruby as bracketed text on formats without ruby support.
 5. `Vertical`, `Script`, `Direction`, and `Packed` are span-level overrides. `Layout` carries cue-level placement: position, anchor, and motion.
-6. Shadows are a list with at most one shadow per kind, in the fixed order soft, hard, bevel, glow. YTT carries one shadow per pen, so its writer layers duplicated lines. ASS carries one outline channel and one shadow channel, so a glow writes through the outline channel, any other kind writes through the shadow channel, and a list with more than one non-glow shadow records a loss.
+6. Shadows are a list with at most one shadow per kind, in the fixed order soft, hard, bevel, glow. YTT carries one shadow per pen, so its writer layers duplicated lines. ASS carries one outline channel and one shadow channel. A glow writes through the outline channel, and any other kind writes through the shadow channel. A list with more than one non-glow shadow records a loss.
 7. `Style` carries the defaults of a format: font, size, colours, widths, alignment, and the box flag (`BorderStyle` 3 in ASS). A reader always emits at least one style per document.
 8. New fields use pointers or slices, so the zero value keeps its meaning and old readers stay valid.
 
@@ -92,14 +92,14 @@ Rules:
 
 ## Plain format integrity
 
-SubRip and SBV hold text and timing only, so a conversion through one of them loses every other feature. A plain writer that loses at least one feature appends an integrity block to the end of the file, and the block holds the whole document as JSON1. A `swag` reader restores the document from the block, and a plain player stops at the last cue and ignores it.
+SubRip and SBV hold text and timing only, so a conversion through one of them loses every other feature. A plain writer that loses at least one feature appends an integrity block to the end of the file. The block holds the whole document as JSON1. A `swag` reader restores the document from the block, and a plain player stops at the last cue and ignores it.
 
 ```
 NOTE swag-ir 1
 <base64 of a JSON1 document>
 ```
 
-The block is a versioned extension of this project. A document that fits in the plain format writes no block, so a plain file stays plain, and a hand-written plain file reads exactly as before. [The file integrity page](integrity.md) covers the rules and the limits.
+The block is a versioned extension of this project. A document that fits in the plain format writes no block. A plain file then stays plain, and a hand-written plain file reads exactly as before. [The file integrity page](integrity.md) covers the rules and the limits.
 
 JSON1 itself is versioned, and the reader lifts an older file to the current shape before it returns the document. The chain of steps lives in [the JSON1 package](../internal/formats/json1/json1.go), and the reader reports a version that no step reaches. [The JSON1 page](json1.md) records the version history and the rules for a new step.
 
@@ -138,9 +138,12 @@ We deliberately reproduce these platform quirks on write, each with a test:
 
 Readers map every supported tag into the IR. Writers emit tags from the IR. Tier 1 and 2 cover the YTSubConverter tag set from its README, plus the Aegisub tags that the IR can express. Tier 3 comes from [the ASS override tag reference](https://aegisub.org/docs/latest/ass_tags/). [The ASS support page](ass-support.md) maps each tag onto its IR field and its test.
 
-- Tier 1 (styling and timing): `\b`, `\i`, `\u`, `\s`, `\fn`, `\fs`, `\fscx`, `\fscy`, `\c`/`\1c`, `\2c`, `\3c`, `\4c`, `\1a` to `\4a`, `\alpha`, `\bord`, `\shad`/`\xshad`/`\yshad`, `\k`, `\K`, `\kf`, `\ko`, `\r`, `\an`, `\a`, `\pos`
-- Tier 2 (effects and motion): `\move`, `\fad`, `\fade`, `\t`, `\ytshake`, `\ytchroma` (including the custom colour and alpha form), `\ytkt` variants (fade, glitch, and the cursor forms with side, tags, and frames), `\ytsup`, `\ytsub`, `\ytsur`
+- Tier 1 (styling): `\b`, `\i`, `\u`, `\s`, `\fn`, `\fs`, `\fscx`, `\fscy`, `\c`/`\1c`, `\2c`, `\3c`, `\4c`, `\1a` to `\4a`, `\alpha`, `\bord`, `\shad`/`\xshad`/`\yshad`
+- Tier 1 (karaoke and layout): `\k`, `\K`, `\kf`, `\ko`, `\r`, `\an`, `\a`, `\pos`
+- Tier 2 (effects and motion): `\move`, `\fad`, `\fade`, `\t`, `\ytshake`, `\ytchroma` (including the custom colour and alpha form), `\ytsup`, `\ytsub`, `\ytsur`
+- Tier 2 (karaoke types): the `\ytkt` variants, which are fade, glitch, and the cursor forms with side, tags, and frames
 - Tier 3 (CJK and direction): `\ytruby` (positions 2 and 8), `\ytvert` (1, 3, 7, 9), `\ytpack`, `\ytdir4`, `\ytdir6`
-- Tier 4 (accepted, ignored with a note): tags outside the tiers that the IR cannot express, for example `\clip`, `\iclip`, `\be`, `\blur`, `\fsp`, `\fr*`, `\org`, `\p`, drawing mode
+- Tier 4 (accepted, ignored with a note): tags outside the tiers that the IR cannot express
+- Tier 4 (examples): `\clip`, `\iclip`, `\be`, `\blur`, `\fsp`, `\fr*`, `\org`, `\p`, and drawing mode
 
-Font allow-list (YouTube): Arial, Arial Black, Arial Narrow, Comic Sans MS, Courier New, Georgia, Impact, Roboto (default snap target), Tahoma, Times New Roman, Trebuchet MS, Verdana. Everything else snaps to Roboto on YTT/SRV3 write, with a loss note. `internal/formats/ytt/fonts.go` owns the single table.
+Font allow-list (YouTube): Arial, Arial Black, Arial Narrow, Comic Sans MS, Courier New, Georgia, Impact, Tahoma, Times New Roman, Trebuchet MS, and Verdana. Roboto is the default snap target. Everything else snaps to Roboto on YTT/SRV3 write, with a loss note. `internal/formats/ytt/fonts.go` owns the single table.

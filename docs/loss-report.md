@@ -2,7 +2,7 @@
 
 Every writer in `swag` returns a loss report: one entry per feature the writer cannot express. The conversion is lossy when the report is not empty. This page records the degradation of every format in [the format support matrix](architecture.md), so a reader knows what a target drops before the conversion runs.
 
-The lists come from the writer code. [The cross-check suite](../internal/formats/ass/crosscheck_test.go) runs an ASS fixture through every shipped writer and asserts the report of each target, so a list that drifts from the code fails a test.
+The lists come from the writer code. [The cross-check suite](../internal/formats/ass/crosscheck_test.go) runs an ASS fixture through every shipped writer and asserts the report of each target. A list that drifts from the code then fails a test.
 
 | Format | Registry name | Features the writer reports |
 |---|---|---|

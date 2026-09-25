@@ -37,7 +37,7 @@ An answer that arrives before the timeout stays in the palette. A terminal that 
 
 ## What the prototype found
 
-[The palette prototype](../internal/tui/palette.go) sends the OSC 4, 10, and 11 queries and parses the answers. [The palette suite](../internal/tui/palette_test.go) proves the query text, the two terminators, the two reply forms, a partial answer, a stray escape, an unterminated sequence, a foreign sequence, every malformed shape, and the plain fallback.
+[The palette prototype](../internal/tui/palette.go) sends the OSC 4, 10, and 11 queries and parses the answers. [The palette suite](../internal/tui/palette_test.go) proves the query text, the two terminators, the two reply forms, and the plain fallback. It also proves a partial answer, a stray escape, an unterminated sequence, a foreign sequence, and every malformed shape.
 
 The prototype settles the shape of the problem:
 

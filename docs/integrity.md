@@ -68,6 +68,6 @@ The same conversion without the block loses the features that SubRip cannot carr
 
 ## Limits
 
-- The block grows the file. A large document adds its JSON1 size, base64 encoded, which is about a third more. The block is a single line, so an editor that wraps long lines shows it as many lines while it stays one line in the file.
+- The block grows the file. A large document adds its JSON1 size, base64 encoded, which is about a third more. The block is a single line, so an editor that wraps long lines shows it as many lines. It stays one line in the file.
 - The block carries only the document. A comment, the byte order, and the line endings of the source file are not kept.
 - SubRip, SBV, WebVTT, and TTML use the block. Kdenlive cannot hold one. [The format notes](formats.md) list where every other format stands.

@@ -74,7 +74,8 @@ model.Direction   (LeftToRight | RightToLeft)
 model.Animation   one of: Fade{In,Out}, Move{From,To,Start,End},
                   Shake{RadiusX,RadiusY,Start,End},
                   Chroma{Offsets,InTime,OutTime},
-                  Keyframes{Start,End,Easing,Steps}
+                  Keyframes{Start,End,Easing,Steps},
+                  Karaoke{Kind,Cursor}
 model.Anchor      uint8 in numpad numbering: 1 = bottom-left, 5 = centre,
                   9 = top-right (ASS alignment values; YTT ap values map)
 ```
@@ -142,24 +143,24 @@ Font allow-list (YouTube): Arial, Arial Black, Arial Narrow, Comic Sans MS, Cour
 - [x] Conversion report (list of feature losses) printed with pterm when `--verbose`
 
 ### v0.3.0 — the YouTube pair
-- [ ] `internal/formats/ytt` reader: pens, window positions/styles, ruby groups, karaoke offsets
-- [ ] `internal/formats/ytt` writer: pen deduplication, the full quirk pipeline, multi-shadow layering
-- [ ] `internal/formats/srv3` reader and writer sharing the pen model
-- [ ] Font allow-list table and scale re-mapping with tests
-- [ ] Karaoke timing model tests (zero-duration bump, offset ordering)
-- [ ] Sample-driven tests from real YTT/SRV3 fixtures
-- [ ] Pull sample files from upstream YTSubConverter repo for e2e and other testing purposes
-- [ ] Adapt ../ocd coverage.svg rendering, place code coverage badge in README
-- [ ] Create .goreleaser.yml configuration file like ../ocd,  goreleaser in CI should push release when running make tag, not just create the tag and draft release.
+- [x] `internal/formats/ytt` reader: pens, window positions/styles, ruby groups, karaoke offsets
+- [x] `internal/formats/ytt` writer: pen deduplication, the full quirk pipeline, multi-shadow layering
+- [x] `internal/formats/srv3` reader and writer sharing the pen model
+- [x] Font allow-list table and scale re-mapping with tests
+- [x] Karaoke timing model tests (zero-duration bump, offset ordering)
+- [x] Sample-driven tests from real YTT/SRV3 fixtures
+- [x] Pull sample files from upstream YTSubConverter repo for e2e and other testing purposes
+- [x] Adapt ../ocd coverage.svg rendering, place code coverage badge and other badges in README. Use exaact badge format and placement in README file as ../ocd.
+- [x] Create .goreleaser.yml configuration file like ../ocd,  goreleaser in CI should push release when running make tag, not just create the tag and draft release.
 
 ### v0.4.0 — ASS reader
-- [ ] `internal/richtext`: tag lexer, escape resolution, tag argument grammar
-- [ ] Script Info + V4+ Styles + Events parsing (PlayRes, WrapStyle, Collisions)
-- [ ] Style-to-IR mapping with the Default-style size baseline rule
-- [ ] Tier 1 tags; karaoke spans with secondary colour handling
-- [ ] Tier 3 tags: ruby, vertical, packed, direction
-- [ ] Tier 2 animations: `\fad`, `\fade`, `\move`, `\t`, shake, chroma, karaoke types
-- [ ] Fixtures: karaoke sample and colour sample in the YTSubConverter style, written fresh for this project
+- [x] `internal/richtext`: tag lexer, escape resolution, tag argument grammar
+- [x] Script Info + V4+ Styles + Events parsing (PlayRes, WrapStyle, Collisions)
+- [x] Style-to-IR mapping with the Default-style size baseline rule
+- [x] Tier 1 tags; karaoke spans with secondary colour handling
+- [x] Tier 3 tags: ruby, vertical, packed, direction
+- [x] Tier 2 animations: `\fad`, `\fade`, `\move`, `\t`, shake, chroma, karaoke types
+- [x] Fixtures: karaoke sample and colour sample in the YTSubConverter style, written fresh for this project
 
 ### v0.5.0 — ASS writer
 - [ ] IR-to-tag emission for tiers 1 to 3

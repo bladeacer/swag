@@ -4,6 +4,9 @@
 coverage.out
 build-errors.log
 
+# Upstream samples pulled for the end-to-end tests
+/testdata/upstream/
+
 # Air hot-reload artefacts
 *.log
 

@@ -16,6 +16,8 @@ This project itself is licensed under the [Apache License 2.0](../LICENSE).
 
 Clean-room statement: the maintainers studied the behaviour and public documentation of YTSubConverter and wrote all `swag` code from scratch. `swag` contains no code, comments, or data tables from YTSubConverter. Where `swag` reproduces a behaviour (for example, the YouTube font allow-list, opacity ceilings, or the Android dark text workaround), it does so with its own expression and its own tests.
 
+`scripts/fetch-samples.sh` downloads the upstream sample file at test time for the end-to-end tests. The file lands in the ignored `testdata/upstream/` directory and stays out of the repository. The tests skip when the file is absent.
+
 ## SimpleEnglish (vendored agent skill)
 
 | | |

@@ -10,8 +10,10 @@ Planning and governance:
 Reference documents (written with the vendored `simple-english` skill, British English):
 
 - `changelogs/index.md` — release notes index in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
+- `changelogs/v0.4.0.md` — notes for the ASS-reader release
+- `changelogs/v0.3.0.md` — notes for the YouTube-pair release
 - `changelogs/v0.2.0.md` — notes for the plain-formats release
 - `changelogs/v0.1.0.md` — notes for the foundation release
-- `formats.md` — per-format support and degradation notes (lands with v0.7.0)
+- `formats.md` — per-format support matrix and degradation notes
 - `library.md` — usage guide for the Go library (lands with v0.7.0)
 - `demo/` — WASM demo page (lands with v1.0.0)

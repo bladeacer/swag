@@ -8,8 +8,8 @@ COVERAGE_FLOOR := 75
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build install run test cover cover-html cover-verify vet fmt tidy \
-        watch release-test tag snapshot clean
+.PHONY: help build install run test cover cover-html cover-verify coverage-svg \
+        samples vet fmt tidy watch release-test tag snapshot clean tools
 
 help: ## Show this help
 	@printf "swag — Subtitles With A Gopher\n\n"
@@ -26,11 +26,17 @@ run: ## Run the CLI (extra args after --)
 	$(GO) run ./cmd/swag -- $(filter-out $@,$(MAKECMDGOALS))
 
 test: ## Run all tests with coverage summary
-	$(GO) test -cover ./...
-
-cover: ## Run tests and print the per-function coverage breakdown
+	$(GO) test -cover ./...cover: ## Run tests and print the per-function coverage breakdown
 	$(GO) test -coverpkg=./... -coverprofile=coverage.out ./... -count=1
 	@$(GO) tool cover -func=coverage.out
+
+coverage-svg: ## Regenerate the coverage badge from the test run
+	$(GO) test -coverpkg=./... -coverprofile=coverage.out ./... -count=1
+	@go-test-coverage -p coverage.out -b coverage.svg 2>/dev/null || \
+		echo "install go-test-coverage to regenerate the badge (make tools)"
+
+samples: ## Pull the upstream YTSubConverter samples for the end-to-end tests
+	sh scripts/fetch-samples.sh
 
 cover-html: ## Run tests and open the HTML coverage report in a browser
 	$(GO) test -coverpkg=./... -coverprofile=coverage.out ./... -count=1
@@ -82,6 +88,7 @@ clean: ## Remove build artefacts
 	$(GO) clean -cache -test-cache 2>/dev/null || true
 	rm -rf bin dist coverage.out build-errors.log
 
-tools: ## Install the development tools (air, goreleaser)
+tools: ## Install the development tools (air, goreleaser, go-test-coverage)
 	go install github.com/air-verse/air@latest
 	go install github.com/goreleaser/goreleaser/v2@latest
+	go install github.com/vladopajic/go-test-coverage/v2@latest

@@ -20,11 +20,24 @@ const sbvSample = `0:00:01.000,0:00:04.000
 Hello from the public API.
 `
 
+const yttSample = `<?xml version="1.0" encoding="utf-8" ?>
+<timedtext format="3">
+<head>
+<pen id="1" fc="#FEFEFE" fo="254" />
+</head>
+<body>
+<p t="0" d="2000" p="1">Hello from the public API.</p>
+</body>
+</timedtext>
+`
+
 func TestRegisteredIncludesBuiltins(t *testing.T) {
 	names := Registered()
 	joined := strings.Join(names, ",")
-	if !strings.Contains(joined, "srt") || !strings.Contains(joined, "sbv") {
-		t.Fatalf("built-in formats missing: %v", names)
+	for _, want := range []string{"srt", "sbv", "ytt", "srv3", "ass"} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("built-in format %q missing: %v", want, names)
+		}
 	}
 	if !isSorted(names) {
 		t.Fatalf("Registered must be sorted: %v", names)
@@ -72,6 +85,16 @@ func TestIdentifyByContent(t *testing.T) {
 	}
 }
 
+func TestIdentifyYouTubeContent(t *testing.T) {
+	got, err := Identify("unnamed", strings.NewReader(yttSample))
+	if err != nil {
+		t.Fatalf("Identify: %v", err)
+	}
+	if got != "ytt" {
+		t.Fatalf("content sniff = %q, want ytt", got)
+	}
+}
+
 func TestIdentifyUnknownContent(t *testing.T) {
 	got, err := Identify("unnamed", strings.NewReader("just some words\n"))
 	if err != nil {
@@ -115,7 +138,7 @@ func TestParseAutoDetect(t *testing.T) {
 }
 
 func TestParseUnknownFormatName(t *testing.T) {
-	if _, err := Parse("in", strings.NewReader(srtSample), "ass"); err == nil {
+	if _, err := Parse("in", strings.NewReader(srtSample), "none"); err == nil {
 		t.Fatal("unregistered format must fail")
 	}
 }
@@ -149,8 +172,25 @@ func TestRenderAndLosses(t *testing.T) {
 
 func TestRenderUnknownFormat(t *testing.T) {
 	doc := &Document{}
-	if _, err := Render(doc, "ytt", io.Discard); err == nil {
+	if _, err := Render(doc, "none", io.Discard); err == nil {
 		t.Fatal("unregistered writer must fail")
+	}
+}
+
+func TestParseAndRenderYouTube(t *testing.T) {
+	doc, err := Parse("in.ytt", strings.NewReader(yttSample), "")
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if len(doc.Cues) != 1 {
+		t.Fatalf("got %d cues, want 1", len(doc.Cues))
+	}
+	var out strings.Builder
+	if _, err := Render(doc, "srv3", &out); err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if !strings.Contains(out.String(), "<timedtext") {
+		t.Fatalf("SRV3 output must carry the root element:\n%s", out.String())
 	}
 }
 

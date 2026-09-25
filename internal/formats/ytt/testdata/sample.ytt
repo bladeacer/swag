@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<timedtext format="3">
+<head>
+<pen id="1" b="1" />
+<pen id="2" i="1" />
+<pen id="3" u="1" />
+<pen id="4" fc="#FF0000" fo="40" />
+<pen id="5" fc="#FEFEFE" ec="#00FF00" et="1" />
+<pen id="6" fs="1" />
+<pen id="7" sz="200" />
+<pen id="8" rb="1" />
+<pen id="9" rb="2" />
+<pen id="10" rb="4" />
+<pen id="11" of="0" />
+<pen id="12" of="2" />
+<pen id="13" hg="1" />
+<ws id="1" ju="2" wfo="0" />
+<ws id="2" pd="2" sd="0" />
+<ws id="3" pd="3" sd="1" />
+<wp id="1" ap="7" ah="50" av="90" />
+<wp id="2" ap="0" ah="0" av="10" />
+</head>
+<body>
+<p t="0" d="2000" wp="1" ws="1" p="1">Bold line</p>
+<p t="2000" d="2000" wp="1" ws="1"><s p="1">Bold</s>&#8203;<s p="4">Red</s></p>
+<p t="4000" d="2000" wp="1" ws="1" p="2">Italic line</p>
+<p t="6000" d="2000" wp="1" ws="1" p="3">Underline line</p>
+<p t="8000" d="2000" wp="1" ws="1" p="4">Red text</p>
+<p t="10000" d="2000" wp="1" ws="1" p="5">Hard shadow</p>
+<p t="12000" d="2000" wp="1" ws="1" p="6">Monospace</p>
+<p t="14000" d="2000" wp="1" ws="1" p="7">Larger</p>
+<p t="16000" d="2000" wp="2" ws="2" p="1">Vertical</p>
+<p t="18000" d="2000" wp="1" ws="1" p="11">Subscript</p>
+<p t="20000" d="2000" wp="1" ws="1" p="12">Superscript</p>
+<p t="22000" d="2000" wp="1" ws="1" p="13">Packed</p>
+<p t="24000" d="3000" wp="1" ws="1"><s p="8">漢</s><s p="9">(</s><s p="10">かん</s><s p="9">)</s></p>
+<p t="28000" d="3000" wp="1" ws="1" p="1"><s>Ka</s><s t="1000">ra</s><s t="2000">o</s><s t="3000">ke</s></p>
+<p t="32000" d="2000" wp="2" ws="3" p="1">Rotated</p>
+</body>
+</timedtext>

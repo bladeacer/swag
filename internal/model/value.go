@@ -88,6 +88,8 @@ type Animation struct {
 	Chroma *Chroma
 	// Keyframes animates style values over time (ASS \t).
 	Keyframes []Keyframe
+	// Karaoke is an advanced karaoke type (ASS \ytkt).
+	Karaoke *Karaoke
 }
 
 // Shake is the random displacement effect (ASS \ytshake).
@@ -105,6 +107,29 @@ type Chroma struct {
 	Offsets []Point
 	// InTime and OutTime are the merge and disperse durations.
 	InTime, OutTime time.Duration
+}
+
+// KaraokeKind enumerates the advanced karaoke types of ASS (\ytkt).
+type KaraokeKind uint8
+
+// The karaoke kinds.
+const (
+	// KaraokeFade fades each syllable in (\ytktFade).
+	KaraokeFade KaraokeKind = iota + 1
+	// KaraokeGlitch replaces the letters of each syllable with random
+	// glyphs (\ytktGlitch).
+	KaraokeGlitch
+	// KaraokeCursor draws extra text after the current syllable
+	// (\ytkt(Cursor,...)).
+	KaraokeCursor
+)
+
+// Karaoke is an advanced karaoke presentation (ASS \ytkt).
+type Karaoke struct {
+	Kind KaraokeKind
+	// Cursor is the text that follows the sung syllable for the cursor
+	// kind.
+	Cursor string
 }
 
 // Keyframe is one animated value change (ASS \t).

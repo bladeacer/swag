@@ -1,6 +1,6 @@
 # GoReleaser v2 configuration for swag.
 # Snapshot:   goreleaser release --snapshot --clean
-# Release:    goreleaser release --clean (CI tags it)
+# Release:    goreleaser release --clean (the release workflow runs it on a tag)
 version: 2
 
 project_name: swag
@@ -18,16 +18,15 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
-      - darwin
       - windows
+      - darwin
     goarch:
       - amd64
       - arm64
+    flags:
+      - -trimpath
     ldflags:
-      - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-      - -X main.date={{.Date}}
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
   # The wasm build ships the library for the browser demo under docs/demo/.
   # It has no main package until v1.0.0, so the build id stays skipped.
   - id: swag-wasm
@@ -39,17 +38,24 @@ builds:
       - js
     goarch:
       - wasm
+    flags:
+      - -trimpath
     ldflags:
       - -s -w
     skip: true # flip to false when cmd/swag-wasm lands (v1.0.0)
 
 archives:
-  - formats: [tar.gz]
-    name_template: >-
-      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+  - formats: ["tar.gz"]
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
-        formats: [zip]
+        formats: ["zip"]
+    files:
+      - LICENSE
+      - README.md
+
+source:
+  enabled: true
 
 checksum:
   name_template: "checksums.txt"
@@ -69,7 +75,8 @@ changelog:
       - Merge branch
 
 release:
-  draft: true
-  mode: append
+  # The release workflow runs on a version tag, so the result is a real
+  # release and not a draft.
+  draft: false
   header: |
     See docs/changelogs/ for the notes of this release.

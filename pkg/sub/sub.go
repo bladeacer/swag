@@ -7,6 +7,7 @@
 package sub
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"sort"
@@ -66,6 +67,9 @@ func register(f Format) {
 func init() {
 	register(srtFormat{})
 	register(sbvFormat{})
+	register(yttFormat{})
+	register(srv3Format{})
+	register(assFormat{})
 }
 
 // Registered returns the names of all formats that can read, in
@@ -100,6 +104,9 @@ func Identify(fileName string, source io.Reader) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("read %s: %w", fileName, err)
 	}
+	if looksLikeYTT(data) {
+		return "ytt", nil
+	}
 	if looksLikeSRT(data) {
 		return "srt", nil
 	}
@@ -107,6 +114,13 @@ func Identify(fileName string, source io.Reader) (string, error) {
 		return "sbv", nil
 	}
 	return "", nil
+}
+
+// looksLikeYTT reports whether the content carries a YouTube Timed Text
+// root element. The check runs before the SubRip check because the XML
+// comment terminator "-->" is also a SubRip timing separator.
+func looksLikeYTT(data []byte) bool {
+	return bytes.Contains(data, []byte("<timedtext"))
 }
 
 // looksLikeSRT reports whether the content carries a SubRip timing line.

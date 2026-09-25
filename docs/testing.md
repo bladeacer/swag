@@ -18,6 +18,7 @@ Several suites sit above the package tests:
 - [The renderer suite](../internal/tui/tui_test.go) proves the layout diff: an unchanged frame writes no bytes, a changed frame repaints only the changed rows, and a shorter frame clears the rows it leaves out.
 - [The interactive suite](../cmd/swag/interactive_test.go) drives the prompts and the frames through a scripted reader, so a whole conversion runs with no terminal.
 - [The batch and preview suites](../cmd/swag/batch_test.go) cover the directory walk, the target list, the output directory, and the preview rows.
+- [The configuration suite](../internal/config/config_test.go) covers the location rule of every platform, the two environment overrides, and the failure of a platform with no home directory.
 
 ## Fuzzing
 

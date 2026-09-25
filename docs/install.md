@@ -9,6 +9,29 @@ This page covers the ways to get `swag` and the ways to check that it works. [Th
 
 The tool reads and writes plain files. It opens no network connection and needs no service.
 
+## Platform support
+
+The code is pure Go with no cgo dependency, so every platform that the Go toolchain supports builds from source with a plain `go build`. The release workflow builds and publishes a tested archive for these targets:
+
+| Operating system | Architectures | Release archive |
+|---|---|---|
+| Linux | `amd64`, `arm64` | `tar.gz` |
+| macOS | `amd64`, `arm64` | `tar.gz` |
+| Windows | `amd64`, `arm64` | `zip` |
+| `js/wasm` | `wasm` | none yet, because the browser demo lands with v1.0.0 |
+
+That is six release archives and one planned web target. [The GoReleaser configuration](../.goreleaser.yml) carries the list, and the continuous integration workflow runs on Linux.
+
+A platform outside the table still builds from source:
+
+```sh
+GOOS=freebsd GOARCH=arm64 go build -o swag ./cmd/swag
+```
+
+No build tag and no code generation step stands in the way, so the same command works for `go install`.
+
+[The file integrity page](integrity.md) notes the one place where the platform matters: a damaged integrity block fails the read on every platform, and the block carries no platform specific data.
+
 ## Install the command with Go
 
 ```sh
@@ -78,3 +101,4 @@ make bench          # the ten-thousand-cue benchmarks
 | `build.bin is deprecated` from air | Air renamed the key. [The air configuration](../.air.toml) uses `entrypoint`. |
 | `make run` exits 1 | Same cause. `make run` passes a bare separator, which now counts as a bare run. |
 | `swag` is not found after `go install` | The bin directory of the module cache prefix is not on `PATH`. |
+| The configuration file is not where you expect | The platform rule picked another directory. Run `swag config` to read the resolved path, and see [the configuration page](configuration.md). |

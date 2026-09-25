@@ -287,9 +287,17 @@ func TestConvertOneErrors(t *testing.T) {
 	}
 	openInput = original
 
-	badOutput := batchPlan{Input: good, Target: "vtt", Output: filepath.Join(dir, "no", "a.vtt")}
+	// A plain file stands in for the directory the output needs.
+	blocker := writeFileIn(t, dir, "blocker", "not a directory\n")
+	badOutput := batchPlan{Input: good, Target: "vtt", Output: filepath.Join(blocker, "a.vtt")}
 	if _, err := c.convertOne(badOutput, tr); err == nil {
-		t.Error("an unwritable output must fail the conversion")
+		t.Error("an output directory that cannot be created must fail the conversion")
+	}
+
+	// An existing directory is not a file the command can write.
+	directory := batchPlan{Input: good, Target: "vtt", Output: t.TempDir()}
+	if _, err := c.convertOne(directory, tr); err == nil {
+		t.Error("an output that is a directory must fail the conversion")
 	}
 
 	badTarget := batchPlan{Input: good, Target: "bogus", Output: filepath.Join(dir, "a.bin")}

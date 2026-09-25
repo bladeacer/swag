@@ -163,3 +163,5 @@ Errors name the file that failed, so a failed run in a script says which input t
 ## Messages and locales
 
 Every user-facing message comes from the message catalogue, so a bare run reads the same in every shipped locale. The shipped locales are `en-GB` and `en-US`, and the default is `en-GB`. Pass `--locale` or set `SWAG_LOCALE` to change the locale. A tag that is not shipped is an error, so a typo never falls back in silence. [The internationalisation page](i18n.md) covers the catalogue, the translation guidelines, and how to add a language.
+
+The settings file of the tool follows the platform convention, and the `config` command reports where it looks. [The configuration page](configuration.md) covers the location and the two environment variables that move it.

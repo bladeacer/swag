@@ -127,6 +127,12 @@ const (
 	MsgPreviewNoCues   Key = "preview.no-cues"
 	MsgPreviewMore     Key = "preview.more"
 	MsgPreviewStatus   Key = "preview.status"
+
+	MsgConfigFile     Key = "config.file"
+	MsgConfigPresent  Key = "config.present"
+	MsgConfigAbsent   Key = "config.absent"
+	MsgConfigPlatform Key = "config.platform"
+	MsgConfigError    Key = "config.error"
 )
 
 // enGB is the default message set. Values follow the simple-english rules:
@@ -183,6 +189,12 @@ var enGB = map[Key]string{
 	MsgPreviewNoCues:   "The document carries no cue.",
 	MsgPreviewMore:     "and %d more cues",
 	MsgPreviewStatus:   "%d styles, %d cues.",
+
+	MsgConfigFile:     "The configuration file is %s.",
+	MsgConfigPresent:  "The file is present. A later release reads it and reports what it carries.",
+	MsgConfigAbsent:   "The file is absent, so the tool uses its own defaults.",
+	MsgConfigPlatform: "This build runs on %s/%s.",
+	MsgConfigError:    "The configuration location could not be resolved. %s",
 }
 
 // T is a catalogue bound to one locale. It is safe for concurrent use.

@@ -56,7 +56,7 @@ swag -i in.ass -o mid.srt
 swag -i mid.srt -o out.ass
 ```
 
-[The usage page](docs/usage.md) covers the flags, the interactive mode, the batch conversion, the preview, the format detection, and the exit codes. [The install page](docs/install.md) covers releases, builds from source, and the development loop.
+[The usage page](docs/usage.md) covers the flags, the interactive mode, the batch conversion, the preview, the format detection, and the exit codes. [The install page](docs/install.md) covers releases, builds from source, the platform support, and the development loop. [The configuration page](docs/configuration.md) covers where the settings file lives on each platform.
 
 ## Supported formats
 
@@ -82,6 +82,7 @@ swag -i mid.srt -o out.ass
 - **A library as well as a command.** [The library guide](docs/library.md) covers the conversion API, with style renaming, a font override, and a loss policy.
 - **Tested to the last statement.** The module holds 100 percent statement coverage, a fuzz target for every reader, and benchmarks over a ten-thousand-cue document. [The testing notes](docs/testing.md) cover all three.
 - **Localised output.** Every user-facing message comes from the message catalogue, with `en-GB` as the default and `en-US` as the second locale. [The internationalisation page](docs/i18n.md) shows how to add a language and states the translation guidelines.
+- **Portable.** The code is pure Go with no cgo dependency, so one source tree builds for Linux, macOS, Windows, and the web. [The install page](docs/install.md) lists the release targets.
 
 ## Library
 
@@ -100,6 +101,7 @@ losses, err := sub.Render(doc, "vtt", sink)
 - [The documentation index](docs/index.md)
 - [Install](docs/install.md)
 - [Usage](docs/usage.md)
+- [Configuration](docs/configuration.md)
 - [Formats](docs/formats.md)
 - [File integrity](docs/integrity.md)
 - [The JSON1 exchange format](docs/json1.md)

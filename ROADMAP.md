@@ -99,6 +99,8 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 - [x] A layout-diffing renderer (`internal/tui`) that writes no bytes for an unchanged frame and repaints only the changed rows
 - [x] `--from`/`-F`, a short form for every flag, the `--` separator, the `help` and `convert` words, and a theme-neutral banner
 - [x] The integrity block for WebVTT and TTML, with the XML comment form for the XML format
+- [x] The configuration file location per platform: `$XDG_CONFIG_HOME` (or `$HOME/.config`) on Linux, `~/Library/Application Support` on macOS, and `%AppData%` on Windows. `SWAG_CONFIG_DIR` and `SWAG_CONFIG` override the directory and the file, and `swag config` reports the resolved location.
+- [x] Platform and architecture support documented for every release target, with the pure-Go and cgo-free build recorded
 - [x] Batch conversion (`swag convert dir/`) with pterm progress bars and multi-writer output
 - [x] Colour and style previews rendered in the terminal (ANSI, best effort), as `swag preview` and in the interactive result frame
 - [x] Karaoke timeline preview in the terminal
@@ -124,6 +126,7 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 
 ## Stretch goals (post-1.0 candidates)
 
+- [ ] Theming for the command line, with the system theme as the default. The open question is how to read the palette of the terminal, because no portable interface exists. The candidates are the OSC 4, 10, and 11 queries, the `COLORTERM` and `TERM` variables, and a theme file. A query that gets no answer falls back to a plain theme, and every command keeps working without colour.
 - [ ] Survey the subtitle formats that the tool does not support, and add the ones that carry the most value. The candidates include SSA version 4, MicroDVD, SAMI, WebVTT regions and chapters, Universal Subtitle Format, and the broadcast formats below.
 - [ ] Simple subtitle editor: start terminal-native with pterm (cue list editor, style editor, live karaoke preview). Web (WASM + a light widget layer) after 1.0 if the terminal editor finds users. Native widget toolkit stays out of scope until then.
 - [ ] SCC/CEA-608 writer on the 32-column grid

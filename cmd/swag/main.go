@@ -31,15 +31,17 @@ var (
 const convertCommand = "convert"
 
 // interactiveCommand names the command that asks for the conversion
-// choices, and previewCommand the command that paints a document.
+// choices, previewCommand the command that paints a document, and
+// configCommand the command that reports the configuration location.
 const (
 	interactiveCommand = "interactive"
 	previewCommand     = "preview"
+	configCommand      = "config"
 )
 
 // commandNames lists the commands of the grammar, in the order the help page
 // names them. The struct fields below carry the same names.
-var commandNames = []string{convertCommand, interactiveCommand, previewCommand}
+var commandNames = []string{convertCommand, interactiveCommand, previewCommand, configCommand}
 
 // CLI is the kong grammar of the command. Every flag carries a short form,
 // so `-i in.srt` and `--input in.srt` both work.
@@ -54,6 +56,7 @@ type CLI struct {
 	Convert     ConvertCmd     `cmd:"" help:"Convert a subtitle file to another format." default:"withargs"`
 	Interactive InteractiveCmd `cmd:"" help:"Ask for the input, the target, and the output, then show the result."`
 	Preview     PreviewCmd     `cmd:"" help:"Paint the colours, the styles, and the karaoke timeline of a document."`
+	Config      ConfigCmd      `cmd:"" help:"Report where the configuration file lives."`
 }
 
 // ConvertCmd carries the conversion flags.

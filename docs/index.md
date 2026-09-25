@@ -4,8 +4,9 @@ Documentation for `swag` (Subtitles With A Gopher), a clean-room Go tool for rea
 
 Getting started:
 
-- [the install page](install.md): the ways to install the command and the tools for the development loop
-- [the usage page](usage.md): the flags, the format detection, the loss report, and the exit codes
+- [the install page](install.md): the ways to install the command, the platform support, and the tools for the development loop
+- [the usage page](usage.md): the flags, the interactive mode, the batch conversion, the preview, the format detection, and the exit codes
+- [the configuration page](configuration.md): where the configuration file lives on each platform, and how to move it
 - [the library guide](library.md): the public API with a worked example
 
 Formats and fidelity:

@@ -162,8 +162,11 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 			note("positioning")
 		}
 		for _, span := range cue.Spans {
-			if isTrue(span.Bold) || isTrue(span.Italic) {
+			if isTrue(span.Bold) || isTrue(span.Italic) || isTrue(span.Strikeout) {
 				note("inline styling")
+			}
+			if scaleChanged(span.ScaleX) || scaleChanged(span.ScaleY) {
+				note("glyph scale")
 			}
 			if span.Ruby != nil {
 				note("ruby text")
@@ -193,6 +196,10 @@ func renderText(cue model.Cue) string {
 	}
 	return b.String()
 }
+
+// scaleChanged reports whether a glyph scale override differs from the
+// original size. SBV carries no scale, so the writer records a loss for it.
+func scaleChanged(v *float64) bool { return v != nil && *v != 100 }
 
 // isTrue dereferences an optional bool.
 func isTrue(v *bool) bool {

@@ -6,6 +6,7 @@ Unreleased work lands in the file for the next planned version. The release comm
 
 ## Releases
 
+- [v0.7.0, format integrity](v0.7.0.md): the widened loss reports, the cross-check chains, and two loss fixes (unreleased)
 - [v0.6.0, the ASS tag closure](v0.6.0.md): the Aegisub overrides, the chroma colours, and the karaoke cursor forms (unreleased)
 - [v0.5.0, the ASS writer](v0.5.0.md): the ASS writer, the architecture split, and full statement coverage (unreleased)
 - [v0.4.0, the ASS reader](v0.4.0.md): styles, karaoke, animations, ruby, and vertical text (unreleased)

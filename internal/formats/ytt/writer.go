@@ -239,6 +239,14 @@ func prependSpace(line *renderedLine) {
 // recordCueLosses notes the features of cue that YouTube Timed Text cannot
 // express.
 func recordCueLosses(cue model.Cue, losses *lossNotes) {
+	for _, span := range cue.Spans {
+		if span.Strikeout != nil && *span.Strikeout {
+			losses.add("strikeout")
+		}
+		if scaleChanged(span.ScaleX) || scaleChanged(span.ScaleY) {
+			losses.add("glyph scale")
+		}
+	}
 	for _, a := range cue.Animations {
 		switch {
 		case a.Fade != nil:
@@ -264,6 +272,11 @@ func recordCueLosses(cue model.Cue, losses *lossNotes) {
 		}
 	}
 }
+
+// scaleChanged reports whether a glyph scale override differs from the
+// original size. YouTube Timed Text carries no scale, so the writer records
+// a loss for it.
+func scaleChanged(v *float64) bool { return v != nil && *v != 100 }
 
 // layoutAnchor returns the cue-level anchor of a layout, if it has one.
 func layoutAnchor(layout *model.Layout) *model.Anchor {

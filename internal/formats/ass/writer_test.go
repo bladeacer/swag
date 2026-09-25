@@ -130,20 +130,7 @@ func viewLayout(l *model.Layout) layoutView {
 // comparison is semantic, so it allows the style names to flatten and the
 // tag order to change.
 func TestRoundTripFixtures(t *testing.T) {
-	fixtures := []struct {
-		name   string
-		losses []string
-	}{
-		{name: "karaoke.ass"},
-		{name: "colour.ass"},
-		{name: "cjk.ass"},
-		// The chroma fixture carries a conservative loss: the four
-		// argument form names one offset, even though the symmetric
-		// spread survives the pass.
-		{name: "overrides.ass", losses: []string{"more than one copy"}},
-	}
-	for _, fixture := range fixtures {
-		name := fixture.name
+	for _, name := range []string{"karaoke.ass", "colour.ass", "cjk.ass", "overrides.ass"} {
 		t.Run(name, func(t *testing.T) {
 			original := parseFixture(t, name)
 			text, losses := renderDoc(t, original)
@@ -176,19 +163,10 @@ func TestRoundTripFixtures(t *testing.T) {
 						animationViews(want), animationViews(got))
 				}
 			}
-			// An ASS source carries the features of the writer tiers, so
-			// the pass is lossless apart from a documented chroma limit.
-			for _, loss := range losses {
-				allowed := false
-				for _, want := range fixture.losses {
-					if strings.Contains(loss, want) {
-						allowed = true
-						break
-					}
-				}
-				if !allowed {
-					t.Errorf("unexpected round trip loss: %q\n%s", loss, text)
-				}
+			// The fixtures carry no feature outside the ASS writer tiers,
+			// so the pass is lossless.
+			if len(losses) > 0 {
+				t.Errorf("round trip reported losses: %v\n%s", losses, text)
 			}
 		})
 	}
@@ -420,20 +398,25 @@ func TestWriterReportsLosses(t *testing.T) {
 				},
 			},
 			Animations: []model.Animation{
+				// One chroma has the wrong spread for its length, and the
+				// other has the wrong length.
 				{Chroma: &model.Chroma{Offsets: []model.Point{{X: 1}, {X: 2}, {X: 3}}}},
+				{Chroma: &model.Chroma{Offsets: []model.Point{{X: 1}, {X: 2}}}},
 			},
 		}},
 	}
 	_, losses := renderDoc(t, doc)
 	joined := strings.Join(losses, "; ")
-	for _, want := range []string{"karaoke gap", "shadow of kind", "more than one copy"} {
+	for _, want := range []string{"karaoke gap", "shadow of kind", "more than one offset"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("loss report is missing %q: %v", want, losses)
 		}
 	}
 }
 
-func TestWriterReportsVerticalClear(t *testing.T) {
+// TestWriterClearsVertical checks that a run which leaves vertical text
+// gets a reset tag instead of a loss.
+func TestWriterClearsVertical(t *testing.T) {
 	vertical := model.Vertical{Mode: model.VerticalColumnsRTL}
 	doc := &model.Document{
 		Styles: []model.Style{baseStyle(nil)},
@@ -442,9 +425,12 @@ func TestWriterReportsVerticalClear(t *testing.T) {
 			{Text: "horizontal"},
 		}}},
 	}
-	_, losses := renderDoc(t, doc)
-	if !strings.Contains(strings.Join(losses, "; "), "vertical mode") {
-		t.Fatalf("leaving vertical text must be reported: %v", losses)
+	text, losses := renderDoc(t, doc)
+	if !strings.Contains(text, `\ytvert9`) || !strings.Contains(text, `{\ytvert}`) {
+		t.Fatalf("leaving vertical text needs a reset tag:\n%s", text)
+	}
+	if len(losses) != 0 {
+		t.Fatalf("leaving vertical text must not report a loss: %v", losses)
 	}
 }
 

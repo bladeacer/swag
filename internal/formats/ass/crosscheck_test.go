@@ -92,6 +92,84 @@ func TestCrossCheckEveryWriter(t *testing.T) {
 	}
 }
 
+// TestCrossCheckOverrideLosses runs the override fixture through every
+// shipped writer. The fixture is an ASS source, so the ASS writer carries it
+// without loss. Each other writer reports the overrides it drops, and the
+// text and the cue timing survive everywhere.
+func TestCrossCheckOverrideLosses(t *testing.T) {
+	source := parseFixture(t, "overrides.ass")
+	expect := map[string][]string{
+		"ass":  nil,
+		"ytt":  {"strikeout", "glyph scale", "chroma animation", "karaoke type"},
+		"srv3": {"strikeout", "glyph scale", "chroma animation", "karaoke type"},
+		"srt":  {"strikeout", "glyph scale", "positioning", "animation", "shadow effects"},
+		"sbv":  {"inline styling", "glyph scale", "positioning"},
+	}
+	for _, target := range crossTargets {
+		t.Run(target.name, func(t *testing.T) {
+			var out strings.Builder
+			losses, err := target.write(source, &out)
+			if err != nil {
+				t.Fatalf("render %s: %v", target.name, err)
+			}
+			joined := lossText(losses)
+			for _, want := range expect[target.name] {
+				if !strings.Contains(joined, want) {
+					t.Errorf("%s loss report is missing %q: %v", target.name, want, losses)
+				}
+			}
+			if len(expect[target.name]) == 0 && len(losses) > 0 {
+				t.Errorf("%s must carry the fixture without loss: %v", target.name, losses)
+			}
+			again, err := target.read(strings.NewReader(out.String()))
+			if err != nil {
+				t.Fatalf("re-parse %s: %v\n%s", target.name, err, out.String())
+			}
+			assertStable(t, source, again)
+		})
+	}
+}
+
+// TestCrossCheckChains runs one ASS source through a sequence of formats and
+// back. The chains cover two-way passes and passes of three or more formats.
+// The text and the cue timing survive every chain, so the readers and the
+// writers compose.
+func TestCrossCheckChains(t *testing.T) {
+	source := parseFixture(t, "colour.ass")
+	byName := map[string]crossTarget{}
+	for _, target := range crossTargets {
+		byName[target.name] = target
+	}
+	chains := [][]string{
+		{"ytt", "ass"},
+		{"srv3", "ass"},
+		{"srt", "ass"},
+		{"sbv", "ass"},
+		{"ytt", "srt", "ass"},
+		{"srv3", "sbv", "ass"},
+		{"ytt", "srv3", "srt", "sbv", "ass"},
+	}
+	for _, chain := range chains {
+		name := strings.Join(chain, "-")
+		t.Run(name, func(t *testing.T) {
+			doc := source
+			for _, step := range chain {
+				target := byName[step]
+				var out strings.Builder
+				if _, err := target.write(doc, &out); err != nil {
+					t.Fatalf("write %s: %v", step, err)
+				}
+				next, err := target.read(strings.NewReader(out.String()))
+				if err != nil {
+					t.Fatalf("read %s: %v\n%s", step, err, out.String())
+				}
+				doc = next
+			}
+			assertStable(t, source, doc)
+		})
+	}
+}
+
 func readYTTFixture(t *testing.T) *model.Document {
 	t.Helper()
 	data, err := os.ReadFile("../ytt/testdata/sample.ytt")

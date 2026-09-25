@@ -73,6 +73,7 @@ Dialogue: 0,0:00:16.00,0:00:17.00,Default,,0,0,0,,{\ytkt(Cursor,100,\i1,spinner,
 Dialogue: 0,0:00:17.00,0:00:18.00,Default,,0,0,0,,{\ytkt(Cursor,100,\i1,odd,\i2)}unpaired frame
 Dialogue: 0,0:00:18.00,0:00:19.00,Default,,0,0,0,,{\ytkt(Cursor)}empty cursor
 Dialogue: 0,0:00:19.00,0:00:20.00,Default,,0,0,0,,{\r}reset
+Dialogue: 0,0:00:20.00,0:00:21.00,Default,,0,0,0,,{\ytvert9}vertical{\ytvert}plain
 `
 
 func parseOverrides(t *testing.T) *model.Document {
@@ -186,6 +187,19 @@ func TestParseCursorForms(t *testing.T) {
 	empty := firstAnimation(doc.Cues[17], func(a model.Animation) bool { return a.Karaoke != nil })
 	if empty == nil || empty.Karaoke.Cursor != "" || len(empty.Karaoke.CursorFrames) != 0 {
 		t.Errorf("empty cursor = %+v", empty)
+	}
+}
+
+// TestParseVerticalClear covers the blank \ytvert form, which returns a run
+// to horizontal text.
+func TestParseVerticalClear(t *testing.T) {
+	doc := parseOverrides(t)
+	cue := doc.Cues[19]
+	if cue.Spans[0].Vertical == nil || cue.Spans[0].Vertical.Mode != model.VerticalColumnsRTL {
+		t.Errorf("\\ytvert9 = %+v", cue.Spans[0].Vertical)
+	}
+	if cue.Spans[1].Vertical == nil || cue.Spans[1].Vertical.Mode != model.VerticalNone {
+		t.Errorf("a blank \\ytvert must clear the mode: %+v", cue.Spans[1].Vertical)
 	}
 }
 

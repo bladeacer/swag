@@ -18,13 +18,13 @@ A writer returns a loss report, which is one entry per degraded feature. The com
 
 SubRip carries plain text. It reads a cue counter, a timing line of the form `hh:mm:ss,mmm --> hh:mm:ss,mmm`, and one or more text lines. Two inline tags are understood: `<i>` and `<b>`.
 
-The writer drops everything else. It reports karaoke timing, positioning, animations, foreground colour, transparency, shadows, vertical text, script offsets, right-to-left marking, and ruby text. Ruby text falls back to bracketed readings.
+The writer drops everything else. It reports karaoke timing, positioning, animations, foreground colour, transparency, shadows, vertical text, script offsets, right-to-left marking, ruby text, strikeout, and glyph scale. Ruby text falls back to bracketed readings.
 
 ## YouTube SBV (sbv)
 
 SBV carries plain text only. It reads a timing line of the form `h:mm:ss.mmm,h:mm:ss.mmm` and one or more text lines.
 
-The writer drops styling, karaoke, and positioning. Ruby text falls back to bracketed readings.
+The writer drops styling, karaoke, positioning, and glyph scale. Ruby text falls back to bracketed readings.
 
 ## YouTube Timed Text (ytt) and SRV3 (srv3)
 
@@ -44,7 +44,7 @@ The writer deduplicates pens and lists them in increasing id order. It applies t
 - An italic or shadowed line start gains one space, so the player does not clip the overhang.
 - A cue with more than one shadow kind is layered, one line per kind, because a pen carries one edge.
 
-The writer reports the effects it cannot express: cue fades, cue moves, and the shake, chroma, keyframe, and karaoke-type animations.
+The writer reports the effects it cannot express: cue fades, cue moves, the shake, chroma, keyframe, and karaoke-type animations, a strikeout run, and a glyph scale.
 
 ## Advanced SubStation Alpha (ass)
 
@@ -57,10 +57,10 @@ The writer emits those same tiers, including `\bord`, `\shad`, `\s`, `\fscx`, `\
 The writer reports these features that it cannot express:
 
 - A shadow that is not hard
-- A chroma effect with more than one copy
-- A run that leaves vertical text
 - A karaoke gap
 - A ruby base with more than one reading
+
+The writer keeps a chroma whose offsets form the symmetric spread that the argument form rebuilds, so a chroma that came from ASS round-trips without a loss. A blank `\ytvert` returns a run to horizontal text, so a run can leave vertical text without a loss.
 
 Two limitations apply. The outline colour of a style that is not the base style becomes a glow shadow on the span. The IR carries an outline colour only on the style. Karaoke text keeps the timing of its syllable, so several spans can share one karaoke window.
 

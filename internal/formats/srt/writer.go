@@ -83,8 +83,19 @@ func recordLosses(cue model.Cue, losses *lossNotes) {
 		if span.Direction != nil && *span.Direction == model.DirRightToLeft {
 			losses.add("right-to-left marking in span %d", i)
 		}
+		if span.Strikeout != nil && *span.Strikeout {
+			losses.add("strikeout in span %d", i)
+		}
+		if scaleChanged(span.ScaleX) || scaleChanged(span.ScaleY) {
+			losses.add("glyph scale in span %d", i)
+		}
 	}
 }
+
+// scaleChanged reports whether a glyph scale override differs from the
+// original size. SubRip carries no scale, so the writer records a loss for
+// it.
+func scaleChanged(v *float64) bool { return v != nil && *v != 100 }
 
 // renderText renders the spans of cue as one SRT text block.
 func renderText(cue model.Cue) string {

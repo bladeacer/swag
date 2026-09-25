@@ -1,7 +1,8 @@
 ; overrides.ass: override tag fixture for the swag ASS round-trip tests.
 ; Exercises: \shad, \xshad, and \yshad shadow distance, the legacy \a
 ; alignment, \s strikeout, \fscx and \fscy scale, the \ytkt cursor side,
-; tag, and animated forms, and a custom \ytchroma. Written fresh for swag.
+; tag, and animated forms, a custom \ytchroma, and a blank \ytvert reset.
+; Written fresh for swag.
 [Script Info]
 Title: swag override fixture
 ScriptType: v4.00+
@@ -27,3 +28,4 @@ Dialogue: 0,0:00:13.00,0:00:15.00,Default,,0,0,0,,{\ytkt(LCursor,<)}A cursor bef
 Dialogue: 0,0:00:15.00,0:00:17.00,Default,,0,0,0,,{\ytkt(Cursor,\b1,star)}A styled cursor.
 Dialogue: 0,0:00:17.00,0:00:19.00,Default,,0,0,0,,{\ytkt(Cursor,100,\i1,spinner,\i0,star)}An animated cursor.
 Dialogue: 0,0:00:19.00,0:00:21.00,Default,,0,0,0,,{\ytchroma(&HFF0000&,&H00FF00&,&H0000FF&,&H40&,20,10,100,200)}A custom chromatic effect.
+Dialogue: 0,0:00:21.00,0:00:23.00,Default,,0,0,0,,{\ytvert9}Vertical text {\ytvert}then horizontal.

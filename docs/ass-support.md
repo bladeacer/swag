@@ -91,12 +91,12 @@ The YouTube player and the upload path constrain several features. [The format n
 The ASS writer reports a loss for each feature that the format cannot express. The list follows.
 
 - A shadow that is not hard.
-- A chroma effect with more than one offset. The writer records a conservative loss, because the four argument form names one offset.
-- A run that leaves vertical text.
 - A karaoke gap between two segments.
 - A ruby base with more than one reading.
 - A cursor karaoke type with no text.
 
+The writer keeps a chroma whose offsets form the symmetric spread that the argument form rebuilds, so a chroma that came from ASS round-trips without a loss. A blank `\ytvert` returns a run to horizontal text, so a run can leave vertical text without a loss.
+
 ## Tests
 
-The reader tests live in `internal/formats/ass/ass_test.go` and `internal/formats/ass/tags_test.go`. The writer tests live in `internal/formats/ass/writer_test.go`. The round-trip test walks each fixture under `internal/formats/ass/testdata`. The cross-check suite in `internal/formats/ass/crosscheck_test.go` runs one ASS source through every shipped writer.
+The reader tests live in `internal/formats/ass/ass_test.go` and `internal/formats/ass/tags_test.go`. The writer tests live in `internal/formats/ass/writer_test.go`. The round-trip test walks each fixture under `internal/formats/ass/testdata`. The cross-check suite in `internal/formats/ass/crosscheck_test.go` runs one ASS source through every shipped writer, and a chain test runs one ASS source through a sequence of formats of length two or more, then back to ASS, so the readers and the writers compose. The YTT, SRV3, SRT, and SBV writers report a strikeout run and a glyph scale as losses, so the conversion report stays complete.

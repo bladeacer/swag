@@ -132,7 +132,7 @@ func (w *Writer) renderCue(cue model.Cue, base model.Style, losses *lossNotes) s
 		tags = append(tags, overrides...)
 		tags = append(tags, state.scriptTag(baseSpan)...)
 		tags = append(tags, state.packedTag(baseSpan)...)
-		tags = append(tags, state.verticalTag(baseSpan, losses)...)
+		tags = append(tags, state.verticalTag(baseSpan)...)
 		tags = append(tags, state.directionTag(baseSpan)...)
 
 		text := baseSpan.Text
@@ -218,9 +218,9 @@ func (s *spanState) packedTag(span model.TextSpan) []string {
 }
 
 // verticalTag returns the tag that changes the vertical mode, if it
-// changed. ASS has no tag that clears a vertical mode, so a span that drops
-// the mode keeps the previous one on read and the writer reports the loss.
-func (s *spanState) verticalTag(span model.TextSpan, losses *lossNotes) []string {
+// changed. A blank \ytvert returns the run to horizontal text, so a span
+// can leave vertical text.
+func (s *spanState) verticalTag(span model.TextSpan) []string {
 	want := model.VerticalNone
 	if span.Vertical != nil {
 		want = span.Vertical.Mode
@@ -241,7 +241,7 @@ func (s *spanState) verticalTag(span model.TextSpan, losses *lossNotes) []string
 		return []string{`\ytvert3`}
 	}
 	if clear {
-		losses.add("a span that leaves vertical text keeps the vertical mode")
+		return []string{`\ytvert`}
 	}
 	return nil
 }
@@ -410,8 +410,15 @@ func chromaTag(c model.Chroma, losses *lossNotes) string {
 		offsetX = -c.Offsets[0].X
 		offsetY = -c.Offsets[0].Y
 	}
-	if len(c.Offsets) > 1 {
-		losses.add("a chroma with more than one copy keeps the widest offset only")
+	copies := 3
+	if len(c.Colours) > 0 {
+		copies = len(c.Colours)
+	}
+	// The argument form names one offset and spreads the copies from it. The
+	// writer records a loss only when the spread can not reproduce the
+	// offsets of the IR.
+	if len(c.Offsets) > 1 && !sameOffsets(c.Offsets, spreadOffsets(offsetX, offsetY, copies)) {
+		losses.add("a chroma with more than one offset keeps the first offset only")
 	}
 	if len(c.Colours) > 0 {
 		var b strings.Builder
@@ -518,6 +525,20 @@ func cursorTag(k model.Karaoke, losses *lossNotes) string {
 		return fmt.Sprintf(`\ytkt(%s,%s,%s)`, name, k.CursorTags, k.Cursor)
 	}
 	return fmt.Sprintf(`\ytkt(%s,%s)`, name, k.Cursor)
+}
+
+// sameOffsets reports whether the writer can rebuild b offsets from the
+// first offset of a.
+func sameOffsets(a, b []model.Point) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // writeBraces writes an override block when it holds at least one tag.

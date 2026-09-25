@@ -543,9 +543,13 @@ func (st *eventState) setScript(kind model.ScriptKind) {
 	st.script = &v
 }
 
+// setVertical applies a \ytvert mode. A blank value returns the run to
+// horizontal text, which lets a writer leave vertical text without a loss.
 func (st *eventState) setVertical(value string) {
 	var mode model.VerticalMode
 	switch value {
+	case "":
+		mode = model.VerticalNone
 	case "9":
 		mode = model.VerticalColumnsRTL
 	case "7":

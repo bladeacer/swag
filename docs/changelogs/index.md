@@ -1,13 +1,13 @@
 # Changelog index
 
-Release notes for `swag`, one file per release, in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 1.1.0 format. The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Release notes for `swag`, one file per release, in [the Keep a Changelog format](https://keepachangelog.com/en/1.1.0/) 1.1.0. The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Unreleased work lands in the file for the next planned version. The release commit moves that file's status to released and adds the date.
 
 ## Releases
 
-- [v0.5.0](v0.5.0.md) — ASS writer: Tier 1 to 3 emission, degradation notes, and the YouTube Timed Text cross-check (unreleased)
-- [v0.4.0](v0.4.0.md) — ASS reader: styles, karaoke, animations, ruby, and vertical text (unreleased)
-- [v0.3.0](v0.3.0.md) — the YouTube pair: YTT and SRV3 in and out (unreleased)
-- [v0.2.0](v0.2.0.md) — plain formats: SRT and SBV conversion, the public library, and the CLI
-- [v0.1.0](v0.1.0.md) — foundation: intermediate representation, i18n skeleton, build tooling
+- [v0.5.0, the ASS writer](v0.5.0.md): the ASS writer, the architecture split, and full statement coverage (unreleased)
+- [v0.4.0, the ASS reader](v0.4.0.md): styles, karaoke, animations, ruby, and vertical text (unreleased)
+- [v0.3.0, the YouTube pair](v0.3.0.md): YTT and SRV3 in and out (unreleased)
+- [v0.2.0, plain formats](v0.2.0.md): SRT and SBV conversion, the public library, and the CLI
+- [v0.1.0, foundation](v0.1.0.md): intermediate representation, i18n skeleton, build tooling

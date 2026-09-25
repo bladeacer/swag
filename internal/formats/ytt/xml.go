@@ -5,7 +5,6 @@ package ytt
 import (
 	"encoding/xml"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 
@@ -117,9 +116,6 @@ func (p *xmlParagraph) UnmarshalXML(d *xml.Decoder, start xml.StartElement) erro
 	}
 	for {
 		tok, err := d.Token()
-		if err == io.EOF {
-			return nil
-		}
 		if err != nil {
 			return fmt.Errorf("parse paragraph: %w", err)
 		}

@@ -136,9 +136,6 @@ func (w *Writer) renderCue(
 	for layer := 0; layer < layers; layer++ {
 		kind, hasKind := activeKind(kinds, layer)
 		runs := w.buildRuns(spans, base, kind, hasKind, pens, losses)
-		if len(runs) == 0 {
-			continue
-		}
 		line := renderedLine{
 			start:    startMS,
 			duration: durationMS,
@@ -426,11 +423,10 @@ func writeLine(out *strings.Builder, line renderedLine) {
 }
 
 // escapeText escapes XML text without touching the line breaks, which the
-// format uses as line separators.
+// format uses as line separators. A bytes.Buffer cannot fail a write, so the
+// escape error needs no branch.
 func escapeText(s string) string {
 	var buf bytes.Buffer
-	if err := xml.EscapeText(&buf, []byte(s)); err != nil {
-		return s
-	}
+	_ = xml.EscapeText(&buf, []byte(s))
 	return buf.String()
 }

@@ -76,7 +76,9 @@ changelog:
 
 release:
   # The release workflow runs on a version tag, so the result is a real
-  # release and not a draft.
+  # release and not a draft. The body links the changelog file of the tag.
   draft: false
   header: |
-    See docs/changelogs/ for the notes of this release.
+    [The release notes for {{ .Tag }}](https://github.com/bladeacer/swag/blob/main/docs/changelogs/{{ .Tag }}.md)
+  footer: |
+    [The full changelog](https://github.com/bladeacer/swag/blob/main/docs/changelogs/index.md)

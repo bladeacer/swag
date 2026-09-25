@@ -70,6 +70,7 @@ const (
 	MsgConvertSuccess    Key = "convert.success"
 	MsgConvertFailed     Key = "convert.failed"
 	MsgConvertLosses     Key = "convert.losses"
+	MsgUsageFailed       Key = "error.usage"
 	MsgInputMissing      Key = "error.input-missing"
 	MsgInputUnreadable   Key = "error.input-unreadable"
 	MsgFormatUnknown     Key = "error.format-unknown"
@@ -79,12 +80,13 @@ const (
 // enGB is the default message set. Values follow the simple-english rules:
 // complete sentences, one instruction per message, condition first.
 var enGB = map[Key]string{
-	MsgBannerTitle:       "swag — Subtitles With A Gopher",
+	MsgBannerTitle:       "swag (Subtitles With A Gopher)",
 	MsgBannerTagline:     "Read, write, and convert subtitles.",
 	MsgConvertStart:      "Converting %s to %s format.",
 	MsgConvertSuccess:    "Wrote %s.",
 	MsgConvertFailed:     "Conversion failed. %s",
 	MsgConvertLosses:     "Features the target format does not carry (%d):",
+	MsgUsageFailed:       "The command line could not be read. %s",
 	MsgInputMissing:      "The input file does not exist. Give the path of a subtitle file with -i.",
 	MsgInputUnreadable:   "The input file could not be read. %s",
 	MsgFormatUnknown:     "The format of %s is not known. Name the format with -f.",

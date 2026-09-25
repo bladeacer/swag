@@ -51,7 +51,7 @@ func (c *ConvertCmd) Run(ictx *runContext) error {
 	}
 	ictx.T.F(i18n.MsgConvertStart, c.Input, targetName(c))
 
-	source, err := os.Open(c.Input)
+	source, err := openInput(c.Input)
 	if err != nil {
 		return fmt.Errorf("%s", ictx.T.F(i18n.MsgInputUnreadable, err))
 	}
@@ -134,6 +134,12 @@ func resolveTarget(c *ConvertCmd, t *i18n.T) (string, error) {
 	return "", fmt.Errorf("%s", t.S(i18n.MsgFormatUnsupported))
 }
 
+// openInput opens the input file for reading. It is a variable so a test
+// can force the open failure branch.
+var openInput = func(path string) (io.ReadCloser, error) {
+	return os.Open(path)
+}
+
 // openOutput returns the writer for the converted file. A missing -o
 // writes to stdout, and the closer does nothing in that case.
 func openOutput(output string) (io.Writer, func(), error) {
@@ -162,7 +168,9 @@ func banner(t *i18n.T) {
 		Println(t.S(i18n.MsgBannerTitle))
 }
 
-func main() {
+// run parses the arguments, runs the selected command, and returns the
+// process exit code.
+func run(args []string) int {
 	cli := CLI{}
 	parser := kong.Must(&cli,
 		kong.Name("swag"),
@@ -171,12 +179,23 @@ func main() {
 			"version": fmt.Sprintf("%s (commit %s, built %s)", version, commit, date),
 		},
 	)
-	kongCtx, err := parser.Parse(os.Args[1:])
-	parser.FatalIfErrorf(err)
-
+	kongCtx, err := parser.Parse(args)
 	ictx := &runContext{CLI: &cli, T: i18n.New(cli.Locale)}
+	if err != nil {
+		pterm.Error.Printf(ictx.T.S(i18n.MsgUsageFailed), err)
+		return 1
+	}
 	if err := kongCtx.Run(ictx); err != nil {
 		pterm.Error.Printf(ictx.T.S(i18n.MsgConvertFailed), err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
+}
+
+// exit ends the process. It is a variable so a test can observe the exit
+// code that main would return without ending the test process.
+var exit = os.Exit
+
+func main() {
+	exit(run(os.Args[1:]))
 }

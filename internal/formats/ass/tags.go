@@ -92,9 +92,6 @@ func (st *eventState) run(text string) []model.TextSpan {
 	var spans []model.TextSpan
 	for _, run := range richtext.Parse(text) {
 		st.applyTags(run.Tags)
-		if run.Text == "" {
-			continue
-		}
 		spans = append(spans, st.spansFor(run.Text)...)
 	}
 	return spans

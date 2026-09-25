@@ -28,7 +28,7 @@ The writer drops styling, karaoke, and positioning. Ruby text falls back to brac
 
 ## YouTube Timed Text (ytt) and SRV3 (srv3)
 
-YouTube Timed Text is XML. A `<pen>` element carries the style of a text run, a `<ws>` element carries the window of a line, and a `<wp>` element carries a named window position. The body holds `<p>` lines, each with `<s>` runs whose `t` attribute gives karaoke timing. SRV3 is an older dialect of the same document, so both formats share one reader, one writer, and one pen model.
+YouTube Timed Text is XML. A `<pen>` element carries the style of a text run, and a `<ws>` element carries the window of a line. A `<wp>` element carries a named window position. The body holds `<p>` lines, each with `<s>` runs whose `t` attribute gives karaoke timing. SRV3 is an older dialect of the same document, so both formats share one reader, one writer, and one pen model.
 
 The reader maps pens onto span overrides, window positions onto the cue layout, and window styles onto the vertical mode or the direction. It pairs ruby base spans with their readings and drops the parenthesis fallback. It turns the relative appearance time of each run into karaoke span offsets.
 
@@ -39,7 +39,7 @@ The writer deduplicates pens and lists them in increasing id order. It applies t
 - An alpha value of 255 becomes 254, because the upload drops an attribute with the maximum value.
 - A pure white foreground becomes `#FEFEFE`, because the Android client ignores `#FFFFFF`.
 - A pure black foreground becomes `#010101`, because the upload drops a foreground that matches the default background.
-- A line with more than one run gets a zero-width space after the first run, because the upload removes the pen of the first run otherwise.
+- A line with more than one run gets a zero-width space after the first run. Without that space, the upload removes the pen of the first run.
 - A karaoke segment with no length gains one millisecond, and the segments stay in order.
 - An italic or shadowed line start gains one space, so the player does not clip the overhang.
 - A cue with more than one shadow kind is layered, one line per kind, because a pen carries one edge.
@@ -48,15 +48,21 @@ The writer reports the effects it cannot express: cue fades, cue moves, and the 
 
 ## Advanced SubStation Alpha (ass)
 
-ASS carries a Script Info section, a V4+ Styles section, and an Events section. The reader maps each style onto an IR style and flattens the style of a cue onto the spans of that cue, because the IR carries one document style and per-span overrides.
+ASS carries a Script Info section, a V4+ Styles section, and an Events section. The reader maps each style onto an IR style. It flattens the style of a cue onto the spans of that cue, because the IR carries one document style and per-span overrides.
 
 The reader supports the Tier 1 tags (`\b`, `\i`, `\u`, `\fn`, `\fs`, the colour tags, the alpha tags, `\k` and its variants, `\r`, `\an`, and `\pos`), the Tier 2 effects (`\move`, `\fad`, `\fade`, `\t`, `\ytshake`, `\ytchroma`, and the `\ytkt` karaoke types), and the Tier 3 tags (`\ytruby`, `\ytvert`, `\ytpack`, `\ytdir4`, and `\ytdir6`). A tag outside those tiers is accepted and ignored.
 
-The writer emits those same tiers. It writes the style table in a fixed field order and one Dialogue line per cue. It emits the vertical mode and the reading direction where they change, so a direction applies from the tag onward. A background box or an outline colour writes through the `\3c` and `\3a` tags, a hard shadow writes through `\4c` and `\4a`, and a box style writes BorderStyle 3. A colour tag carries the transparency of the channel, where 0 is opaque.
+The writer emits those same tiers. It writes the style table in a fixed field order and one Dialogue line per cue. It emits the vertical mode and the reading direction where they change, so a direction applies from the tag onward. A background box or an outline colour writes through the `\3c` and `\3a` tags. A hard shadow writes through `\4c` and `\4a`, and a box style writes BorderStyle 3. A colour tag carries the transparency of the channel, where 0 is opaque.
 
-The writer reports the features it cannot express: a shadow that is not hard, a chroma effect with more than one copy, a run that leaves vertical text, a karaoke gap, and a ruby base with more than one reading.
+The writer reports these features that it cannot express:
 
-Two limitations apply. The outline colour of a style that is not the base style becomes a glow shadow on the span, because the IR carries an outline colour only on the style. Karaoke text keeps the timing of its syllable, so several spans can share one karaoke window.
+- A shadow that is not hard
+- A chroma effect with more than one copy
+- A run that leaves vertical text
+- A karaoke gap
+- A ruby base with more than one reading
+
+Two limitations apply. The outline colour of a style that is not the base style becomes a glow shadow on the span. The IR carries an outline colour only on the style. Karaoke text keeps the timing of its syllable, so several spans can share one karaoke window.
 
 ## Karaoke
 

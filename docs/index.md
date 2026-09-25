@@ -4,17 +4,19 @@ Documentation for `swag` (Subtitles With A Gopher), a clean-room Go tool for rea
 
 Planning and governance:
 
-- `../ROADMAP.md` — architecture, IR specification, format matrix, and milestones to v1.0.0
-- `../AGENTS.md` — rules for agent contributors, including the documentation language
+- [the roadmap](../ROADMAP.md): scope and the ordered milestones to v1.0.0
+- [the architecture page](architecture.md): packages, the intermediate representation, the format matrix, and the ASS tag tiers
+- [the contributor rules](../AGENTS.md): conventions for agent contributors, including the documentation language
 
 Reference documents (written with the vendored `simple-english` skill, British English):
 
-- `changelogs/index.md` — release notes index in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
-- `changelogs/v0.5.0.md` — notes for the ASS-writer release
-- `changelogs/v0.4.0.md` — notes for the ASS-reader release
-- `changelogs/v0.3.0.md` — notes for the YouTube-pair release
-- `changelogs/v0.2.0.md` — notes for the plain-formats release
-- `changelogs/v0.1.0.md` — notes for the foundation release
-- `formats.md` — per-format support matrix and degradation notes
-- `library.md` — usage guide for the Go library (lands with v0.7.0)
-- `demo/` — WASM demo page (lands with v1.0.0)
+- [the changelog index](changelogs/index.md): release notes in Keep a Changelog format
+- [the v0.5.0 notes](changelogs/v0.5.0.md): the ASS writer release
+- [the v0.4.0 notes](changelogs/v0.4.0.md): the ASS reader release
+- [the v0.3.0 notes](changelogs/v0.3.0.md): the YouTube pair release
+- [the v0.2.0 notes](changelogs/v0.2.0.md): the plain formats release
+- [the v0.1.0 notes](changelogs/v0.1.0.md): the foundation release
+- [the format notes](formats.md): the per-format support matrix and degradation notes
+- [the third-party notices](third-party-notices.md): the works this project builds on and their licences
+- the library usage guide (lands with v0.7.0)
+- the WASM demo page (lands with v1.0.0)

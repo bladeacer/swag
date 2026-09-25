@@ -3,18 +3,94 @@
 package ass
 
 import (
+	"io"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/bladeacer/swag/internal/formats/sbv"
+	"github.com/bladeacer/swag/internal/formats/srt"
+	"github.com/bladeacer/swag/internal/formats/srv3"
 	"github.com/bladeacer/swag/internal/formats/ytt"
 	"github.com/bladeacer/swag/internal/model"
 )
 
-// The cross-check suite runs a document through the second format and back.
+// The cross-check suite runs a document through a second format and back.
 // Each direction keeps the timing and the text, reports the features it
 // cannot express, and keeps the features the other format does share.
+
+// crossTarget describes one shipped writer for the suite.
+type crossTarget struct {
+	name   string
+	write  func(*model.Document, io.Writer) ([]string, error)
+	read   func(io.Reader) (*model.Document, error)
+	losses []string
+}
+
+// crossTargets lists every shipped writer. The ASS colour fixture is the
+// source of the suite, so the loss lists name what that fixture provokes.
+var crossTargets = []crossTarget{
+	{
+		name:  "ass",
+		write: func(d *model.Document, w io.Writer) ([]string, error) { return NewWriter().Render(d, w) },
+		read:  func(r io.Reader) (*model.Document, error) { return NewReader().Parse(r) },
+	},
+	{
+		name:   "ytt",
+		write:  func(d *model.Document, w io.Writer) ([]string, error) { return ytt.NewWriter().Render(d, w) },
+		read:   func(r io.Reader) (*model.Document, error) { return ytt.NewReader().Parse(r) },
+		losses: []string{"cue fade", "cue move", "keyframe animation", `font "Fancy Font"`},
+	},
+	{
+		name:   "srv3",
+		write:  func(d *model.Document, w io.Writer) ([]string, error) { return srv3.NewWriter().Render(d, w) },
+		read:   func(r io.Reader) (*model.Document, error) { return srv3.NewReader().Parse(r) },
+		losses: []string{"cue fade", "cue move", "keyframe animation", `font "Fancy Font"`},
+	},
+	{
+		name:   "srt",
+		write:  srt.NewWriter().Render,
+		read:   srt.NewReader().Parse,
+		losses: []string{"positioning", "animation", "foreground colour", "transparency", "shadow effects", "script offset"},
+	},
+	{
+		name:   "sbv",
+		write:  sbv.NewWriter().Render,
+		read:   sbv.NewReader().Parse,
+		losses: []string{"positioning", "inline styling"},
+	},
+}
+
+// TestCrossCheckEveryWriter runs the ASS colour fixture through every
+// shipped writer. Each target keeps the cue count, the timing, and the
+// text, and it reports the features it drops.
+func TestCrossCheckEveryWriter(t *testing.T) {
+	source := parseFixture(t, "colour.ass")
+	for _, target := range crossTargets {
+		t.Run(target.name, func(t *testing.T) {
+			var out strings.Builder
+			losses, err := target.write(source, &out)
+			if err != nil {
+				t.Fatalf("render %s: %v", target.name, err)
+			}
+			joined := lossText(losses)
+			for _, want := range target.losses {
+				if !strings.Contains(joined, want) {
+					t.Errorf("%s loss report is missing %q: %v", target.name, want, losses)
+				}
+			}
+			if len(target.losses) == 0 && len(losses) > 0 {
+				t.Errorf("%s must carry the fixture without loss: %v", target.name, losses)
+			}
+			again, err := target.read(strings.NewReader(out.String()))
+			if err != nil {
+				t.Fatalf("re-parse %s: %v\n%s", target.name, err, out.String())
+			}
+			assertStable(t, source, again)
+		})
+	}
+}
 
 func readYTTFixture(t *testing.T) *model.Document {
 	t.Helper()
@@ -221,4 +297,37 @@ func TestCrossCheckYTTToASS(t *testing.T) {
 		t.Fatalf("re-parse YTT: %v\n%s", err, yttOut.String())
 	}
 	assertStable(t, mid, final)
+}
+
+// TestCrossCheckPlainToASS starts from SubRip, which is the plainest source
+// the project reads. The ASS pass keeps the text and the italic override,
+// and the SubRip pass back settles on the same cues.
+func TestCrossCheckPlainToASS(t *testing.T) {
+	const source = "1\n00:00:01,000 --> 00:00:04,000\n<i>Hello</i> world.\n\n" +
+		"2\n00:00:04,500 --> 00:00:08,000\nSecond line.\n"
+
+	start, err := srt.NewReader().Parse(strings.NewReader(source))
+	if err != nil {
+		t.Fatalf("parse SRT: %v", err)
+	}
+
+	var assOut strings.Builder
+	if _, err := NewWriter().Render(start, &assOut); err != nil {
+		t.Fatalf("render ASS: %v", err)
+	}
+	mid := reparse(t, assOut.String())
+	assertStable(t, start, mid)
+	if !isTrue(mid.Cues[0].Spans[0].Italic) {
+		t.Errorf("the italic override did not survive into ASS: %+v", mid.Cues[0].Spans[0])
+	}
+
+	var srtOut strings.Builder
+	if _, err := srt.NewWriter().Render(mid, &srtOut); err != nil {
+		t.Fatalf("render SRT: %v", err)
+	}
+	final, err := srt.NewReader().Parse(strings.NewReader(srtOut.String()))
+	if err != nil {
+		t.Fatalf("re-parse SRT: %v\n%s", err, srtOut.String())
+	}
+	assertStable(t, start, final)
 }

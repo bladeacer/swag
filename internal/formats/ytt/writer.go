@@ -246,6 +246,9 @@ func recordCueLosses(cue model.Cue, losses *lossNotes) {
 		if scaleChanged(span.ScaleX) || scaleChanged(span.ScaleY) {
 			losses.add("glyph scale")
 		}
+		if span.Voice != nil {
+			losses.add("voice name")
+		}
 	}
 	for _, a := range cue.Animations {
 		switch {

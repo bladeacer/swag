@@ -122,6 +122,10 @@ func (w *Writer) renderCue(cue model.Cue, base model.Style, losses *lossNotes) s
 	havePrev := false
 	for _, group := range model.RubyGroups(cue.Spans) {
 		baseSpan := group.Base
+		// ASS has no voice form, so a speaker name drops on write.
+		if baseSpan.Voice != nil {
+			losses.add("a voice name has no ASS form")
+		}
 		overrides := styleTags(baseSpan, losses)
 
 		var tags []string

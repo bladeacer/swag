@@ -5,34 +5,104 @@
 
 # swag
 
-`swag` (Subtitles With A Gopher) is a tool for reading, writing, and converting subtitles. It converts between the YouTube subtitle formats (YTT, SRV3), Advanced SubStation Alpha (ASS), the plain formats (SRT, SBV, TTML, WebVTT), and the Kdenlive subtitle JSON. It also carries a versioned lossless JSON exchange format. It keeps the styling, colour, effects, positioning, CJK layout, ruby text, and karaoke timing that those formats can express.
+`swag` (Subtitles With A Gopher) reads, writes, and converts subtitles. It keeps the styling, colour, effects, positioning, CJK layout, ruby text, karaoke timing, and voice names that the formats can express, and it reports every feature that a target format cannot carry.
 
-The project started as a clean-room reimagining of [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter). We thank that project for the inspiration. All code here is original. See [third-party notices](docs/third-party-notices.md) for attribution.
+It converts between the YouTube caption formats (YTT, SRV3), Advanced SubStation Alpha (ASS), the plain formats (SRT, SBV, TTML, WebVTT), the Kdenlive subtitle JSON, and a versioned lossless JSON exchange format.
 
-## Install
+## Quick start
 
-Install the CLI with the Go toolchain (Go 1.24 or newer):
+Install the command with the Go toolchain (Go 1.24 or newer):
 
 ```sh
 go install github.com/bladeacer/swag/cmd/swag@latest
 ```
 
-The `convert` command is available from v0.2.0. When you need the library itself, build from a clone with `make build` instead.
+Convert a file, and print what the target format cannot carry:
 
-## Status
+```sh
+swag -i in.ass -o out.vtt -v
+```
 
-The project is in development. The feature set, architecture, and milestones live in [the roadmap](ROADMAP.md) and [the architecture page](docs/architecture.md). The v0.7.0 release hardens the library: a configured conversion API, a fuzz target for every reader, benchmarks for a ten-thousand-cue document, a French locale, and the reference docs. The v0.6.0 release closes the ASS tag list and adds the TTML, WebVTT, Kdenlive, and JSON1 formats. The v0.5.0 release adds the Advanced SubStation Alpha (ASS) writer. ASS is now a conversion target, with a semantic round-trip test and a cross-check against YouTube Timed Text. The same release splits the architecture into its own page, raises statement coverage to 100%, and removes the em-dash from the repository. The v0.4.0 release adds the ASS reader, with styles, karaoke, animations, ruby text, vertical layout, and direction. The v0.3.0 release adds the YouTube pair: YouTube Timed Text (YTT) and SRV3 in and out, with the platform quirks that the upload path expects. The plain formats (SRT, SBV) ship in v0.2.0. [The format notes](docs/formats.md) list every format and its degradation notes.
+```
+ SUCCESS  Wrote out.vtt.
+ WARNING  Features the target format does not carry (1):
+ WARNING    karaoke timing
+```
 
-The coverage badge shows the statement coverage of the module. Regenerate it with `make coverage-svg`.
+The report holds one entry per feature the target cannot express, so a file with ruby text or a shadow adds its own lines. [The loss report review](docs/loss-report.md) lists the entries of every format.
+
+A conversion that must not drop a feature fails instead, which suits a build or a batch:
+
+```sh
+swag -i in.ass -o out.srt --strict
+```
+
+A three-way conversion keeps the exact document. A plain writer appends an integrity block that holds the whole document, so SubRip and SBV carry ruby text, karaoke, and styling through the tool while a plain player shows plain subtitles:
+
+```sh
+swag -i in.ass -o mid.srt
+swag -i mid.srt -o out.ass
+```
+
+[The usage page](docs/usage.md) covers the flags, the format detection, and the exit codes. [The install page](docs/install.md) covers releases, builds from source, and the development loop.
+
+## Supported formats
+
+| Format | Registry name | Extensions | Support |
+|---|---|---|---|
+| SubRip | `srt` | `srt` | Read, write |
+| YouTube SBV (SubViewer) | `sbv` | `sbv` | Read, write |
+| YouTube Timed Text | `ytt` | `ytt` | Read, write |
+| YouTube SRV3 | `srv3` | `srv3` | Read, write |
+| Advanced SubStation Alpha | `ass` | `ass`, `ssa` | Read, write |
+| WebVTT | `vtt` | `vtt` | Read, write |
+| TTML and DFXP | `ttml` | `ttml`, `dfxp` | Read, write |
+| Kdenlive subtitle JSON | `kdenlive` | `kdenlive` | Read, write |
+| Lossless JSON exchange | `json1` | `json1` | Read, write |
+
+[The format notes](docs/formats.md) give the support, the specification, and the caveats and limitations of each format. [The loss report review](docs/loss-report.md) lists the degradation of every format at a glance.
+
+## What makes it different
+
+- **No silent loss.** Every writer returns a complete loss report for its target, and `--strict` turns a report into a failure. [The loss report review](docs/loss-report.md) documents every entry.
+- **Fidelity across a chain.** [The integrity block](docs/integrity.md) keeps a full document inside a plain SubRip or SBV file, so a conversion through a plain format returns the same document.
+- **Platform quirks handled.** The YouTube writer applies the quirks of the upload path, from the font allow-list to the zero-width space that keeps a pen. [The format notes](docs/formats.md) list them.
+- **A library as well as a command.** [The library guide](docs/library.md) covers the conversion API, with style renaming, a font override, and a loss policy.
+- **Tested to the last statement.** The module holds 100 percent statement coverage, a fuzz target for every reader, and benchmarks over a ten-thousand-cue document. [The testing notes](docs/testing.md) cover all three.
+- **Localised output.** Every user-facing message comes from the message catalogue, with `en-GB` as the default and `fr-FR` as the second locale. [The internationalisation page](docs/i18n.md) shows how to add a language.
+
+## Library
+
+```go
+doc, err := sub.Parse("in.ass", source, "")
+if err != nil {
+	return err
+}
+losses, err := sub.Render(doc, "vtt", sink)
+```
+
+[The library guide](docs/library.md) covers the document model, the format registry, and the configured conversion entry point.
 
 ## Documentation
 
-- [The roadmap](ROADMAP.md)
-- [The architecture page](docs/architecture.md)
-- [The format notes](docs/formats.md)
-- [The library usage guide](docs/library.md)
 - [The documentation index](docs/index.md)
+- [Install](docs/install.md)
+- [Usage](docs/usage.md)
+- [Formats](docs/formats.md)
+- [File integrity](docs/integrity.md)
+- [The JSON1 exchange format](docs/json1.md)
+- [The library guide](docs/library.md)
+- [The architecture page](docs/architecture.md)
+- [The roadmap](ROADMAP.md)
 - [The changelog](docs/changelogs/index.md)
+
+## Status
+
+The project is in development. [The roadmap](ROADMAP.md) carries the milestones to v1.0.0 and [the changelog index](docs/changelogs/index.md) carries the releases. The v0.7.0 release adds the configured conversion API, the integrity block for the plain formats, the JSON1 version chain, the WebVTT voice span, the second locale, and the reference docs. The v0.6.0 release closes the ASS tag list and adds the TTML, WebVTT, Kdenlive, and JSON1 formats. The v0.5.0 release adds the ASS writer, and the v0.4.0 release adds the ASS reader. The YouTube pair (YTT and SRV3) arrives in v0.3.0, and the plain formats (SRT and SBV) in v0.2.0.
+
+The project started as a clean-room reimagining of [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter). We thank that project for the inspiration. All code here is original. [The third-party notices](docs/third-party-notices.md) record the attribution.
+
+The coverage badge shows the statement coverage of the module. Regenerate it with `make coverage-svg`.
 
 ## LLM Usage Disclaimer
 

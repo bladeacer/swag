@@ -285,6 +285,9 @@ func recordLosses(cue model.Cue, losses *lossNotes) {
 		if span.Ruby != nil {
 			losses.add("ruby text")
 		}
+		if span.Voice != nil {
+			losses.add("voice name")
+		}
 	}
 }
 

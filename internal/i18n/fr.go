@@ -19,6 +19,7 @@ var frFR = map[Key]string{
 	MsgConvertFailed:     "La conversion a échoué. %s",
 	MsgConvertLosses:     "Fonctionnalités absentes du format cible (%d) :",
 	MsgUsageFailed:       "La ligne de commande n'a pas pu être lue. %s",
+	MsgUsageBare:         "Indiquez le fichier d'entrée avec -i et le format cible avec -f. Lancez swag --help pour lire toutes les options.",
 	MsgInputMissing:      "Le fichier d'entrée n'existe pas. Indiquez le chemin d'un fichier de sous-titres avec -i.",
 	MsgInputUnreadable:   "Le fichier d'entrée n'a pas pu être lu. %s",
 	MsgInputIsDirectory:  "Le chemin d'entrée %s est un dossier. Indiquez le chemin d'un fichier de sous-titres.",

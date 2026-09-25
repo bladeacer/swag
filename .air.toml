@@ -6,7 +6,9 @@ tmp_dir = "bin"
 
 [build]
   args_bin = []
-  bin = "./bin/swag"
+  # entrypoint replaces the deprecated bin key. air runs the binary that
+  # cmd builds, and a bare run prints the banner and the first step.
+  entrypoint = ["./bin/swag"]
   cmd = "go build -o ./bin/swag ./cmd/swag"
   delay = 1000
   exclude_dir = ["assets", "bin", "docs", "testdata", "vendor"]

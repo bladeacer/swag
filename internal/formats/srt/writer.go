@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bladeacer/swag/internal/envelope"
 	"github.com/bladeacer/swag/internal/model"
 )
 
@@ -28,7 +29,9 @@ func NewWriter() *Writer { return &Writer{} }
 func (w *Writer) Name() string { return FormatName }
 
 // Render writes doc to sink as SubRip. The returned slice carries one
-// entry per degraded feature.
+// entry per feature that a plain SubRip consumer cannot read. A write with
+// at least one such feature also appends the integrity block, which keeps
+// the whole document for a swag reader.
 func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	var losses lossNotes
 	var out strings.Builder
@@ -45,6 +48,13 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 
 	if _, err := io.WriteString(sink, out.String()); err != nil {
 		return losses.notes, fmt.Errorf("write srt: %w", err)
+	}
+	// The cue loop ends the file with a blank line, so the block starts a
+	// fresh paragraph. A plain consumer stops at the last cue.
+	if len(losses.notes) > 0 {
+		if err := envelope.Write(sink, doc); err != nil {
+			return losses.notes, fmt.Errorf("write srt: %w", err)
+		}
 	}
 	return losses.notes, nil
 }
@@ -88,6 +98,9 @@ func recordLosses(cue model.Cue, losses *lossNotes) {
 		}
 		if scaleChanged(span.ScaleX) || scaleChanged(span.ScaleY) {
 			losses.add("glyph scale in span %d", i)
+		}
+		if span.Voice != nil {
+			losses.add("voice name in span %d", i)
 		}
 	}
 }

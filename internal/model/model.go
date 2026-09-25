@@ -174,6 +174,11 @@ type TextSpan struct {
 	Direction *Direction
 	Packed    *bool
 
+	// Voice names the speaker of the span (WebVTT <v Speaker>). nil means
+	// "no voice annotation". A format without a voice form drops the name
+	// and keeps the text.
+	Voice *string
+
 	// Ruby marks an annotation span: the reading for the base span that
 	// precedes it. Base spans carry a nil Ruby.
 	Ruby *Ruby

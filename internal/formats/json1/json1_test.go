@@ -48,7 +48,8 @@ func richDocument() *model.Document {
 					Font: ptr("Trebuchet MS"), Size: ptr(40.0),
 					Bold: ptr(true), Italic: ptr(false), Underline: ptr(true),
 					Strikeout: ptr(true), ScaleX: ptr(150.0), ScaleY: ptr(50.0),
-					Fore: ptr(model.NewColour(255, 0, 0, 255)), Secondary: ptr(model.NewColour(0, 255, 0, 255)),
+					Voice: ptr("Roger Bingham"),
+					Fore:  ptr(model.NewColour(255, 0, 0, 255)), Secondary: ptr(model.NewColour(0, 255, 0, 255)),
 					Back:         ptr(model.NewColour(0, 0, 255, 255)),
 					Shadows:      []model.Shadow{{Kind: model.ShadowSoft, Colour: model.NewColour(9, 8, 7, 6)}, {Kind: model.ShadowGlow, Colour: model.NewColour(1, 2, 3, 4)}},
 					OutlineWidth: ptr(4.0), ShadowDepth: ptr(2.0),
@@ -101,8 +102,9 @@ func TestParseErrors(t *testing.T) {
 		want  string
 	}{
 		{"bad json", "{not json", "parse json1"},
-		{"wrong version", `{"version":"2","document":{}}`, "unsupported version"},
-		{"no document", `{"version":"1"}`, "no document"},
+		{"unknown version", `{"version":"99","document":{}}`, "unsupported version"},
+		{"no version", `{"document":{}}`, "unsupported version"},
+		{"no document", `{"version":"2"}`, "no document"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -111,6 +113,49 @@ func TestParseErrors(t *testing.T) {
 				t.Fatalf("Parse(%s) error = %v, want %q", tt.input, err, tt.want)
 			}
 		})
+	}
+}
+
+// TestWritesCurrentVersion pins the version the writer stamps on a file, so
+// a shape change cannot ship without a bump.
+func TestWritesCurrentVersion(t *testing.T) {
+	var out strings.Builder
+	if _, err := NewWriter().Render(richDocument(), &out); err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if !strings.Contains(out.String(), `"version": "`+FormatVersion+`"`) {
+		t.Fatalf("the file must carry version %s:\n%s", FormatVersion, out.String())
+	}
+}
+
+// TestMigrateV1 reads a version 1 file, the shape of the first release. The
+// reader must lift it to version 2, which adds the span voice, and it must
+// supply the metadata map that version 1 could leave out.
+func TestMigrateV1(t *testing.T) {
+	const v1 = `{
+	  "version": "1",
+	  "document": {
+	    "Styles": [{"Name": "Default"}],
+	    "Cues": [{"Spans": [{"Text": "hello"}]}]
+	  }
+	}`
+	doc, err := NewReader().Parse(strings.NewReader(v1))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if doc.Metadata == nil {
+		t.Error("the migration must supply the metadata map")
+	}
+	if got := doc.Cues[0].Spans[0].Voice; got != nil {
+		t.Errorf("a version 1 span has no voice field, got %q", *got)
+	}
+}
+
+// TestMigrateChain reports a version that no step reaches.
+func TestMigrateUnknownVersion(t *testing.T) {
+	doc := &model.Document{}
+	if err := migrate("7", doc); err == nil {
+		t.Fatal("a version with no migration step must fail")
 	}
 }
 

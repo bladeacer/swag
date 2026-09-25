@@ -8,6 +8,14 @@ Run `go test -cover ./...` for a package summary, or `make cover` for the per-fu
 
 Each package carries its own tests next to the code. Reader and writer pairs have a round-trip test over a fixture under `internal/formats/<format>/testdata/`. Every shipped writer also appears in [the cross-check suite](../internal/formats/ass/crosscheck_test.go), which runs an ASS fixture through the writer and asserts its loss report.
 
+Four suites sit above the package tests:
+
+- [The cross-check chains](../internal/formats/ass/crosscheck_test.go) run one fixture per reader through a sequence of two or more formats and back, so the readers and the writers compose.
+- [The integrity test](../pkg/sub/integrity_test.go) proves that a conversion through SubRip or SBV returns the exact document. It covers the ASS fixtures and the karaoke fixture.
+- [The exchange suite](../pkg/sub/e2e_test.go) reads every format, writes the document as JSON1, and reads it back, so the lossless hop holds for every reader.
+- [The voice span suite](../pkg/sub/voice_test.go) pins what each format does with a speaker name, from the formats that keep it to the ones that report the loss.
+- [The command line suite](../cmd/swag/main_test.go) walks every registered target through the real command and back, including the bare run and the default command form.
+
 ## Fuzzing
 
 Every reader has a fuzz target in [the fuzz file](../pkg/sub/fuzz_test.go). A target parses an arbitrary string, then renders the result as JSON1, so a reader must not panic and a document it accepts must render. The targets run their seed corpus during a normal test run.

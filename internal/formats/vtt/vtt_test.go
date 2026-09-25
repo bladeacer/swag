@@ -357,3 +357,76 @@ func TestNames(t *testing.T) {
 		t.Fatalf("names must be %q", FormatName)
 	}
 }
+
+// TestParseVoiceSpan covers the voice annotation of the WebVTT spec, which
+// names the speaker of the text: <v Roger Bingham>We are in the Milky Way.
+func TestParseVoiceSpan(t *testing.T) {
+	doc := parse(t, "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n<v Roger Bingham>We are in the Milky Way.</v>\n")
+	span := doc.Cues[0].Spans[0]
+	if span.Voice == nil || *span.Voice != "Roger Bingham" {
+		t.Fatalf("voice = %+v, want Roger Bingham", span.Voice)
+	}
+	if span.Text != "We are in the Milky Way." {
+		t.Fatalf("text = %q", span.Text)
+	}
+}
+
+// TestParseVoiceSpanWithoutName keeps a nameless voice annotation, and the
+// name it carries is empty.
+func TestParseVoiceSpanWithoutName(t *testing.T) {
+	doc := parse(t, "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n<v>nameless</v>\n")
+	span := doc.Cues[0].Spans[0]
+	if span.Voice == nil || *span.Voice != "" {
+		t.Fatalf("voice = %+v, want an empty name", span.Voice)
+	}
+	// The writer must emit the name-free form, because an empty annotation
+	// is not valid WebVTT.
+	var out strings.Builder
+	if _, err := NewWriter().Render(doc, &out); err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if !strings.Contains(out.String(), "<v>nameless</v>") {
+		t.Fatalf("a nameless voice must write as <v>:\n%s", out.String())
+	}
+}
+
+// TestVoiceSpanClosesAtEnd covers the text that follows a closed voice
+// annotation, which carries no voice of its own.
+func TestVoiceSpanClosesAtEnd(t *testing.T) {
+	doc := parse(t, "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n<v Ana>one</v> two\n")
+	spans := doc.Cues[0].Spans
+	if len(spans) != 2 {
+		t.Fatalf("spans = %+v", spans)
+	}
+	if spans[0].Voice == nil || *spans[0].Voice != "Ana" {
+		t.Errorf("first span voice = %+v", spans[0].Voice)
+	}
+	if spans[1].Voice != nil {
+		t.Errorf("text after </v> must carry no voice: %+v", spans[1].Voice)
+	}
+}
+
+func TestVoiceSpanRoundTrip(t *testing.T) {
+	doc := &model.Document{
+		Styles: []model.Style{DefaultStyle()},
+		Cues: []model.Cue{{End: time.Second, Spans: []model.TextSpan{
+			{Text: "Hi", Voice: ptr("Roger"), Bold: ptr(true)},
+		}}},
+	}
+	var out strings.Builder
+	losses, err := NewWriter().Render(doc, &out)
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if len(losses) != 0 {
+		t.Fatalf("WebVTT carries a voice span: %v", losses)
+	}
+	if !strings.Contains(out.String(), "<v Roger><b>Hi</b></v>") {
+		t.Fatalf("the writer must wrap the voice outside the style tags:\n%s", out.String())
+	}
+	again := parse(t, out.String())
+	span := again.Cues[0].Spans[0]
+	if span.Voice == nil || *span.Voice != "Roger" || !isTrue(span.Bold) {
+		t.Fatalf("the voice and the bold flag must survive: %+v", span)
+	}
+}

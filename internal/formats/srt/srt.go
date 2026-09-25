@@ -3,16 +3,22 @@
 // SubRip carries plain text with two inline HTML-like tags: <i> (italic)
 // and <b> (bold). Everything else the IR can express degrades on write,
 // and the writer records each loss in its report.
+//
+// A lossy write also appends the integrity block of internal/envelope, which
+// holds the whole document. A plain subtitle player stops at the last cue
+// and ignores the block, and a swag reader restores every feature from it.
+// A document that fits in plain SubRip writes no block, so a plain file
+// stays plain.
 package srt
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/bladeacer/swag/internal/envelope"
 	"github.com/bladeacer/swag/internal/model"
 )
 
@@ -38,16 +44,24 @@ func (r *Reader) Name() string { return FormatName }
 
 // Parse reads a SubRip document from source.
 func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
+	lines, err := envelope.ReadLines(source)
+	if err != nil {
+		return nil, fmt.Errorf("read srt: %w", err)
+	}
+	body, embedded, err := envelope.Extract(lines)
+	if err != nil {
+		return nil, fmt.Errorf("parse srt: %w", err)
+	}
+	if embedded != nil {
+		return embedded, nil
+	}
+
 	doc := &model.Document{
 		Metadata:        map[string]string{},
 		VideoDimensions: model.Point{X: 1280, Y: 720},
 		Styles:          []model.Style{DefaultStyle()},
 	}
-	scanner := bufio.NewScanner(source)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-
-	for scanner.Scan() {
-		line := strings.TrimRight(scanner.Text(), "\r")
+	for _, line := range body {
 		trimmed := strings.TrimSpace(line)
 
 		switch {
@@ -70,9 +84,6 @@ func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
 			}
 			cue.Spans = append(cue.Spans, SplitTags(line)...)
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("read srt: %w", err)
 	}
 	return doc, nil
 }

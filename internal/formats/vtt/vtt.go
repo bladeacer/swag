@@ -4,13 +4,21 @@
 //
 // The reader maps a cue timing line onto the IR cue, the align setting onto
 // the cue anchor, and the position setting onto the cue position. It maps
-// the inline tags <i>, <b>, and <u> onto span overrides. It strips every
-// other tag and keeps its text.
+// the inline tags <i>, <b>, and <u> onto span overrides, and the voice
+// annotation <v Speaker> onto TextSpan.Voice. It strips every other tag and
+// keeps its text.
 //
-// The writer emits inline tags for the style overrides it can express, plus
-// the align and position settings. It reports the features it drops. A voice
-// span has no IR field, so the reader keeps the spoken text and the writer
-// does not emit a voice span.
+// The writer emits inline tags for the style overrides it can express, the
+// voice annotation of a span, and the align and position settings. It
+// reports the features it drops.
+//
+// # The voice annotation
+//
+// A voice span names the speaker of the text, as in
+// <v Roger Bingham>We are in the Milky Way. The name reaches the IR through
+// TextSpan.Voice and leaves it again, so a WebVTT to WebVTT round trip
+// keeps the speaker. A format without a voice form drops the name and keeps
+// the text.
 package vtt
 
 import (
@@ -222,10 +230,12 @@ func parseTimestamp(s string) (time.Duration, error) {
 }
 
 // parseSpans turns a cue payload into spans. The tags <i>, <b>, and <u>
-// open and close a style. Every other tag is dropped and its text stays.
+// open and close a style, and <v Speaker> and </v> open and close a voice
+// annotation. Every other tag is dropped and its text stays.
 func parseSpans(text string) []model.TextSpan {
 	var spans []model.TextSpan
 	var bold, italic, underline bool
+	var voice *string
 	var buf strings.Builder
 	flush := func() {
 		if buf.Len() == 0 {
@@ -240,6 +250,9 @@ func parseSpans(text string) []model.TextSpan {
 		}
 		if underline {
 			span.Underline = ptr(true)
+		}
+		if voice != nil {
+			span.Voice = ptr(*voice)
 		}
 		spans = append(spans, span)
 		buf.Reset()
@@ -256,19 +269,27 @@ func parseSpans(text string) []model.TextSpan {
 			break
 		}
 		flush()
-		switch tag := text[i+1 : i+end]; tag {
-		case "i":
+		switch tag := text[i+1 : i+end]; {
+		case tag == "i":
 			italic = true
-		case "/i":
+		case tag == "/i":
 			italic = false
-		case "b":
+		case tag == "b":
 			bold = true
-		case "/b":
+		case tag == "/b":
 			bold = false
-		case "u":
+		case tag == "u":
 			underline = true
-		case "/u":
+		case tag == "/u":
 			underline = false
+		case tag == "/v":
+			voice = nil
+		case tag == "v":
+			// A voice annotation with no name still opens a voice span,
+			// and an empty name is the name it carries.
+			voice = ptr("")
+		case strings.HasPrefix(tag, "v "):
+			voice = ptr(strings.TrimSpace(tag[2:]))
 		}
 		i += end + 1
 	}
@@ -459,6 +480,16 @@ func renderSpans(cue model.Cue) string {
 	for _, group := range model.RubyGroups(cue.Spans) {
 		span := group.Base
 		var close []string
+		if span.Voice != nil {
+			// A nameless annotation writes as <v>, because an empty
+			// annotation is not valid.
+			if *span.Voice == "" {
+				b.WriteString("<v>")
+			} else {
+				b.WriteString("<v " + encodeText(*span.Voice) + ">")
+			}
+			close = append(close, "</v>")
+		}
 		if isTrue(span.Bold) {
 			b.WriteString("<b>")
 			close = append(close, "</b>")

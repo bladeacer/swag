@@ -9,9 +9,14 @@ import (
 	"testing"
 
 	"github.com/bladeacer/swag/internal/i18n"
+	"github.com/bladeacer/swag/pkg/sub"
 )
 
 const srtFixture = "1\n00:00:00,000 --> 00:00:01,000\nhello\n"
+
+// voiceVTTFixture carries a voice span and inline styling, so a conversion
+// exercises the speaker name and the style tags at once.
+const voiceVTTFixture = "WEBVTT\n\n00:00:01.000 --> 00:00:04.000\n<v Roger Bingham><i>We are</i> in the Milky Way.</v>\n"
 
 // assKaraokeFixture carries karaoke, which SRT cannot hold, so a convert
 // to SRT reports a loss.
@@ -315,6 +320,81 @@ func TestConvertCmdRunStrictFails(t *testing.T) {
 	c := &ConvertCmd{Input: in, Output: out, Strict: true}
 	if err := c.Run(newRunContext(false)); err == nil {
 		t.Fatal("--strict must fail when the target drops a feature")
+	}
+}
+
+// TestBareRunArgs covers the shapes that carry no work: a bare run under
+// air, and the separator that `make run` passes.
+func TestBareRunArgs(t *testing.T) {
+	tests := []struct {
+		args []string
+		want bool
+	}{
+		{nil, true},
+		{[]string{"--"}, true},
+		{[]string{"convert"}, false},
+		{[]string{"-i", "in.srt"}, false},
+	}
+	for _, tt := range tests {
+		if got := bareRun(tt.args); got != tt.want {
+			t.Errorf("bareRun(%v) = %v, want %v", tt.args, got, tt.want)
+		}
+	}
+}
+
+// TestBareRunExitsZero keeps `air` and `make run` working. A run with no
+// arguments shows the banner and the first step, and it must not fail.
+func TestBareRunExitsZero(t *testing.T) {
+	for _, args := range [][]string{nil, {"--"}} {
+		if code := run(args); code != 0 {
+			t.Errorf("run(%v) exit code = %d, want 0", args, code)
+		}
+	}
+}
+
+// TestRunWithoutTheCommandWord covers the default command. Its flags stand
+// at the top level, so the command word is optional for a full conversion.
+func TestRunWithoutTheCommandWord(t *testing.T) {
+	in := writeSubtitle(t, "in.srt", srtFixture)
+	out := filepath.Join(t.TempDir(), "out.vtt")
+	if code := run([]string{"-i", in, "-o", out, "-v"}); code != 0 {
+		t.Fatalf("run exit code = %d, want 0", code)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if !strings.HasPrefix(string(data), "WEBVTT") {
+		t.Fatalf("output must be WebVTT:\n%s", data)
+	}
+}
+
+// TestRunConvertsEveryFormat walks the command line through every registered
+// target and back to WebVTT, so the wiring of each format works end to end.
+func TestRunConvertsEveryFormat(t *testing.T) {
+	in := writeSubtitle(t, "in.vtt", voiceVTTFixture)
+	for _, name := range sub.Registered() {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			mid := filepath.Join(dir, "mid."+name)
+			if code := run([]string{"convert", "-i", in, "-o", mid}); code != 0 {
+				t.Fatalf("convert to %s exit code = %d, want 0", name, code)
+			}
+			back := filepath.Join(dir, "back.vtt")
+			if code := run([]string{"convert", "-i", mid, "-o", back}); code != 0 {
+				t.Fatalf("convert %s back exit code = %d, want 0", name, code)
+			}
+			data, err := os.ReadFile(back)
+			if err != nil {
+				t.Fatalf("read the output: %v", err)
+			}
+			if !strings.HasPrefix(string(data), "WEBVTT") {
+				t.Fatalf("the second leg must write WebVTT:\n%s", data)
+			}
+			if !strings.Contains(string(data), "Milky") {
+				t.Fatalf("the cue text is missing after the %s pass:\n%s", name, data)
+			}
+		})
 	}
 }
 

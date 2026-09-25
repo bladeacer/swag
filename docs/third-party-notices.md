@@ -24,11 +24,11 @@ Clean-room statement: the maintainers studied the behaviour and public documenta
 
 | | |
 |---|---|
-| Upstream | [the Aegisub ASS tag reference](https://aegi.vmoe.info/docs/3.0/ASS_Tags/) |
+| Upstream | [the ASS override tag reference](https://aegisub.org/docs/latest/ass_tags/) |
 | Licence | Documentation, quoted for reference only |
-| Use | The source of the ASS Tier 3 tag list |
+| Use | The source of the ASS tag tiers |
 
-`swag` names the Tier 3 tags after the public Aegisub tag manual. No text from the manual is copied into this repository.
+`swag` names the tag tiers after the public Aegisub tag manual. No text from the manual is copied into this repository.
 
 ## Vendored agent skill
 
@@ -58,6 +58,10 @@ The transitive dependency licences ship with their modules in the Go module cach
 
 The format work refers to public specifications and platform documentation. We copy no specification text into this repository:
 
-- [the WebVTT specification](https://www.w3.org/TR/webvtt1/) for the WebVTT reader and writer
-- [the TTML specification](https://www.w3.org/TR/ttml2/) for the TTML reader and writer
+- [the WebVTT specification](https://www.w3.org/TR/webvtt1/) for the WebVTT reader and writer, including the voice span
+- [TTML2](https://www.w3.org/TR/ttml2/) and [TTML1](https://www.w3.org/TR/ttml1/) for the TTML reader and writer
 - [the Google Timed Text documentation](https://developers.google.com/youtube/v3/docs/captions) for the YouTube dialect
+- [the YouTube caption support page](https://support.google.com/youtube/answer/2734698) for the SubRip and SubViewer upload shapes
+- the YouTube caption XML dialect, which has no published schema, so its behaviour follows YTSubConverter above
+- [the ASS override tag reference](https://aegisub.org/docs/latest/ass_tags/) and [libass](https://github.com/libass/libass) for the ASS renderer behaviour
+- [the Kdenlive subtitle tool manual](https://docs.kdenlive.org/en/effects_and_filters/subtitles.html) and [the Kdenlive subtitle model source](https://invent.kde.org/multimedia/kdenlive/-/blob/master/src/bin/model/subtitlemodel.cpp) for the subtitle track JSON

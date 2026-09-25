@@ -87,7 +87,12 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 - [x] Benchmarks for large files (10k cues) with regression tracking
 - [x] Statement coverage verified per package, not just module-wide
 - [x] i18n coverage for every CLI message. A second locale lands as proof.
-- [x] Docs: per-format notes and a library usage guide
+- [x] File integrity: the envelope block keeps a whole document in a plain SubRip or SBV file, so a three-way conversion returns the exact document
+- [x] `internal/formats/json1` version 2 with an automatic migration chain, and a reader that rejects a version with no step
+- [x] WebVTT voice spans (`<v Speaker>`) carried through `TextSpan.Voice`, with a loss note in every writer that has no voice form
+- [x] A bare run of the CLI prints the banner and exits 0, and the default command accepts its flags at the top level, so `air` and `make run` work
+- [x] End-to-end tests over the command line for every registered target, and a voice span suite across the formats
+- [x] Docs: per-format notes with the specification, the support, and the caveats and limits of each format, a library usage guide, an install page, a usage page, a file integrity page, a JSON1 page, and an internationalisation page
 
 ### v0.8.0: terminal UI
 - [ ] `swag interactive`: pterm interactive mode (pick input, detect format, pick target, show report)

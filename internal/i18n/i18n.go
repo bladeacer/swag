@@ -74,6 +74,7 @@ const (
 	MsgConvertFailed     Key = "convert.failed"
 	MsgConvertLosses     Key = "convert.losses"
 	MsgUsageFailed       Key = "error.usage"
+	MsgUsageBare         Key = "usage.bare"
 	MsgInputMissing      Key = "error.input-missing"
 	MsgInputUnreadable   Key = "error.input-unreadable"
 	MsgInputIsDirectory  Key = "error.input-is-directory"
@@ -95,6 +96,7 @@ var enGB = map[Key]string{
 	MsgConvertFailed:     "Conversion failed. %s",
 	MsgConvertLosses:     "Features the target format does not carry (%d):",
 	MsgUsageFailed:       "The command line could not be read. %s",
+	MsgUsageBare:         "Give the input file with -i and the target format with -f. Run swag --help to read every flag.",
 	MsgInputMissing:      "The input file does not exist. Give the path of a subtitle file with -i.",
 	MsgInputUnreadable:   "The input file could not be read. %s",
 	MsgInputIsDirectory:  "The input path %s is a directory. Give the path of a subtitle file.",

@@ -96,3 +96,37 @@ func TestWriterWriteError(t *testing.T) {
 		t.Fatal("a failing writer must surface an error")
 	}
 }
+
+// TestParseBrokenEnvelope covers a damaged integrity block. A damaged block
+// must fail the parse instead of passing as a plain file.
+func TestParseBrokenEnvelope(t *testing.T) {
+	source := "0:00:01.000,0:00:02.000\nhi\n\nNOTE swag-ir 1\n!!!!\n"
+	_, err := NewReader().Parse(strings.NewReader(source))
+	if err == nil || !strings.Contains(err.Error(), "parse sbv") {
+		t.Fatalf("a damaged block must fail the parse: %v", err)
+	}
+}
+
+// failAfterWriter accepts the first write and fails every later one, so a
+// test can reach the integrity block that follows the cues.
+type failAfterWriter struct{ writes int }
+
+func (w *failAfterWriter) Write(p []byte) (int, error) {
+	w.writes++
+	if w.writes > 1 {
+		return 0, errors.New("boom")
+	}
+	return len(p), nil
+}
+
+// TestWriterEnvelopeWriteError covers a failure inside the integrity block.
+func TestWriterEnvelopeWriteError(t *testing.T) {
+	bold := true
+	doc := &model.Document{
+		Styles: []model.Style{DefaultStyle()},
+		Cues:   []model.Cue{{Spans: []model.TextSpan{{Text: "x", Bold: &bold}}}},
+	}
+	if _, err := NewWriter().Render(doc, &failAfterWriter{}); err == nil {
+		t.Fatal("a failing writer must surface an error inside the block")
+	}
+}

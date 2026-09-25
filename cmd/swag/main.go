@@ -31,7 +31,10 @@ type CLI struct {
 	Locale  string           `help:"Message locale, for example en-GB." default:"en-GB" env:"SWAG_LOCALE"`
 	Verbose bool             `help:"Print the conversion report." short:"V"`
 
-	Convert ConvertCmd `cmd:"" help:"Convert a subtitle file to another format." default:"1"`
+	// The convert command is the default one, and "withargs" lets its flags
+	// stand at the top level, so `swag -i in.srt -o out.sbv` works without
+	// the command word.
+	Convert ConvertCmd `cmd:"" help:"Convert a subtitle file to another format." default:"withargs"`
 }
 
 // ConvertCmd carries the conversion flags.
@@ -78,7 +81,7 @@ func (c *ConvertCmd) Run(ictx *runContext) error {
 		return err
 	}
 
-	pterm.Success.Printf(ictx.T.S(i18n.MsgConvertSuccess), outputLabel(c.Output, ictx.T))
+	pterm.Success.Println(ictx.T.F(i18n.MsgConvertSuccess, outputLabel(c.Output, ictx.T)))
 	if verbose && len(losses) > 0 {
 		pterm.Warning.Println(ictx.T.F(i18n.MsgConvertLosses, len(losses)))
 		for _, loss := range losses {
@@ -170,6 +173,14 @@ func banner(t *i18n.T) {
 	pterm.Info.Println(t.S(i18n.MsgBannerTagline))
 }
 
+// bareRun reports whether the run carries no work. `air` runs the built
+// binary with no arguments, and `make run` passes a bare separator, so both
+// open the banner and the first step instead of failing on the missing
+// input flag.
+func bareRun(args []string) bool {
+	return len(args) == 0 || (len(args) == 1 && args[0] == "--")
+}
+
 // run parses the arguments, runs the selected command, and returns the
 // process exit code.
 func run(args []string) int {
@@ -177,6 +188,11 @@ func run(args []string) int {
 	// The parser needs its description before the flags are parsed, so the
 	// description comes from the environment locale.
 	envCopy := i18n.New(os.Getenv("SWAG_LOCALE"))
+	if bareRun(args) {
+		banner(envCopy)
+		pterm.Info.Println(envCopy.S(i18n.MsgUsageBare))
+		return 0
+	}
 	parser := kong.Must(&cli,
 		kong.Name("swag"),
 		kong.Description(envCopy.S(i18n.MsgCliDescription)),

@@ -4,16 +4,22 @@
 // comma), one or more text lines, then a blank line. Multi-line text
 // renders on separate display lines. Styling, positioning, and effects
 // degrade on write, and the writer records each loss.
+//
+// A lossy write also appends the integrity block of internal/envelope, which
+// holds the whole document. A plain subtitle player stops at the last cue
+// and ignores the block, and a swag reader restores every feature from it.
+// A document that fits in plain SBV writes no block, so a plain file stays
+// plain.
 package sbv
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/bladeacer/swag/internal/envelope"
 	"github.com/bladeacer/swag/internal/model"
 )
 
@@ -31,16 +37,24 @@ func (r *Reader) Name() string { return FormatName }
 
 // Parse reads an SBV document from source.
 func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
+	lines, err := envelope.ReadLines(source)
+	if err != nil {
+		return nil, fmt.Errorf("read sbv: %w", err)
+	}
+	body, embedded, err := envelope.Extract(lines)
+	if err != nil {
+		return nil, fmt.Errorf("parse sbv: %w", err)
+	}
+	if embedded != nil {
+		return embedded, nil
+	}
+
 	doc := &model.Document{
 		Metadata:        map[string]string{},
 		VideoDimensions: model.Point{X: 1280, Y: 720},
 		Styles:          []model.Style{DefaultStyle()},
 	}
-	scanner := bufio.NewScanner(source)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-
-	for scanner.Scan() {
-		line := strings.TrimRight(scanner.Text(), "\r")
+	for _, line := range body {
 		trimmed := strings.TrimSpace(line)
 
 		switch {
@@ -60,9 +74,6 @@ func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
 			}
 			cue.Spans = append(cue.Spans, model.TextSpan{Text: line})
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("read sbv: %w", err)
 	}
 	return doc, nil
 }
@@ -147,7 +158,9 @@ func NewWriter() *Writer { return &Writer{} }
 func (w *Writer) Name() string { return FormatName }
 
 // Render writes doc to sink as SBV. The returned slice carries one entry
-// per degraded feature.
+// per feature that a plain SBV consumer cannot read. A write with at least
+// one such feature also appends the integrity block, which keeps the whole
+// document for a swag reader.
 func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	var losses []string
 	note := func(what string) { losses = append(losses, what) }
@@ -171,6 +184,9 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 			if span.Ruby != nil {
 				note("ruby text")
 			}
+			if span.Voice != nil {
+				note("voice name")
+			}
 		}
 
 		fmt.Fprintf(&out, "%s,%s\n", formatTime(cue.Start), formatTime(cue.End))
@@ -180,6 +196,13 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 
 	if _, err := io.WriteString(sink, out.String()); err != nil {
 		return losses, fmt.Errorf("write sbv: %w", err)
+	}
+	// The cue loop ends the file with a blank line, so the block starts a
+	// fresh paragraph. A plain consumer stops at the last cue.
+	if len(losses) > 0 {
+		if err := envelope.Write(sink, doc); err != nil {
+			return losses, fmt.Errorf("write sbv: %w", err)
+		}
 	}
 	return losses, nil
 }

@@ -6,7 +6,7 @@ Unreleased work lands in the file for the next planned version. The release comm
 
 ## Releases
 
-- [v0.7.0, library hardening and format integrity](v0.7.0.md): the configured conversion API, the widened loss reports, the cross-check chains, the fuzzing, the benchmarks, and the second locale (unreleased)
+- [v0.7.0, library hardening and format integrity](v0.7.0.md): the configured conversion API, the integrity block of the plain formats, the JSON1 version chain, the voice span, the widened loss reports, the cross-check chains, the fuzzing, the benchmarks, the second locale, and the user guide (unreleased)
 - [v0.6.0, the ASS tag closure and new formats](v0.6.0.md): the Aegisub overrides, the chroma colours, the karaoke cursor forms, and the TTML, WebVTT, Kdenlive, and JSON1 formats (unreleased)
 - [v0.5.0, the ASS writer](v0.5.0.md): the ASS writer, the architecture split, and full statement coverage (unreleased)
 - [v0.4.0, the ASS reader](v0.4.0.md): styles, karaoke, animations, ruby, and vertical text (unreleased)

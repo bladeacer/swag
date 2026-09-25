@@ -13,7 +13,10 @@ func TestNormalise(t *testing.T) {
 		{"  en-GB  ", DefaultLocale},
 		{"en", DefaultLocale},
 		{"en-US", DefaultLocale}, // language fallback to the registered en-GB
-		{"fr-FR", DefaultLocale}, // unknown languages resolve to the default
+		{"fr-FR", frenchLocale},  // the second shipped locale
+		{"fr-fr", frenchLocale},  // the tag match ignores the case
+		{"FR-FR", frenchLocale},  // the tag match ignores the case
+		{"de-DE", DefaultLocale}, // unknown languages resolve to the default
 		{"", DefaultLocale},
 	}
 	for _, tt := range tests {
@@ -56,13 +59,42 @@ func TestLocaleReportsSelected(t *testing.T) {
 }
 
 func TestSupportedIncludesDefault(t *testing.T) {
-	found := false
+	found := map[Locale]bool{}
 	for _, l := range Supported() {
-		if l == DefaultLocale {
-			found = true
+		found[l] = true
+	}
+	if !found[DefaultLocale] {
+		t.Fatal("Supported() must include the default locale")
+	}
+	if !found[frenchLocale] {
+		t.Fatalf("Supported() must include the second locale %q", frenchLocale)
+	}
+}
+
+// TestSecondLocaleIsComplete keeps the new locale in step with the default
+// one. A key that lands in en-GB must gain a translation in the same
+// change, so a user of the second locale never reads the raw key.
+func TestSecondLocaleIsComplete(t *testing.T) {
+	for key := range enGB {
+		if _, ok := frFR[key]; !ok {
+			t.Errorf("the %s catalogue is missing the key %q", frenchLocale, key)
 		}
 	}
-	if !found {
-		t.Fatal("Supported() must include the default locale")
+	for key := range frFR {
+		if _, ok := enGB[key]; !ok {
+			t.Errorf("the %s catalogue carries an unknown key %q", frenchLocale, key)
+		}
+	}
+}
+
+// TestSecondLocaleLookup covers the lookup of a translated message and the
+// format of its placeholders.
+func TestSecondLocaleLookup(t *testing.T) {
+	tr := New("fr-FR")
+	if got := tr.Locale(); got != frenchLocale {
+		t.Fatalf("Locale() = %q, want %q", got, frenchLocale)
+	}
+	if got := tr.F(MsgConvertSuccess, "out.ass"); got != "out.ass écrit." {
+		t.Fatalf("F() = %q", got)
 	}
 }

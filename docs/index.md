@@ -11,13 +11,17 @@ Planning and governance:
 Reference documents (written with the vendored `simple-english` skill, British English):
 
 - [the changelog index](changelogs/index.md): release notes in Keep a Changelog format
+- [the v0.7.0 notes](changelogs/v0.7.0.md): the library hardening release
+- [the v0.6.0 notes](changelogs/v0.6.0.md): the ASS tag closure and the new formats
 - [the v0.5.0 notes](changelogs/v0.5.0.md): the ASS writer release
 - [the v0.4.0 notes](changelogs/v0.4.0.md): the ASS reader release
 - [the v0.3.0 notes](changelogs/v0.3.0.md): the YouTube pair release
 - [the v0.2.0 notes](changelogs/v0.2.0.md): the plain formats release
 - [the v0.1.0 notes](changelogs/v0.1.0.md): the foundation release
 - [the format notes](formats.md): the per-format support matrix and degradation notes
+- [the loss report review](loss-report.md): the degradation of every format at a glance
+- [the library usage guide](library.md): the public API with a worked example
+- [the testing notes](testing.md): coverage, fuzzing, and benchmarks
 - [the ASS support page](ass-support.md): the ASS feature list mapped onto the code and the tests
 - [the third-party notices](third-party-notices.md): the works this project builds on and their licences
-- the library usage guide (lands with v0.7.0)
 - the WASM demo page (lands with v1.0.0)

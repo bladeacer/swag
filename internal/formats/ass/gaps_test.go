@@ -136,6 +136,20 @@ Dialogue: 0,0:00:21.00,0:00:22.00,Default,,0,0,0,,{\ytruby}[base/reading] after
 Dialogue: 0,0:00:22.00,0:00:23.00,Default,,0,0,0,,{\1a&Hzz&}bad alpha {\alpha&Hzz&}bad all alpha {\pos(a,b)}bad pos values {\move(a,b,c,d)}bad move values {\fad(a,b)}bad fad values {\t}bare keyframe {\ytshake(1,2)}two radii
 `
 
+// TestParseKeyframeWithTwoArguments covers a malformed \t argument list. A
+// list of two values carries no timing and no acceleration, so the reader
+// keeps the values as tags and must not read past the end of the list. A
+// fuzz run over the ASS reader found the crash that this test prevents.
+func TestParseKeyframeWithTwoArguments(t *testing.T) {
+	doc := parseGaps(t, "Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,{\\t(0,1000)}two arguments\n")
+	if len(doc.Cues) != 1 {
+		t.Fatalf("got %d cues, want 1", len(doc.Cues))
+	}
+	if len(doc.Cues[0].Animations) != 0 {
+		t.Fatalf("a keyframe without values must be ignored: %+v", doc.Cues[0].Animations)
+	}
+}
+
 func parseGaps(t *testing.T, lines string) *model.Document {
 	t.Helper()
 	doc, err := NewReader().Parse(strings.NewReader(gapsHeader + lines))

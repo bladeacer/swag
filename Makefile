@@ -10,7 +10,8 @@ CHANGELOG_URL_BASE := https://github.com/bladeacer/swag/blob/main/docs/changelog
 .DEFAULT_GOAL := help
 
 .PHONY: help build install run test cover cover-html cover-verify coverage-svg \
-        samples vet fmt tidy watch release-test tag snapshot clean tools
+        samples vet fmt tidy watch release-test tag snapshot clean tools \
+        bench bench-save bench-compare
 
 help: ## Show this help
 	@printf "swag (Subtitles With A Gopher)\n\n"
@@ -53,6 +54,17 @@ cover-verify: ## Fail when module coverage sits below the 100% floor
 	if [ "$$(echo "$$total < $(COVERAGE_FLOOR)" | bc -l)" = "1" ]; then \
 		echo "coverage below the $(COVERAGE_FLOOR)% floor" >&2; exit 1; \
 	fi
+
+bench: ## Run the 10k-cue benchmarks for parsing, rendering, and conversion
+	$(GO) test -run=^$$ -bench=. -benchmem ./pkg/sub/
+
+bench-save: ## Save a benchmark run as the comparison baseline (bench.txt)
+	$(GO) test -run=^$$ -bench=. -benchmem ./pkg/sub/ -count=1 | tee bench.txt
+
+bench-compare: ## Compare a fresh benchmark run with bench.txt (needs benchstat)
+	$(GO) test -run=^$$ -bench=. -benchmem ./pkg/sub/ -count=6 > new-bench.txt
+	@benchstat bench.txt new-bench.txt 2>/dev/null || \
+		echo "install benchstat to read the comparison (make tools)"
 
 vet: ## Run go vet over all packages
 	$(GO) vet ./...
@@ -102,9 +114,10 @@ tag: ## Tag the suggested version (the highest changelog) and push the tag
 
 clean: ## Remove build artefacts
 	$(GO) clean -cache -test-cache 2>/dev/null || true
-	rm -rf bin dist coverage.out build-errors.log
+	rm -rf bin dist coverage.out build-errors.log bench.txt new-bench.txt
 
 tools: ## Install the development tools (air, goreleaser, go-test-coverage)
 	go install github.com/air-verse/air@latest
 	go install github.com/goreleaser/goreleaser/v2@latest
 	go install github.com/vladopajic/go-test-coverage/v2@latest
+	go install golang.org/x/perf/cmd/benchstat@latest

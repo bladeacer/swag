@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tt xmlns="http://www.w3.org/ns/ttml" xmlns:tts="http://www.w3.org/ns/ttml#styling">
+  <head>
+    <styling>
+      <style xml:id="base" tts:fontFamily="Roboto" tts:fontSize="22px" tts:color="#ffffff"/>
+      <style xml:id="red" style="base" tts:color="#ff0000" tts:fontWeight="bold" tts:opacity="0.5"/>
+      <style xml:id="boxed" tts:backgroundColor="#000000" tts:textDecoration="underline" tts:textOutline="2px #000000"/>
+    </styling>
+    <layout>
+      <region xml:id="r1" tts:origin="10% 90%" tts:displayAlign="after" tts:textAlign="start"/>
+      <region xml:id="r2" tts:origin="50% 10%" tts:displayAlign="before" tts:textAlign="end"/>
+      <region xml:id="r3"/>
+    </layout>
+  </head>
+  <body>
+    <div>
+      <p begin="00:00:01.000" end="00:00:04.000" region="r1" style="base">Hello <span style="red">world</span>.</p>
+      <p begin="1.5s" dur="2s" region="r2"><span begin="0s">One</span> <span begin="1s">two</span></p>
+      <p begin="00:00:10.000" end="00:00:12.000" style="boxed">Line one<br/>line two</p>
+      <p begin="00:00:13.000" end="00:00:14.000" style="base"><span tts:fontStyle="italic" tts:textDecoration="lineThrough">Styled</span><c>ignored</c></p>
+      <p begin="00:00:20.000" region="r3">No end <span tts:color="#00ff00" tts:opacity="0.25">and <b>nested</b> text</span>.</p>
+    </div>
+  </body>
+</tt>

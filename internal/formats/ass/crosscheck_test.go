@@ -9,9 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bladeacer/swag/internal/formats/json1"
+	"github.com/bladeacer/swag/internal/formats/kdenlive"
 	"github.com/bladeacer/swag/internal/formats/sbv"
 	"github.com/bladeacer/swag/internal/formats/srt"
 	"github.com/bladeacer/swag/internal/formats/srv3"
+	"github.com/bladeacer/swag/internal/formats/ttml"
+	"github.com/bladeacer/swag/internal/formats/vtt"
 	"github.com/bladeacer/swag/internal/formats/ytt"
 	"github.com/bladeacer/swag/internal/model"
 )
@@ -60,6 +64,34 @@ var crossTargets = []crossTarget{
 		read:   sbv.NewReader().Parse,
 		losses: []string{"positioning", "inline styling"},
 	},
+	{
+		name:  "vtt",
+		write: vtt.NewWriter().Render,
+		read:  vtt.NewReader().Parse,
+		losses: []string{
+			"font", "font size", "foreground colour", "secondary colour", "background colour",
+			"shadow effects", "outline width", "vertical alignment", "cue move", "cue fade",
+			"animation", "script offset",
+		},
+	},
+	{
+		name:   "json1",
+		write:  json1.NewWriter().Render,
+		read:   json1.NewReader().Parse,
+		losses: nil,
+	},
+	{
+		name:   "ttml",
+		write:  ttml.NewWriter().Render,
+		read:   ttml.NewReader().Parse,
+		losses: []string{"shadow effects", "cue move", "cue fade", "animation", "script offset"},
+	},
+	{
+		name:   "kdenlive",
+		write:  kdenlive.NewWriter().Render,
+		read:   kdenlive.NewReader().Parse,
+		losses: []string{"inline styling", "positioning", "animation", "script offset"},
+	},
 }
 
 // TestCrossCheckEveryWriter runs the ASS colour fixture through every
@@ -103,7 +135,12 @@ func TestCrossCheckOverrideLosses(t *testing.T) {
 		"ytt":  {"strikeout", "glyph scale", "chroma animation", "karaoke type"},
 		"srv3": {"strikeout", "glyph scale", "chroma animation", "karaoke type"},
 		"srt":  {"strikeout", "glyph scale", "positioning", "animation", "shadow effects"},
-		"sbv":  {"inline styling", "glyph scale", "positioning"},
+		"sbv":  {"inline styling", "glyph scale", "positioning"}, "vtt": {
+			"shadow effects", "vertical alignment", "strikeout", "glyph scale", "animation", "vertical text",
+		},
+		"json1":    nil,
+		"ttml":     {"shadow effects", "glyph scale", "animation", "vertical text"},
+		"kdenlive": {"inline styling", "positioning", "glyph scale", "animation", "vertical text"},
 	}
 	for _, target := range crossTargets {
 		t.Run(target.name, func(t *testing.T) {
@@ -134,38 +171,204 @@ func TestCrossCheckOverrideLosses(t *testing.T) {
 // back. The chains cover two-way passes and passes of three or more formats.
 // The text and the cue timing survive every chain, so the readers and the
 // writers compose.
+// chainSource is one reader fixture for the chain suite. A source that
+// carries ruby text stays inside the formats that carry ruby, so the text
+// comparison stays fair.
+type chainSource struct {
+	name   string
+	load   func(*testing.T) *model.Document
+	chains [][]string
+}
+
+// parseSRTSource reads a small SubRip document for the chain suite.
+func parseSRTSource(t *testing.T) *model.Document {
+	t.Helper()
+	doc, err := srt.NewReader().Parse(strings.NewReader(
+		"1\n00:00:01,000 --> 00:00:04,000\n<i>Hello</i> world.\n\n" +
+			"2\n00:00:04,500 --> 00:00:08,000\nSecond line.\n"))
+	if err != nil {
+		t.Fatalf("parse SRT source: %v", err)
+	}
+	return doc
+}
+
+// parseSBVSource reads a small SBV document for the chain suite.
+func parseSBVSource(t *testing.T) *model.Document {
+	t.Helper()
+	doc, err := sbv.NewReader().Parse(strings.NewReader(
+		"0:00:01.000,0:00:04.000\nHello world.\n\n" +
+			"0:00:04.500,0:00:08.000\nSecond line.\n"))
+	if err != nil {
+		t.Fatalf("parse SBV source: %v", err)
+	}
+	return doc
+}
+
+// parseVTTSource reads a small WebVTT document for the chain suite.
+func parseVTTSource(t *testing.T) *model.Document {
+	t.Helper()
+	doc, err := vtt.NewReader().Parse(strings.NewReader(
+		"WEBVTT\n\n00:00:01.000 --> 00:00:04.000\n<i>Hello</i> world.\n\n" +
+			"00:00:04.500 --> 00:00:08.000\nSecond line.\n"))
+	if err != nil {
+		t.Fatalf("parse VTT source: %v", err)
+	}
+	return doc
+}
+
+// parseKdenliveSource reads a small Kdenlive subtitle document for the
+// chain suite.
+func parseKdenliveSource(t *testing.T) *model.Document {
+	t.Helper()
+	doc, err := kdenlive.NewReader().Parse(strings.NewReader(
+		`[{"layer":0,"startPos":1,"dialogue":"Dialogue: 0,0:00:01.00,0:00:04.00,Default,,0,0,0,,Hello world."},` +
+			`{"layer":0,"startPos":4.5,"dialogue":"Dialogue: 0,0:00:04.50,0:00:08.00,Default,,0,0,0,,Second line."}]`))
+	if err != nil {
+		t.Fatalf("parse Kdenlive source: %v", err)
+	}
+	return doc
+}
+
+// readSRV3Fixture reads the SRV3 sample for the chain suite.
+func readSRV3Fixture(t *testing.T) *model.Document {
+	t.Helper()
+	data, err := os.ReadFile("../srv3/testdata/sample.srv3")
+	if err != nil {
+		t.Skipf("SRV3 fixture is unavailable: %v", err)
+	}
+	doc, err := srv3.NewReader().Parse(strings.NewReader(string(data)))
+	if err != nil {
+		t.Fatalf("parse SRV3 fixture: %v", err)
+	}
+	return doc
+}
+
+// parseTTMLSource reads a small TTML document for the chain suite.
+func parseTTMLSource(t *testing.T) *model.Document {
+	t.Helper()
+	doc, err := ttml.NewReader().Parse(strings.NewReader(
+		`<tt xmlns="http://www.w3.org/ns/ttml"><head></head><body><div>` +
+			`<p begin="00:00:01.000" end="00:00:04.000"><span tts:fontStyle="italic">Hello</span> world.</p>` +
+			`<p begin="00:00:04.500" end="00:00:08.000">Second line.</p>` +
+			`</div></body></tt>`))
+	if err != nil {
+		t.Fatalf("parse TTML source: %v", err)
+	}
+	return doc
+}
+
+// parseJSON1Source reads a lossless JSON1 document for the chain suite. The
+// JSON1 form carries every IR field, so the source starts from the ASS
+// colour fixture.
+func parseJSON1Source(t *testing.T) *model.Document {
+	t.Helper()
+	start := parseFixture(t, "colour.ass")
+	var buf strings.Builder
+	if _, err := json1.NewWriter().Render(start, &buf); err != nil {
+		t.Fatalf("render JSON1 source: %v", err)
+	}
+	doc, err := json1.NewReader().Parse(strings.NewReader(buf.String()))
+	if err != nil {
+		t.Fatalf("parse JSON1 source: %v", err)
+	}
+	return doc
+}
+
+// TestCrossCheckChains runs one fixture per reader through a sequence of
+// formats and compares the result with the source. The chains cover
+// two-way passes and passes of three or more formats, so the readers and
+// the writers compose.
 func TestCrossCheckChains(t *testing.T) {
-	source := parseFixture(t, "colour.ass")
 	byName := map[string]crossTarget{}
 	for _, target := range crossTargets {
 		byName[target.name] = target
 	}
-	chains := [][]string{
-		{"ytt", "ass"},
-		{"srv3", "ass"},
-		{"srt", "ass"},
-		{"sbv", "ass"},
-		{"ytt", "srt", "ass"},
-		{"srv3", "sbv", "ass"},
-		{"ytt", "srv3", "srt", "sbv", "ass"},
+	sources := []chainSource{
+		{
+			name: "colour.ass",
+			load: func(t *testing.T) *model.Document { return parseFixture(t, "colour.ass") },
+			chains: [][]string{
+				{"ytt", "ass"},
+				{"srv3", "ass"},
+				{"srt", "ass"},
+				{"sbv", "ass"},
+				{"ytt", "srt", "ass"},
+				{"srv3", "sbv", "ass"},
+				{"ytt", "srv3", "srt", "sbv", "ass"},
+			},
+		},
+		{
+			name:   "karaoke.ass",
+			load:   func(t *testing.T) *model.Document { return parseFixture(t, "karaoke.ass") },
+			chains: [][]string{{"ytt", "ass"}, {"srt", "sbv", "ass"}},
+		},
+		{
+			name:   "overrides.ass",
+			load:   func(t *testing.T) *model.Document { return parseFixture(t, "overrides.ass") },
+			chains: [][]string{{"ytt", "ass"}, {"srv3", "srt", "sbv", "ass"}},
+		},
+		{
+			name:   "ytt-sample",
+			load:   readYTTFixture,
+			chains: [][]string{{"ass", "ytt"}, {"srv3", "ytt"}, {"ass", "srv3", "ass", "ytt"}},
+		},
+		{
+			name:   "srv3-source",
+			load:   readSRV3Fixture,
+			chains: [][]string{{"ass", "srv3"}, {"ytt", "ass", "srv3"}, {"srt", "sbv", "ass", "srv3"}},
+		},
+		{
+			name:   "srt-source",
+			load:   parseSRTSource,
+			chains: [][]string{{"ass", "srt"}, {"sbv", "ass", "srt"}, {"ytt", "ass", "sbv", "srt"}},
+		},
+		{
+			name:   "sbv-source",
+			load:   parseSBVSource,
+			chains: [][]string{{"ass", "sbv"}, {"srt", "ass", "sbv"}, {"ass", "ytt", "srt", "sbv"}},
+		},
+		{
+			name:   "vtt-source",
+			load:   parseVTTSource,
+			chains: [][]string{{"ass", "vtt"}, {"json1", "ass", "vtt"}, {"srt", "sbv", "ass", "vtt"}},
+		},
+		{
+			name:   "json1-source",
+			load:   parseJSON1Source,
+			chains: [][]string{{"ass", "json1"}, {"vtt", "srt", "ass", "json1"}, {"ytt", "ass", "json1"}},
+		},
+		{
+			name:   "ttml-source",
+			load:   parseTTMLSource,
+			chains: [][]string{{"ass", "ttml"}, {"json1", "ass", "ttml"}, {"sbv", "srt", "ass", "ttml"}},
+		},
+		{
+			name:   "kdenlive-source",
+			load:   parseKdenliveSource,
+			chains: [][]string{{"ass", "kdenlive"}, {"vtt", "ass", "kdenlive"}, {"srt", "sbv", "ass", "kdenlive"}},
+		},
 	}
-	for _, chain := range chains {
-		name := strings.Join(chain, "-")
-		t.Run(name, func(t *testing.T) {
-			doc := source
-			for _, step := range chain {
-				target := byName[step]
-				var out strings.Builder
-				if _, err := target.write(doc, &out); err != nil {
-					t.Fatalf("write %s: %v", step, err)
-				}
-				next, err := target.read(strings.NewReader(out.String()))
-				if err != nil {
-					t.Fatalf("read %s: %v\n%s", step, err, out.String())
-				}
-				doc = next
+	for _, source := range sources {
+		t.Run(source.name, func(t *testing.T) {
+			doc := source.load(t)
+			for _, chain := range source.chains {
+				t.Run(strings.Join(chain, "-"), func(t *testing.T) {
+					current := doc
+					for _, step := range chain {
+						target := byName[step]
+						var out strings.Builder
+						if _, err := target.write(current, &out); err != nil {
+							t.Fatalf("write %s: %v", step, err)
+						}
+						next, err := target.read(strings.NewReader(out.String()))
+						if err != nil {
+							t.Fatalf("read %s: %v\n%s", step, err, out.String())
+						}
+						current = next
+					}
+					assertStable(t, doc, current)
+				})
 			}
-			assertStable(t, source, doc)
 		})
 	}
 }

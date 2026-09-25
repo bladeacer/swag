@@ -14,23 +14,22 @@
 
 ```
 cmd/swag/                 CLI: kong flags, pterm output, locale selection
-internal/converter/       Registry + Convert(from, to, opts) + loss report
 internal/formats/         One package per format: Reader, Writer, Name()
   |-- ytt/                YouTube Timed Text (format 3)
   |-- srv3/               YouTube SRV3 (XML with <pen>, window positions)
   |-- ass/                Advanced SubStation Alpha (+ tag parser)
   |-- srt/                SubRip
   |-- sbv/                YouTube SBV
-  |-- ttml/               TTML / DFXP
+  |-- ttml/               TTML / DFXP (YouTube dialect reader, general writer)
   |-- vtt/                WebVTT
-  |-- kdenlive/           Kdenlive subtitle module (JSON)
-  |-- json1/              FCPXML-capable JSON subtitle exchange
-  `-- scc/                Scenarist Closed Caption (stretch)
+  |-- kdenlive/           Kdenlive subtitle track JSON
+  `-- json1/              Lossless internal exchange format, versioned
 internal/model/           Core IR types: Cue, Style, TextSpan, colours,
                           plus style resolution helpers
 internal/richtext/        ASS-style tag parser and serialiser (shared)
-internal/i18n/            Message catalogue, locales (en-GB default)
-pkg/sub/                  Public API: Identify, Parse, Render, Convert
+internal/i18n/            Message catalogue, locales (en-GB default, fr-FR)
+pkg/sub/                  Public API: Identify, Parse, Render, Convert,
+                          ConvertWith, and the format registry
 ```
 
 ## The intermediate representation
@@ -51,8 +50,10 @@ model.TextSpan    Text string,
                   Start, End time.Duration (offsets from cue start;
                   both zero means untimed),
                   Font *string, Size *float64, Bold/Italic/Underline *bool,
+                  Strikeout *bool, ScaleX/ScaleY *float64,
                   Fore, Secondary, Back *Colour,
                   Shadows []Shadow, OutlineWidth *float64,
+                  ShadowDepth *float64,
                   Vertical *Vertical, Script *Script, Direction *Direction,
                   Packed *bool, Ruby *Ruby (annotation spans only)
 model.Shadow      Kind (SoftShadow | HardShadow | Bevel | Glow), Colour
@@ -65,9 +66,10 @@ model.Script      Kind (Regular | Subscript | Superscript)
 model.Direction   (LeftToRight | RightToLeft)
 model.Animation   one of: Fade{In,Out}, Move{From,To,Start,End},
                   Shake{RadiusX,RadiusY,Start,End},
-                  Chroma{Offsets,InTime,OutTime},
+                  Chroma{Offsets,InTime,OutTime,Colours,Alpha},
                   Keyframes{Start,End,Easing,Steps},
-                  Karaoke{Kind,Cursor}
+                  Karaoke{Kind,Cursor,CursorTags,CursorLeft,
+                          CursorInterval,CursorFrames}
 model.Anchor      uint8 in numpad numbering: 1 = bottom-left, 5 = centre,
                   9 = top-right (ASS alignment values; YTT ap values map)
 ```
@@ -94,9 +96,9 @@ Legend: R = read, W = write, ⊕ = with the platform quirks that the writer appl
 | ASS / SSA | Core | R | W | Tag parser in `internal/richtext`, animation mapping |
 | SRT | Core | R | W | Plain text, italic via `<i>`, loss notes for the rest |
 | SBV | Core | R | W | Plain text |
-| TTML / DFXP | Core | R | W | YouTube TTML dialect first, general TTML later |
-| WebVTT | Broader | R | W | Voice spans, styling block, position cues |
-| Kdenlive subtitle module | Broader | R | W | JSON, matches Kdenlive 24.12 import/export |
+| TTML / DFXP | Core | R | W | YouTube TTML dialect reader, general TTML writer |
+| WebVTT | Broader | R | W | Signature, cue ids, note blocks, align and position settings, inline tags |
+| Kdenlive subtitle JSON | Broader | R | W | The subtitle track JSON of Kdenlive |
 | JSON1 (exchange) | Broader | R | W | Our lossless interchange format for editors and pipelines |
 | FCPXML captions | Later | - | W | Stretch goal, for NLE round-trips |
 | SCC / CEA-608 | Later | - | W | Stretch goal, 32-column grid limits everything |

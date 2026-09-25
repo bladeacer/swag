@@ -71,23 +71,23 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 - [x] `\ytchroma` custom colours and alpha
 - [x] `\ytkt` cursor side, tag, and animated forms
 - [x] Round-trip fixture for the new overrides
-- [ ] `internal/formats/ttml`: YouTube dialect reader, general writer
-- [ ] `internal/formats/vtt`: reader and writer with voice spans and styling
-- [ ] `internal/formats/kdenlive`: Kdenlive subtitle JSON reader and writer
-- [ ] `internal/formats/json1`: lossless internal exchange format, versioned
-- [ ] Loss-report review: every matrix cell has a documented degradation
+- [x] `internal/formats/ttml`: YouTube dialect reader, general writer
+- [x] `internal/formats/vtt`: reader and writer with voice spans and styling
+- [x] `internal/formats/kdenlive`: Kdenlive subtitle JSON reader and writer
+- [x] `internal/formats/json1`: lossless internal exchange format, versioned
+- [x] Loss-report review: every matrix cell has a documented degradation
 
 ### v0.7.0: library hardening and format integrity
 - [x] Loss notes for a strikeout run and a glyph scale in the YTT, SRV3, SRT, and SBV writers
 - [x] Cross-check suite for the override fixture, with the exact loss report of every target
-- [x] Multi-way cross-check chains: one ASS source through a sequence of formats of length two or more, then back to ASS, with text and timing integrity
+- [x] Multi-way cross-check chains: one fixture per reader through a sequence of formats of length two or more, then back to the source format, with text and timing integrity
 - [x] Loss fixes: a symmetric chroma spread and a blank `\ytvert` reset, so ASS carries both without a loss
-- [ ] `pkg/sub.Convert` stable API with a configuration (style mapping, font policy, loss tolerance)
-- [ ] Fuzzing for all readers (`go test -fuzz` targets, 30-minute runs in CI nightly)
-- [ ] Benchmarks for large files (10k cues) with regression tracking
+- [x] `pkg/sub.Convert` stable API with a configuration (style mapping, font policy, loss tolerance)
+- [x] Fuzzing for all readers (`go test -fuzz` targets, 30-minute runs in CI nightly)
+- [x] Benchmarks for large files (10k cues) with regression tracking
 - [x] Statement coverage verified per package, not just module-wide
-- [ ] i18n coverage for every CLI message. A second locale lands as proof.
-- [ ] Docs: per-format notes and a library usage guide
+- [x] i18n coverage for every CLI message. A second locale lands as proof.
+- [x] Docs: per-format notes and a library usage guide
 
 ### v0.8.0: terminal UI
 - [ ] `swag interactive`: pterm interactive mode (pick input, detect format, pick target, show report)

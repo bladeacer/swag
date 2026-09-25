@@ -39,6 +39,8 @@ type ConvertCmd struct {
 	Input   string `help:"Input subtitle file." short:"i" required:""`
 	Output  string `help:"Output file. The extension picks the target format. Omit to write to stdout." short:"o"`
 	Format  string `help:"Target format name, for example srt or sbv. Overrides the output extension." short:"f"`
+	Font    string `help:"Replace the font of every style and span." optional:""`
+	Strict  bool   `help:"Fail when the target format drops a feature." optional:""`
 	Verbose bool   `help:"Print the conversion report." short:"v" name:"report"`
 }
 
@@ -49,7 +51,7 @@ func (c *ConvertCmd) Run(ictx *runContext) error {
 	if err := checkInput(c.Input, ictx.T); err != nil {
 		return err
 	}
-	ictx.T.F(i18n.MsgConvertStart, c.Input, targetName(c))
+	ictx.T.F(i18n.MsgConvertStart, c.Input, targetName(c, ictx.T))
 
 	source, err := openInput(c.Input)
 	if err != nil {
@@ -57,27 +59,26 @@ func (c *ConvertCmd) Run(ictx *runContext) error {
 	}
 	defer source.Close()
 
-	doc, err := sub.Parse(c.Input, source, "")
-	if err != nil {
-		return err
-	}
-
 	target, err := resolveTarget(c, ictx.T)
 	if err != nil {
 		return err
 	}
-	sink, closer, err := openOutput(c.Output)
+	sink, closer, err := openOutput(c.Output, ictx.T)
 	if err != nil {
 		return err
 	}
 	defer closer()
 
-	losses, err := sub.Render(doc, target, sink)
+	opts := sub.Options{Target: target, Font: c.Font}
+	if c.Strict {
+		opts.Loss = sub.LossStrict
+	}
+	losses, err := sub.ConvertWith(c.Input, source, opts, sink)
 	if err != nil {
 		return err
 	}
 
-	pterm.Success.Printf(ictx.T.S(i18n.MsgConvertSuccess), outputLabel(c.Output))
+	pterm.Success.Printf(ictx.T.S(i18n.MsgConvertSuccess), outputLabel(c.Output, ictx.T))
 	if verbose && len(losses) > 0 {
 		pterm.Warning.Println(ictx.T.F(i18n.MsgConvertLosses, len(losses)))
 		for _, loss := range losses {
@@ -101,13 +102,13 @@ func checkInput(path string, t *i18n.T) error {
 		return fmt.Errorf("%s", t.S(i18n.MsgInputMissing))
 	}
 	if info.IsDir() {
-		return fmt.Errorf("%s is a directory; give the path of a subtitle file", path)
+		return fmt.Errorf("%s", t.F(i18n.MsgInputIsDirectory, path))
 	}
 	return nil
 }
 
 // targetName reports the target format for the start message.
-func targetName(c *ConvertCmd) string {
+func targetName(c *ConvertCmd, t *i18n.T) string {
 	if c.Format != "" {
 		return c.Format
 	}
@@ -116,7 +117,7 @@ func targetName(c *ConvertCmd) string {
 			return name
 		}
 	}
-	return "?"
+	return t.S(i18n.MsgTargetPlaceholder)
 }
 
 // resolveTarget determines the target format from -f or the output
@@ -142,21 +143,21 @@ var openInput = func(path string) (io.ReadCloser, error) {
 
 // openOutput returns the writer for the converted file. A missing -o
 // writes to stdout, and the closer does nothing in that case.
-func openOutput(output string) (io.Writer, func(), error) {
+func openOutput(output string, t *i18n.T) (io.Writer, func(), error) {
 	if output == "" {
 		return os.Stdout, func() {}, nil
 	}
 	f, err := os.Create(output)
 	if err != nil {
-		return nil, nil, fmt.Errorf("create %s: %w", output, err)
+		return nil, nil, fmt.Errorf("%s: %w", t.F(i18n.MsgOutputCreate, output), err)
 	}
 	return f, func() { _ = f.Close() }, nil
 }
 
 // outputLabel names the destination in the success message.
-func outputLabel(output string) string {
+func outputLabel(output string, t *i18n.T) string {
 	if output == "" {
-		return "standard output"
+		return t.S(i18n.MsgOutputStdout)
 	}
 	return output
 }
@@ -166,15 +167,19 @@ func banner(t *i18n.T) {
 	pterm.DefaultHeader.WithFullWidth().
 		WithBackgroundStyle(pterm.NewStyle(pterm.BgBlack, pterm.FgLightWhite)).
 		Println(t.S(i18n.MsgBannerTitle))
+	pterm.Info.Println(t.S(i18n.MsgBannerTagline))
 }
 
 // run parses the arguments, runs the selected command, and returns the
 // process exit code.
 func run(args []string) int {
 	cli := CLI{}
+	// The parser needs its description before the flags are parsed, so the
+	// description comes from the environment locale.
+	envCopy := i18n.New(os.Getenv("SWAG_LOCALE"))
 	parser := kong.Must(&cli,
 		kong.Name("swag"),
-		kong.Description("Subtitles With A Gopher: read, write, and convert subtitles."),
+		kong.Description(envCopy.S(i18n.MsgCliDescription)),
 		kong.Vars{
 			"version": fmt.Sprintf("%s (commit %s, built %s)", version, commit, date),
 		},

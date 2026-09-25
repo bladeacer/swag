@@ -684,15 +684,13 @@ func (st *eventState) addKeyframe(args []string) {
 	}
 	kf := model.Keyframe{Easing: 1}
 	tags := args
-	switch len(args) {
-	case 1:
-		// \t(tags)
-	case 3:
+	switch {
+	case len(args) == 3:
 		// \t(t1,t2,tags)
 		kf.Start = millis(args[0])
 		kf.End = millis(args[1])
 		tags = args[2:]
-	default:
+	case len(args) >= 4:
 		// \t(t1,t2,accel,tags)
 		kf.Start = millis(args[0])
 		kf.End = millis(args[1])
@@ -700,6 +698,9 @@ func (st *eventState) addKeyframe(args []string) {
 			kf.Easing = v
 		}
 		tags = args[3:]
+	default:
+		// \t(tags), or a malformed argument list that carries no timing.
+		// The tags are the whole argument list in both cases.
 	}
 	for _, step := range tagSteps(strings.Join(tags, ",")) {
 		kf.Steps = append(kf.Steps, step)

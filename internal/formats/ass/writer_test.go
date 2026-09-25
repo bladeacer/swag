@@ -407,10 +407,28 @@ func TestWriterReportsLosses(t *testing.T) {
 	}
 	_, losses := renderDoc(t, doc)
 	joined := strings.Join(losses, "; ")
-	for _, want := range []string{"karaoke gap", "shadow of kind", "more than one offset"} {
+	for _, want := range []string{"karaoke gap", "one shadow", "more than one offset"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("loss report is missing %q: %v", want, losses)
 		}
+	}
+}
+
+// TestWriterApproximatesSoftShadow checks that a soft shadow writes through
+// the ASS shadow channel instead of being dropped.
+func TestWriterApproximatesSoftShadow(t *testing.T) {
+	doc := &model.Document{
+		Styles: []model.Style{baseStyle(nil)},
+		Cues: []model.Cue{{Spans: []model.TextSpan{
+			{Text: "soft", Shadows: []model.Shadow{{Kind: model.ShadowSoft, Colour: model.NewColour(9, 8, 7, 6)}}},
+		}}},
+	}
+	text, losses := renderDoc(t, doc)
+	if !strings.Contains(text, `\4c&H070809&`) {
+		t.Errorf("a soft shadow must write through the shadow channel:\n%s", text)
+	}
+	if len(losses) != 0 {
+		t.Errorf("a lone soft shadow must not report a loss: %v", losses)
 	}
 }
 

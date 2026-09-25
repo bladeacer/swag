@@ -66,6 +66,9 @@ type Key string
 const (
 	MsgBannerTitle       Key = "banner.title"
 	MsgBannerTagline     Key = "banner.tagline"
+	MsgCliDescription    Key = "cli.description"
+	MsgTargetPlaceholder Key = "target.placeholder"
+	MsgOutputStdout      Key = "output.stdout"
 	MsgConvertStart      Key = "convert.start"
 	MsgConvertSuccess    Key = "convert.success"
 	MsgConvertFailed     Key = "convert.failed"
@@ -73,8 +76,10 @@ const (
 	MsgUsageFailed       Key = "error.usage"
 	MsgInputMissing      Key = "error.input-missing"
 	MsgInputUnreadable   Key = "error.input-unreadable"
+	MsgInputIsDirectory  Key = "error.input-is-directory"
 	MsgFormatUnknown     Key = "error.format-unknown"
 	MsgFormatUnsupported Key = "error.format-unsupported"
+	MsgOutputCreate      Key = "error.output-create"
 )
 
 // enGB is the default message set. Values follow the simple-english rules:
@@ -82,6 +87,9 @@ const (
 var enGB = map[Key]string{
 	MsgBannerTitle:       "swag (Subtitles With A Gopher)",
 	MsgBannerTagline:     "Read, write, and convert subtitles.",
+	MsgCliDescription:    "Subtitles With A Gopher: read, write, and convert subtitles.",
+	MsgTargetPlaceholder: "?",
+	MsgOutputStdout:      "standard output",
 	MsgConvertStart:      "Converting %s to %s format.",
 	MsgConvertSuccess:    "Wrote %s.",
 	MsgConvertFailed:     "Conversion failed. %s",
@@ -89,8 +97,10 @@ var enGB = map[Key]string{
 	MsgUsageFailed:       "The command line could not be read. %s",
 	MsgInputMissing:      "The input file does not exist. Give the path of a subtitle file with -i.",
 	MsgInputUnreadable:   "The input file could not be read. %s",
+	MsgInputIsDirectory:  "The input path %s is a directory. Give the path of a subtitle file.",
 	MsgFormatUnknown:     "The format of %s is not known. Name the format with -f.",
 	MsgFormatUnsupported: "The format %s is not supported for this operation.",
+	MsgOutputCreate:      "The output file %s could not be created.",
 }
 
 // T is a catalogue bound to one locale. It is safe for concurrent use.

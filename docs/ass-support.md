@@ -90,8 +90,10 @@ The YouTube player and the upload path constrain several features. [The format n
 
 The ASS writer reports a loss for each feature that the format cannot express. The list follows.
 
-- A shadow that is not hard.
+- A shadow list with more than one non-glow shadow, because ASS carries one shadow channel. A hard shadow, a soft shadow, and a bevel write through the shadow colour of the span, and a glow writes through the border colour.
 - A karaoke gap between two segments.
+- A chroma with more than one offset, when the offsets do not form the spread that the argument form rebuilds.
+- A keyframe with no animated value.
 - A ruby base with more than one reading.
 - A cursor karaoke type with no text.
 
@@ -99,4 +101,4 @@ The writer keeps a chroma whose offsets form the symmetric spread that the argum
 
 ## Tests
 
-The reader tests live in `internal/formats/ass/ass_test.go` and `internal/formats/ass/tags_test.go`. The writer tests live in `internal/formats/ass/writer_test.go`. The round-trip test walks each fixture under `internal/formats/ass/testdata`. The cross-check suite in `internal/formats/ass/crosscheck_test.go` runs one ASS source through every shipped writer, and a chain test runs one ASS source through a sequence of formats of length two or more, then back to ASS, so the readers and the writers compose. The YTT, SRV3, SRT, and SBV writers report a strikeout run and a glyph scale as losses, so the conversion report stays complete.
+The reader tests live in `internal/formats/ass/ass_test.go` and `internal/formats/ass/tags_test.go`. The writer tests live in `internal/formats/ass/writer_test.go`. The round-trip test walks each fixture under `internal/formats/ass/testdata`. The cross-check suite in `internal/formats/ass/crosscheck_test.go` runs one ASS source through every shipped writer. A chain suite runs one fixture per reader through a sequence of two or more formats and back to the reader, so the readers and the writers compose. The plain writers report a strikeout run and a glyph scale as losses, so the conversion report stays complete.

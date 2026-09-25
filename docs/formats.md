@@ -11,8 +11,12 @@ Legend: R reads, W writes.
 | YouTube Timed Text | `ytt` | `ytt` | R, W |
 | YouTube SRV3 | `srv3` | `srv3` | R, W |
 | Advanced SubStation Alpha | `ass` | `ass`, `ssa` | R, W |
+| WebVTT | `vtt` | `vtt` | R, W |
+| TTML / DFXP | `ttml` | `ttml`, `dfxp` | R, W |
+| Kdenlive subtitle JSON | `kdenlive` | `kdenlive` | R, W |
+| Lossless JSON exchange | `json1` | `json1` | R, W |
 
-A writer returns a loss report, which is one entry per degraded feature. The command line interface prints the report when `-v` is set.
+A writer returns a loss report, which is one entry per degraded feature. The command line interface prints the report when `-v` is set. [The loss report review](loss-report.md) gives the degradation of every format at a glance.
 
 ## SubRip (srt)
 
@@ -24,7 +28,7 @@ The writer drops everything else. It reports karaoke timing, positioning, animat
 
 SBV carries plain text only. It reads a timing line of the form `h:mm:ss.mmm,h:mm:ss.mmm` and one or more text lines.
 
-The writer drops styling, karaoke, positioning, and glyph scale. Ruby text falls back to bracketed readings.
+The writer drops styling, karaoke, positioning, glyph scale, and a strikeout run. Ruby text falls back to bracketed readings.
 
 ## YouTube Timed Text (ytt) and SRV3 (srv3)
 
@@ -56,13 +60,38 @@ The writer emits those same tiers, including `\bord`, `\shad`, `\s`, `\fscx`, `\
 
 The writer reports these features that it cannot express:
 
-- A shadow that is not hard
+- A shadow list with more than one non-glow shadow, because ASS carries one shadow channel
 - A karaoke gap
+- A chroma with more than one offset, when the offsets do not form the spread that the argument form rebuilds
+- A keyframe with no animated value
+- A cursor karaoke type with no text
 - A ruby base with more than one reading
 
 The writer keeps a chroma whose offsets form the symmetric spread that the argument form rebuilds, so a chroma that came from ASS round-trips without a loss. A blank `\ytvert` returns a run to horizontal text, so a run can leave vertical text without a loss.
 
 Two limitations apply. The outline colour of a style that is not the base style becomes a glow shadow on the span. The IR carries an outline colour only on the style. Karaoke text keeps the timing of its syllable, so several spans can share one karaoke window.
+
+## WebVTT (vtt)
+
+WebVTT carries a signature line, one or more cue blocks, and comment blocks. The reader accepts the signature with or without a byte order mark, skips a `NOTE` block, and reads an optional cue id. It maps the `align` and `position` settings onto the cue anchor and position, the inline tags `<i>`, `<b>`, and `<u>` onto span overrides, and the character references such as `&amp;` onto their characters. A voice span has no IR field, so the reader keeps the spoken text and drops the span.
+
+The writer emits the signature, the `align` and `position` settings where a cue carries a layout, and the inline tags. It reports karaoke timing, a cue fade, a cue move, a vertical alignment, an animation, a foreground, secondary, or background colour, a font, a font size, a strikeout run, a glyph scale, a shadow, an outline width, vertical text, a script offset, a right-to-left marking, packing, and ruby text. Ruby text falls back to bracketed readings.
+
+## TTML (ttml)
+
+The reader covers the YouTube TTML dialect. It reads the named styles of the `styling` section and the placements of the `layout` section, then maps a style onto the document styles and onto the spans of its paragraph. A style reference may extend another style. It maps a region onto the cue anchor and position. It reads the timing from the `begin` and `end` attributes, or from `begin` and `dur`, and the karaoke timing from the `begin` attribute of a run. It accepts the clock forms `HH:MM:SS`, `HH:MM:SS.mmm`, `HH:MM:SS:FF`, and `MM:SS`, plus the offset forms with an `h`, `m`, `s`, `ms`, or `f` unit.
+
+The writer emits general TTML: one `style` element per document style, one `region` element per cue placement, and one `p` element per cue with its inline spans. The inline form carries the font, the size, the bold, the italic, the underline, the strikeout, the foreground colour, the background colour, and the outline width. It reports a cue fade, a cue move, an animation, a glyph scale, a shadow, vertical text, packing, a right-to-left marking, a script offset, and ruby text. Ruby text falls back to bracketed readings.
+
+## Kdenlive subtitle JSON (kdenlive)
+
+Kdenlive keeps a subtitle track as a JSON array. Each element carries a `layer`, the `startPos` in seconds, and the `dialogue` as an ASS event line. The event line holds the layer, the start, the end, the style, the name, the margins, the effect, and the text, with the two-character sequence `\N` for a line break.
+
+The reader takes the start from `startPos` and the end from the event line. It turns `\N` into a line break and strips the override blocks, because the format carries no styling of its own. The writer emits one element per cue with layer zero and the text in the last field. It reports karaoke timing, positioning, an animation, inline styling, a glyph scale, vertical text, packing, a right-to-left marking, a script offset, and ruby text. Ruby text falls back to bracketed readings.
+
+## Lossless JSON exchange (json1)
+
+JSON1 is the internal exchange format of `swag`. It carries a version field and the whole IR document, so a reader and a writer of the format lose nothing. The writer indents with two spaces. The reader rejects a bad document, a missing version, and a version it does not know. Use JSON1 to pass a document between tools without a loss: convert into JSON1, keep the file, and convert out of it later.
 
 ## Karaoke
 

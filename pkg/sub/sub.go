@@ -70,6 +70,10 @@ func init() {
 	register(yttFormat{})
 	register(srv3Format{})
 	register(assFormat{})
+	register(json1Format{})
+	register(kdenliveFormat{})
+	register(ttmlFormat{})
+	register(vttFormat{})
 }
 
 // Registered returns the names of all formats that can read, in
@@ -104,6 +108,9 @@ func Identify(fileName string, source io.Reader) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("read %s: %w", fileName, err)
 	}
+	if looksLikeVTT(data) {
+		return "vtt", nil
+	}
 	if looksLikeYTT(data) {
 		return "ytt", nil
 	}
@@ -121,6 +128,11 @@ func Identify(fileName string, source io.Reader) (string, error) {
 // comment terminator "-->" is also a SubRip timing separator.
 func looksLikeYTT(data []byte) bool {
 	return bytes.Contains(data, []byte("<timedtext"))
+}
+
+// looksLikeVTT reports whether the content opens with a WebVTT signature.
+func looksLikeVTT(data []byte) bool {
+	return bytes.HasPrefix(bytes.TrimPrefix(data, []byte("\ufeff")), []byte("WEBVTT"))
 }
 
 // looksLikeSRT reports whether the content carries a SubRip timing line.
@@ -193,11 +205,8 @@ func Render(doc *Document, formatName string, sink io.Writer) ([]string, error) 
 }
 
 // Convert parses source and renders it in targetFormat in one step. It
-// returns the loss report of the write.
+// returns the loss report of the write. ConvertWith offers a configuration
+// for the style names, the fonts, and the loss handling.
 func Convert(fileName string, source io.Reader, targetFormat string, sink io.Writer) ([]string, error) {
-	doc, err := Parse(fileName, source, "")
-	if err != nil {
-		return nil, err
-	}
-	return Render(doc, targetFormat, sink)
+	return ConvertWith(fileName, source, Options{Target: targetFormat}, sink)
 }

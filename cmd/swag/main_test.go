@@ -76,10 +76,11 @@ func TestResolveTargetNothingGiven(t *testing.T) {
 }
 
 func TestTargetNameFallback(t *testing.T) {
-	if got := targetName(&ConvertCmd{}); got != "?" {
+	tr := i18n.New("en-GB")
+	if got := targetName(&ConvertCmd{}, tr); got != "?" {
 		t.Fatalf("targetName = %q, want ?", got)
 	}
-	if got := targetName(&ConvertCmd{Output: "x.sbv"}); got != "sbv" {
+	if got := targetName(&ConvertCmd{Output: "x.sbv"}, tr); got != "sbv" {
 		t.Fatalf("targetName = %q, want sbv", got)
 	}
 }
@@ -103,7 +104,7 @@ func TestCheckInput(t *testing.T) {
 }
 
 func TestOpenOutputStdout(t *testing.T) {
-	sink, closer, err := openOutput("")
+	sink, closer, err := openOutput("", i18n.New("en-GB"))
 	if err != nil {
 		t.Fatalf("openOutput: %v", err)
 	}
@@ -115,7 +116,7 @@ func TestOpenOutputStdout(t *testing.T) {
 
 func TestOpenOutputFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "out.sbv")
-	sink, closer, err := openOutput(path)
+	sink, closer, err := openOutput(path, i18n.New("en-GB"))
 	if err != nil {
 		t.Fatalf("openOutput: %v", err)
 	}
@@ -129,16 +130,22 @@ func TestOpenOutputFile(t *testing.T) {
 }
 
 func TestOpenOutputBadPath(t *testing.T) {
-	if _, _, err := openOutput(filepath.Join(t.TempDir(), "no-such-dir", "x.sbv")); err == nil {
+	path := filepath.Join(t.TempDir(), "no-such-dir", "x.sbv")
+	_, _, err := openOutput(path, i18n.New("en-GB"))
+	if err == nil {
 		t.Fatal("unwritable output path must fail")
+	}
+	if !strings.Contains(err.Error(), path) {
+		t.Fatalf("the error must name the output file: %v", err)
 	}
 }
 
 func TestOutputLabel(t *testing.T) {
-	if got := outputLabel(""); got != "standard output" {
+	tr := i18n.New("en-GB")
+	if got := outputLabel("", tr); got != "standard output" {
 		t.Fatalf("outputLabel(\"\") = %q", got)
 	}
-	if got := outputLabel("a.sbv"); got != "a.sbv" {
+	if got := outputLabel("a.sbv", tr); got != "a.sbv" {
 		t.Fatalf("outputLabel = %q", got)
 	}
 }
@@ -148,7 +155,7 @@ func TestBannerDoesNotPanic(t *testing.T) {
 }
 
 func TestTargetNameFromFormat(t *testing.T) {
-	if got := targetName(&ConvertCmd{Format: "ass", Output: "x.srt"}); got != "ass" {
+	if got := targetName(&ConvertCmd{Format: "ass", Output: "x.srt"}, i18n.New("en-GB")); got != "ass" {
 		t.Fatalf("targetName = %q, want ass (the -f flag wins)", got)
 	}
 }
@@ -283,6 +290,47 @@ func TestMainTakesRunCode(t *testing.T) {
 	main()
 	if code != 0 {
 		t.Fatalf("main exit code = %d, want 0", code)
+	}
+}
+
+func TestConvertCmdRunFontOverride(t *testing.T) {
+	in := writeSubtitle(t, "in.ass", assKaraokeFixture)
+	out := filepath.Join(t.TempDir(), "out.ass")
+	c := &ConvertCmd{Input: in, Output: out, Font: "Verdana"}
+	if err := c.Run(newRunContext(false)); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if !strings.Contains(string(data), "Verdana") {
+		t.Fatalf("the font override is missing:\n%s", data)
+	}
+}
+
+func TestConvertCmdRunStrictFails(t *testing.T) {
+	in := writeSubtitle(t, "in.ass", assKaraokeFixture)
+	out := filepath.Join(t.TempDir(), "out.srt")
+	c := &ConvertCmd{Input: in, Output: out, Strict: true}
+	if err := c.Run(newRunContext(false)); err == nil {
+		t.Fatal("--strict must fail when the target drops a feature")
+	}
+}
+
+func TestRunReportsADirectoryInput(t *testing.T) {
+	dir := t.TempDir()
+	if code := run([]string{"convert", "-i", dir, "-o", filepath.Join(dir, "out.sbv")}); code != 1 {
+		t.Fatalf("run exit code = %d, want 1", code)
+	}
+}
+
+func TestRunAcceptsALocaleFlag(t *testing.T) {
+	t.Setenv("SWAG_LOCALE", "fr-FR")
+	in := writeSubtitle(t, "in.srt", srtFixture)
+	out := filepath.Join(t.TempDir(), "out.sbv")
+	if code := run([]string{"--locale", "fr-FR", "convert", "-i", in, "-o", out}); code != 0 {
+		t.Fatalf("run exit code = %d, want 0", code)
 	}
 }
 

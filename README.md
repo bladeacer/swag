@@ -5,7 +5,7 @@
 
 # swag
 
-`swag` (Subtitles With A Gopher) is a tool for reading, writing, and converting subtitles. It converts between the YouTube subtitle formats (YTT, SRV3), Advanced SubStation Alpha (ASS), and the plain formats (SRT, SBV, TTML, WebVTT). It keeps the styling, colour, effects, positioning, CJK layout, ruby text, and karaoke timing that those formats can express.
+`swag` (Subtitles With A Gopher) is a tool for reading, writing, and converting subtitles. It converts between the YouTube subtitle formats (YTT, SRV3), Advanced SubStation Alpha (ASS), the plain formats (SRT, SBV, TTML, WebVTT), and the Kdenlive subtitle JSON. It also carries a versioned lossless JSON exchange format. It keeps the styling, colour, effects, positioning, CJK layout, ruby text, and karaoke timing that those formats can express.
 
 The project started as a clean-room reimagining of [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter). We thank that project for the inspiration. All code here is original. See [third-party notices](docs/third-party-notices.md) for attribution.
 
@@ -21,7 +21,7 @@ The `convert` command is available from v0.2.0. When you need the library itself
 
 ## Status
 
-The project is in development. The feature set, architecture, and milestones live in [the roadmap](ROADMAP.md) and [the architecture page](docs/architecture.md). The v0.5.0 release adds the Advanced SubStation Alpha (ASS) writer. ASS is now a conversion target, with a semantic round-trip test and a cross-check against YouTube Timed Text. The same release splits the architecture into its own page, raises statement coverage to 100%, and removes the em-dash from the repository. The v0.4.0 release adds the ASS reader, with styles, karaoke, animations, ruby text, vertical layout, and direction. The v0.3.0 release adds the YouTube pair: YouTube Timed Text (YTT) and SRV3 in and out, with the platform quirks that the upload path expects. The plain formats (SRT, SBV) ship in v0.2.0. [The format notes](docs/formats.md) list every format and its degradation notes.
+The project is in development. The feature set, architecture, and milestones live in [the roadmap](ROADMAP.md) and [the architecture page](docs/architecture.md). The v0.7.0 release hardens the library: a configured conversion API, a fuzz target for every reader, benchmarks for a ten-thousand-cue document, a French locale, and the reference docs. The v0.6.0 release closes the ASS tag list and adds the TTML, WebVTT, Kdenlive, and JSON1 formats. The v0.5.0 release adds the Advanced SubStation Alpha (ASS) writer. ASS is now a conversion target, with a semantic round-trip test and a cross-check against YouTube Timed Text. The same release splits the architecture into its own page, raises statement coverage to 100%, and removes the em-dash from the repository. The v0.4.0 release adds the ASS reader, with styles, karaoke, animations, ruby text, vertical layout, and direction. The v0.3.0 release adds the YouTube pair: YouTube Timed Text (YTT) and SRV3 in and out, with the platform quirks that the upload path expects. The plain formats (SRT, SBV) ship in v0.2.0. [The format notes](docs/formats.md) list every format and its degradation notes.
 
 The coverage badge shows the statement coverage of the module. Regenerate it with `make coverage-svg`.
 
@@ -29,6 +29,8 @@ The coverage badge shows the statement coverage of the module. Regenerate it wit
 
 - [The roadmap](ROADMAP.md)
 - [The architecture page](docs/architecture.md)
+- [The format notes](docs/formats.md)
+- [The library usage guide](docs/library.md)
 - [The documentation index](docs/index.md)
 - [The changelog](docs/changelogs/index.md)
 

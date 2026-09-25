@@ -306,15 +306,24 @@ func styleTags(span model.TextSpan, losses *lossNotes) []string {
 	if span.ScaleY != nil {
 		tags = append(tags, `\fscy`+num(*span.ScaleY))
 	}
+	// ASS carries one outline channel and one shadow channel. A glow writes
+	// through the outline channel, and every other kind writes through the
+	// shadow channel, so a soft or bevel shadow keeps a visible shape.
+	solid := 0
 	for _, shadow := range span.Shadows {
-		switch shadow.Kind {
-		case model.ShadowGlow:
-			tags = append(tags, colourTags(`\3c`, `\3a`, shadow.Colour)...)
-		case model.ShadowHard:
-			tags = append(tags, colourTags(`\4c`, `\4a`, shadow.Colour)...)
-		default:
-			losses.add("a shadow of kind %d cannot be expressed in ASS", shadow.Kind)
+		if shadow.Kind != model.ShadowGlow {
+			solid++
 		}
+	}
+	if solid > 1 {
+		losses.add("ASS carries one shadow, so only the last shadow survives")
+	}
+	for _, shadow := range span.Shadows {
+		if shadow.Kind == model.ShadowGlow {
+			tags = append(tags, colourTags(`\3c`, `\3a`, shadow.Colour)...)
+			continue
+		}
+		tags = append(tags, colourTags(`\4c`, `\4a`, shadow.Colour)...)
 	}
 	return tags
 }

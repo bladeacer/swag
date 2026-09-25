@@ -1,0 +1,17 @@
+[
+  {
+    "layer": 0,
+    "startPos": 1,
+    "dialogue": "Dialogue: 0,0:00:01.00,0:00:04.00,Default,,0,0,0,,Hello world."
+  },
+  {
+    "layer": 1,
+    "startPos": 4.5,
+    "dialogue": "Dialogue: 1,0:00:04.50,0:00:08.00,Default,,0,0,0,,Second line."
+  },
+  {
+    "layer": 0,
+    "startPos": 10,
+    "dialogue": "Dialogue: 0,0:00:10.00,0:00:12.00,Default,,0,0,0,,Two\\Nlines."
+  }
+]

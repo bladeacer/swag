@@ -31,6 +31,14 @@ const srv3Sample = `<?xml version="1.0" encoding="utf-8" ?>
 </timedtext>
 `
 
+const json1Sample = `{"version":"1","document":{"Cues":[{"Start":0,"End":1000000000,"Spans":[{"Text":"Hello from JSON1."}]}]}}`
+
+const vttSample = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHello from VTT.\n"
+
+const ttmlSample = `<?xml version="1.0" encoding="utf-8"?><tt xmlns="http://www.w3.org/ns/ttml"><head></head><body><div><p begin="00:00:01.000" end="00:00:02.000">Hello from TTML.</p></div></body></tt>`
+
+const kdenliveSample = `[{"layer":0,"startPos":1,"dialogue":"Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,Hello from Kdenlive."}]`
+
 // TestParseEveryFormat covers the parse adapter of each registered format.
 func TestParseEveryFormat(t *testing.T) {
 	tests := []struct {
@@ -44,6 +52,10 @@ func TestParseEveryFormat(t *testing.T) {
 		{"ytt", "in.ytt", yttSample, 1},
 		{"srv3", "in.srv3", srv3Sample, 1},
 		{"ass", "in.ass", assSample, 1},
+		{"json1", "in.json1", json1Sample, 1},
+		{"vtt", "in.vtt", vttSample, 1},
+		{"ttml", "in.ttml", ttmlSample, 1},
+		{"kdenlive", "in.kdenlive", kdenliveSample, 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -64,7 +76,7 @@ func TestRenderEveryFormat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	for _, name := range []string{"srt", "sbv", "ytt", "srv3", "ass"} {
+	for _, name := range []string{"srt", "sbv", "ytt", "srv3", "ass", "json1", "vtt", "ttml", "kdenlive"} {
 		t.Run(name, func(t *testing.T) {
 			var out strings.Builder
 			if _, err := Render(doc, name, &out); err != nil {
@@ -74,6 +86,17 @@ func TestRenderEveryFormat(t *testing.T) {
 				t.Fatalf("Render %s wrote nothing", name)
 			}
 		})
+	}
+}
+
+// TestIdentifyVTTContent covers the WebVTT signature check.
+func TestIdentifyVTTContent(t *testing.T) {
+	got, err := Identify("unnamed", strings.NewReader(vttSample))
+	if err != nil {
+		t.Fatalf("Identify: %v", err)
+	}
+	if got != "vtt" {
+		t.Fatalf("Identify = %q, want vtt", got)
 	}
 }
 

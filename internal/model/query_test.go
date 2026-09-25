@@ -44,6 +44,42 @@ func TestResolveInheritsStyleBooleans(t *testing.T) {
 	}
 }
 
+// TestResolveSpanOverrides covers the span overrides that have no style
+// equivalent, and the span shadow depth that replaces the style depth.
+func TestResolveSpanOverrides(t *testing.T) {
+	style := Style{Name: "Base", Size: 20, ShadowDepth: 2, Shadow: NewColour(1, 2, 3, 255)}
+	strike := true
+	scaleX, scaleY := 150.0, 50.0
+	depth := 4.0
+	span := TextSpan{Text: "x", Strikeout: &strike, ScaleX: &scaleX, ScaleY: &scaleY, ShadowDepth: &depth}
+	got := Resolve(style, span)
+	if !got.Strikeout || got.ScaleX != 150 || got.ScaleY != 50 || got.ShadowDepth != 4 {
+		t.Fatalf("span override fields not applied: %+v", got)
+	}
+	if len(got.Shadows) != 1 || got.Shadows[0].Kind != ShadowHard {
+		t.Fatalf("a positive span shadow depth needs a hard shadow: %+v", got.Shadows)
+	}
+}
+
+// TestResolveDefaults covers a span with no overrides: the scale is 100%,
+// and the shadow depth comes from the style.
+func TestResolveDefaults(t *testing.T) {
+	got := Resolve(Style{Name: "Base", Size: 20}, TextSpan{Text: "x"})
+	if got.ScaleX != 100 || got.ScaleY != 100 || got.Strikeout || got.ShadowDepth != 0 {
+		t.Fatalf("defaults wrong: %+v", got)
+	}
+}
+
+// TestResolveSpanShadowDepthZero covers a span that clears the style shadow
+// with a zero depth.
+func TestResolveSpanShadowDepthZero(t *testing.T) {
+	zero := 0.0
+	got := Resolve(Style{Name: "Base", Size: 20, ShadowDepth: 2}, TextSpan{Text: "x", ShadowDepth: &zero})
+	if len(got.Shadows) != 0 || got.ShadowDepth != 0 {
+		t.Fatalf("a zero span depth must remove the shadow: %+v", got)
+	}
+}
+
 func TestResolveShadowsFromStyle(t *testing.T) {
 	shadow := NewColour(34, 34, 34, 254)
 	style := Style{Name: "Shadowed", Font: "Roboto", Size: 20, Shadow: shadow, ShadowDepth: 2}

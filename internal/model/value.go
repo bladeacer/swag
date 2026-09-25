@@ -107,6 +107,11 @@ type Chroma struct {
 	Offsets []Point
 	// InTime and OutTime are the merge and disperse durations.
 	InTime, OutTime time.Duration
+	// Colours holds one colour per copy for a custom effect. An empty
+	// slice means the default red, green, and blue copies.
+	Colours []Colour
+	// Alpha is the alpha channel of a custom effect, from 0 to 255.
+	Alpha uint8
 }
 
 // KaraokeKind enumerates the advanced karaoke types of ASS (\ytkt).
@@ -130,6 +135,24 @@ type Karaoke struct {
 	// Cursor is the text that follows the sung syllable for the cursor
 	// kind.
 	Cursor string
+	// CursorTags holds the override tags that style the cursor text.
+	CursorTags string
+	// CursorLeft draws the cursor before the sung syllable (the LCursor
+	// and RCursor forms). The default cursor follows the syllable.
+	CursorLeft bool
+	// CursorInterval is the duration of each frame of an animated cursor.
+	CursorInterval time.Duration
+	// CursorFrames holds the frames of an animated cursor in order. An
+	// empty slice means a static cursor.
+	CursorFrames []KaraokeFrame
+}
+
+// KaraokeFrame is one frame of an animated \ytkt cursor.
+type KaraokeFrame struct {
+	// Tags styles the frame text with override tags.
+	Tags string
+	// Text is the frame text.
+	Text string
 }
 
 // Keyframe is one animated value change (ASS \t).

@@ -1,4 +1,4 @@
-; colour.ass — colour and styling fixture for the swag ASS reader tests.
+; colour.ass: colour and styling fixture for the swag ASS reader tests.
 ; Exercises: styles and the Default-style size baseline, inline font, size,
 ; bold, italic, underline, primary/outline/shadow colours with alpha,
 ; background box (BorderStyle 3), alignment, \pos, \move, \fad, \t,

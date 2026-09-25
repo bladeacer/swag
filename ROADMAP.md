@@ -65,7 +65,12 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 - [x] `make tag` suggests the highest changelog version and honours an override
 - [x] [Third-party notices](docs/third-party-notices.md) covering the vendored skill, YTSubConverter, and the Go dependencies
 
-### v0.6.0: TTML, WebVTT, editor formats
+### v0.6.0: ASS tag closure, TTML, WebVTT, editor formats
+- [x] ASS tag closure: document the YTSubConverter ASS feature list against the code and the tests
+- [x] Aegisub overrides where the IR can express them: `\shad`, `\xshad`, `\yshad`, `\a`, `\s`, `\fscx`, and `\fscy`
+- [x] `\ytchroma` custom colours and alpha
+- [x] `\ytkt` cursor side, tag, and animated forms
+- [x] Round-trip fixture for the new overrides
 - [ ] `internal/formats/ttml`: YouTube dialect reader, general writer
 - [ ] `internal/formats/vtt`: reader and writer with voice spans and styling
 - [ ] `internal/formats/kdenlive`: Kdenlive subtitle JSON reader and writer

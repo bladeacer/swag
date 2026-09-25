@@ -17,6 +17,7 @@ Reference documents (written with the vendored `simple-english` skill, British E
 - [the v0.2.0 notes](changelogs/v0.2.0.md): the plain formats release
 - [the v0.1.0 notes](changelogs/v0.1.0.md): the foundation release
 - [the format notes](formats.md): the per-format support matrix and degradation notes
+- [the ASS support page](ass-support.md): the ASS feature list mapped onto the code and the tests
 - [the third-party notices](third-party-notices.md): the works this project builds on and their licences
 - the library usage guide (lands with v0.7.0)
 - the WASM demo page (lands with v1.0.0)

@@ -1,0 +1,29 @@
+; overrides.ass: override tag fixture for the swag ASS round-trip tests.
+; Exercises: \shad, \xshad, and \yshad shadow distance, the legacy \a
+; alignment, \s strikeout, \fscx and \fscy scale, the \ytkt cursor side,
+; tag, and animated forms, and a custom \ytchroma. Written fresh for swag.
+[Script Info]
+Title: swag override fixture
+ScriptType: v4.00+
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+Collisions: Normal
+PlayResX: 1280
+PlayResY: 720
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:03.00,Default,,0,0,0,,{\shad4}A deeper shadow.
+Dialogue: 0,0:00:03.00,0:00:05.00,Default,,0,0,0,,{\shad0}A line with no shadow at all.
+Dialogue: 0,0:00:05.00,0:00:07.00,Default,,0,0,0,,{\xshad3}Crossed out {\yshad5}and offset.
+Dialogue: 0,0:00:07.00,0:00:09.00,Default,,0,0,0,,{\a5}A legacy top-left line.
+Dialogue: 0,0:00:09.00,0:00:11.00,Default,,0,0,0,,{\s1}Struck{\s0} through text.
+Dialogue: 0,0:00:11.00,0:00:13.00,Default,,0,0,0,,{\fscx150}Wide{\fscy50} and short.
+Dialogue: 0,0:00:13.00,0:00:15.00,Default,,0,0,0,,{\ytkt(LCursor,<)}A cursor before the word.
+Dialogue: 0,0:00:15.00,0:00:17.00,Default,,0,0,0,,{\ytkt(Cursor,\b1,star)}A styled cursor.
+Dialogue: 0,0:00:17.00,0:00:19.00,Default,,0,0,0,,{\ytkt(Cursor,100,\i1,spinner,\i0,star)}An animated cursor.
+Dialogue: 0,0:00:19.00,0:00:21.00,Default,,0,0,0,,{\ytchroma(&HFF0000&,&H00FF00&,&H0000FF&,&H40&,20,10,100,200)}A custom chromatic effect.

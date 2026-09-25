@@ -34,47 +34,55 @@ func reparse(t *testing.T, text string) *model.Document {
 // spanView is the comparable rendering of one span. Fields that the style
 // carries are resolved, and the override pointers stay as they are.
 type spanView struct {
-	text      string
-	start     time.Duration
-	end       time.Duration
-	font      string
-	size      float64
-	bold      bool
-	italic    bool
-	underline bool
-	fore      model.Colour
-	secondary model.Colour
-	outline   float64
-	shadows   []model.Shadow
-	back      *model.Colour
-	vertical  *model.Vertical
-	script    *model.Script
-	direction *model.Direction
-	packed    *bool
-	ruby      *model.Ruby
+	text        string
+	start       time.Duration
+	end         time.Duration
+	font        string
+	size        float64
+	bold        bool
+	italic      bool
+	underline   bool
+	strikeout   bool
+	scaleX      float64
+	scaleY      float64
+	fore        model.Colour
+	secondary   model.Colour
+	outline     float64
+	shadowDepth float64
+	shadows     []model.Shadow
+	back        *model.Colour
+	vertical    *model.Vertical
+	script      *model.Script
+	direction   *model.Direction
+	packed      *bool
+	ruby        *model.Ruby
 }
 
 func viewSpan(style model.Style, span model.TextSpan) spanView {
 	r := model.Resolve(style, span)
 	return spanView{
-		text:      span.Text,
-		start:     span.Start,
-		end:       span.End,
-		font:      r.Font,
-		size:      r.Size,
-		bold:      r.Bold,
-		italic:    r.Italic,
-		underline: r.Underline,
-		fore:      r.Fore,
-		secondary: r.Secondary,
-		outline:   r.OutlineWidth,
-		shadows:   r.Shadows,
-		back:      span.Back,
-		vertical:  span.Vertical,
-		script:    span.Script,
-		direction: span.Direction,
-		packed:    span.Packed,
-		ruby:      span.Ruby,
+		text:        span.Text,
+		start:       span.Start,
+		end:         span.End,
+		font:        r.Font,
+		size:        r.Size,
+		bold:        r.Bold,
+		italic:      r.Italic,
+		underline:   r.Underline,
+		strikeout:   r.Strikeout,
+		scaleX:      r.ScaleX,
+		scaleY:      r.ScaleY,
+		fore:        r.Fore,
+		secondary:   r.Secondary,
+		outline:     r.OutlineWidth,
+		shadowDepth: r.ShadowDepth,
+		shadows:     r.Shadows,
+		back:        span.Back,
+		vertical:    span.Vertical,
+		script:      span.Script,
+		direction:   span.Direction,
+		packed:      span.Packed,
+		ruby:        span.Ruby,
 	}
 }
 
@@ -122,7 +130,20 @@ func viewLayout(l *model.Layout) layoutView {
 // comparison is semantic, so it allows the style names to flatten and the
 // tag order to change.
 func TestRoundTripFixtures(t *testing.T) {
-	for _, name := range []string{"karaoke.ass", "colour.ass", "cjk.ass"} {
+	fixtures := []struct {
+		name   string
+		losses []string
+	}{
+		{name: "karaoke.ass"},
+		{name: "colour.ass"},
+		{name: "cjk.ass"},
+		// The chroma fixture carries a conservative loss: the four
+		// argument form names one offset, even though the symmetric
+		// spread survives the pass.
+		{name: "overrides.ass", losses: []string{"more than one copy"}},
+	}
+	for _, fixture := range fixtures {
+		name := fixture.name
 		t.Run(name, func(t *testing.T) {
 			original := parseFixture(t, name)
 			text, losses := renderDoc(t, original)
@@ -155,10 +176,19 @@ func TestRoundTripFixtures(t *testing.T) {
 						animationViews(want), animationViews(got))
 				}
 			}
-			// The fixtures carry no feature outside the ASS writer tiers,
-			// so the pass is lossless.
-			if len(losses) > 0 {
-				t.Errorf("round trip reported losses: %v\n%s", losses, text)
+			// An ASS source carries the features of the writer tiers, so
+			// the pass is lossless apart from a documented chroma limit.
+			for _, loss := range losses {
+				allowed := false
+				for _, want := range fixture.losses {
+					if strings.Contains(loss, want) {
+						allowed = true
+						break
+					}
+				}
+				if !allowed {
+					t.Errorf("unexpected round trip loss: %q\n%s", loss, text)
+				}
 			}
 		})
 	}
@@ -278,6 +308,55 @@ func TestWriterEmitsKaraokeAndAnnotations(t *testing.T) {
 	for _, want := range []string{
 		`\k100`, `\t(0,1000,2,\3c&H0000FF&)`, `\ytshake(10,5,100,200)`,
 		`\ytchroma`, `\ytktFade`, `\ytruby2`, "[漢/かん]",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("output is missing %q:\n%s", want, text)
+		}
+	}
+	if len(losses) != 0 {
+		t.Errorf("unexpected losses: %v", losses)
+	}
+}
+
+// TestWriterEmitsOverrideTags checks the span overrides that have no style
+// equivalent, the custom chroma form, and the cursor forms.
+func TestWriterEmitsOverrideTags(t *testing.T) {
+	strike := true
+	scaleX, scaleY, depth := 150.0, 50.0, 4.0
+	doc := &model.Document{
+		Styles: []model.Style{baseStyle(nil)},
+		Cues: []model.Cue{{
+			Spans: []model.TextSpan{{
+				Text:        "styled",
+				Strikeout:   &strike,
+				ScaleX:      &scaleX,
+				ScaleY:      &scaleY,
+				ShadowDepth: &depth,
+			}},
+			Animations: []model.Animation{
+				{Chroma: &model.Chroma{
+					Colours: []model.Colour{
+						model.NewColour(255, 0, 0, 255),
+						model.NewColour(0, 255, 0, 255),
+						model.NewColour(0, 0, 255, 255),
+					},
+					Alpha: 191, InTime: 100 * time.Millisecond, OutTime: 200 * time.Millisecond,
+				}},
+				{Karaoke: &model.Karaoke{Kind: model.KaraokeCursor, Cursor: "star", CursorTags: `\b1`, CursorLeft: true}},
+				{Karaoke: &model.Karaoke{
+					Kind:           model.KaraokeCursor,
+					CursorInterval: 100 * time.Millisecond,
+					CursorFrames:   []model.KaraokeFrame{{Tags: `\i1`, Text: "spin"}, {Tags: `\i0`, Text: "star"}},
+				}},
+			},
+		}},
+	}
+	text, losses := renderDoc(t, doc)
+	for _, want := range []string{
+		`\shad4`, `\s1`, `\fscx150`, `\fscy50`,
+		`\ytchroma(&H0000FF&,&H00FF00&,&HFF0000&,&H40&,0,0,100,200)`,
+		`\ytkt(LCursor,\b1,star)`,
+		`\ytkt(Cursor,100,\i1,spin,\i0,star)`,
 	} {
 		if !strings.Contains(text, want) {
 			t.Errorf("output is missing %q:\n%s", want, text)

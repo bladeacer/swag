@@ -116,11 +116,11 @@ We deliberately reproduce these platform quirks on write, each with a test:
 
 ## ASS feature tiers
 
-Readers map every supported tag into the IR. Writers emit tags from the IR. Tier 1 and 2 cover the YTSubConverter tag set from its README. Tier 3 comes from the Aegisub tag manual at [the Aegisub ASS tag reference](https://aegi.vmoe.info/docs/3.0/ASS_Tags/) where the IR can express it.
+Readers map every supported tag into the IR. Writers emit tags from the IR. Tier 1 and 2 cover the YTSubConverter tag set from its README, plus the Aegisub tags that the IR can express. Tier 3 comes from the Aegisub tag manual at [the Aegisub ASS tag reference](https://aegi.vmoe.info/docs/3.0/ASS_Tags/). [The ASS support page](ass-support.md) maps each tag onto its IR field and its test.
 
-- Tier 1 (styling and timing): `\b`, `\i`, `\u`, `\fn`, `\fs`, `\c`/`\1c`, `\2c`, `\3c`, `\4c`, `\1a` to `\4a`, `\alpha`, `\k`, `\K`, `\kf`, `\ko`, `\r`, `\an`, `\pos`
-- Tier 2 (effects and motion): `\move`, `\fad`, `\fade`, `\t`, `\ytshake`, `\ytchroma`, `\ytkt` variants (fade, glitch, cursor), `\ytsup`, `\ytsub`, `\ytsur`
+- Tier 1 (styling and timing): `\b`, `\i`, `\u`, `\s`, `\fn`, `\fs`, `\fscx`, `\fscy`, `\c`/`\1c`, `\2c`, `\3c`, `\4c`, `\1a` to `\4a`, `\alpha`, `\bord`, `\shad`/`\xshad`/`\yshad`, `\k`, `\K`, `\kf`, `\ko`, `\r`, `\an`, `\a`, `\pos`
+- Tier 2 (effects and motion): `\move`, `\fad`, `\fade`, `\t`, `\ytshake`, `\ytchroma` (including the custom colour and alpha form), `\ytkt` variants (fade, glitch, and the cursor forms with side, tags, and frames), `\ytsup`, `\ytsub`, `\ytsur`
 - Tier 3 (CJK and direction): `\ytruby` (positions 2 and 8), `\ytvert` (1, 3, 7, 9), `\ytpack`, `\ytdir4`, `\ytdir6`
-- Tier 4 (accepted, ignored with a note): tags outside the tiers that the IR cannot express, for example `\clip`, `\iclip`, `\bord` beyond width, `\be`, `\blur`, `\fr*`, `\org`, `\p`, drawing mode
+- Tier 4 (accepted, ignored with a note): tags outside the tiers that the IR cannot express, for example `\clip`, `\iclip`, `\be`, `\blur`, `\fsp`, `\fr*`, `\org`, `\p`, drawing mode
 
 Font allow-list (YouTube): Arial, Arial Black, Arial Narrow, Comic Sans MS, Courier New, Georgia, Impact, Roboto (default snap target), Tahoma, Times New Roman, Trebuchet MS, Verdana. Everything else snaps to Roboto on YTT/SRV3 write, with a loss note. `internal/formats/ytt/fonts.go` owns the single table.

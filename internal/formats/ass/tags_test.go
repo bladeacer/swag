@@ -41,6 +41,154 @@ Dialogue: 0,0:01:05.00,0:01:09.00,Default,,0,0,0,,{\b true}{\i no}{\u yes}flags
 Dialogue: 0,0:01:09.00,0:01:13.00,Default,,0,0,0,,{\an99}{\pos}{\move}{\fad(1)}{\t(9)}unfinished
 `
 
+const overridesHeader = `[Script Info]
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,20,&H00FFFFFF,&H00777777,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+`
+
+const overridesDialogue = `Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,{\shad4}shadow
+Dialogue: 0,0:00:02.00,0:00:03.00,Default,,0,0,0,,{\shad}blank shadow
+Dialogue: 0,0:00:03.00,0:00:04.00,Default,,0,0,0,,{\xshad3}x {\yshad5}y
+Dialogue: 0,0:00:04.00,0:00:05.00,Default,,0,0,0,,{\shadx}bad shadow
+Dialogue: 0,0:00:05.00,0:00:06.00,Default,,0,0,0,,{\shad0}no shadow
+Dialogue: 0,0:00:06.00,0:00:07.00,Default,,0,0,0,,{\a5}legacy top left
+Dialogue: 0,0:00:07.00,0:00:08.00,Default,,0,0,0,,{\a4}legacy invalid
+Dialogue: 0,0:00:08.00,0:00:09.00,Default,,0,0,0,,{\s1}struck{\s0}plain
+Dialogue: 0,0:00:09.00,0:00:10.00,Default,,0,0,0,,{\s}blank strike
+Dialogue: 0,0:00:10.00,0:00:11.00,Default,,0,0,0,,{\fscx150}wide{\fscy50}short{\fscx}reset{\fscy}done
+Dialogue: 0,0:00:11.00,0:00:12.00,Default,,0,0,0,,{\fscxb}bad scale
+Dialogue: 0,0:00:12.00,0:00:13.00,Default,,0,0,0,,{\ytchroma(&HFF0000&,&H00FF00&,&H0000FF&,&H40&,5,6,100,200)}custom chroma
+Dialogue: 0,0:00:13.00,0:00:14.00,Default,,0,0,0,,{\ytkt(LCursor,<)}left cursor
+Dialogue: 0,0:00:14.00,0:00:15.00,Default,,0,0,0,,{\ytkt(RCursor,>)}right cursor
+Dialogue: 0,0:00:15.00,0:00:16.00,Default,,0,0,0,,{\ytkt(Cursor,\b1,star)}tagged cursor
+Dialogue: 0,0:00:16.00,0:00:17.00,Default,,0,0,0,,{\ytkt(Cursor,100,\i1,spinner,\i0,star)}animated cursor
+Dialogue: 0,0:00:17.00,0:00:18.00,Default,,0,0,0,,{\ytkt(Cursor,100,\i1,odd,\i2)}unpaired frame
+Dialogue: 0,0:00:18.00,0:00:19.00,Default,,0,0,0,,{\ytkt(Cursor)}empty cursor
+Dialogue: 0,0:00:19.00,0:00:20.00,Default,,0,0,0,,{\r}reset
+`
+
+func parseOverrides(t *testing.T) *model.Document {
+	t.Helper()
+	doc, err := NewReader().Parse(strings.NewReader(overridesHeader + overridesDialogue))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	return doc
+}
+
+// TestParseShadowAndAlignmentOverrides covers the shadow distance and the
+// legacy alignment tags, including the reset and invalid forms.
+func TestParseShadowAndAlignmentOverrides(t *testing.T) {
+	doc := parseOverrides(t)
+	if span := doc.Cues[0].Spans[0]; span.ShadowDepth == nil || *span.ShadowDepth != 4 {
+		t.Errorf("\\shad4 = %+v", span.ShadowDepth)
+	}
+	if span := doc.Cues[1].Spans[0]; span.ShadowDepth != nil {
+		t.Errorf("a blank \\shad must reset to the style: %+v", span.ShadowDepth)
+	}
+	if span := doc.Cues[2].Spans[0]; span.ShadowDepth == nil || *span.ShadowDepth != 3 {
+		t.Errorf("\\xshad3 = %+v", span.ShadowDepth)
+	}
+	if span := doc.Cues[2].Spans[1]; span.ShadowDepth == nil || *span.ShadowDepth != 5 {
+		t.Errorf("\\yshad5 = %+v", span.ShadowDepth)
+	}
+	if span := doc.Cues[3].Spans[0]; span.ShadowDepth != nil {
+		t.Errorf("a bad \\shad must change nothing: %+v", span.ShadowDepth)
+	}
+	if span := doc.Cues[4].Spans[0]; span.ShadowDepth == nil || *span.ShadowDepth != 0 {
+		t.Errorf("\\shad0 = %+v", span.ShadowDepth)
+	}
+	if l := doc.Cues[5].Layout; l == nil || l.Anchor == nil || *l.Anchor != model.AnchorTopLeft {
+		t.Errorf("\\a5 = %+v", l)
+	}
+	if l := doc.Cues[6].Layout; l != nil && l.Anchor != nil {
+		t.Errorf("\\a4 must be ignored: %+v", l)
+	}
+}
+
+// TestParseStrikeoutAndScale covers the strikeout and glyph scale
+// overrides, including the reset and invalid forms.
+func TestParseStrikeoutAndScale(t *testing.T) {
+	doc := parseOverrides(t)
+	if span := doc.Cues[7].Spans[0]; !isTrue(span.Strikeout) {
+		t.Errorf("\\s1 = %+v", span.Strikeout)
+	}
+	if span := doc.Cues[7].Spans[1]; span.Strikeout == nil || *span.Strikeout {
+		t.Errorf("\\s0 = %+v", span.Strikeout)
+	}
+	if span := doc.Cues[8].Spans[0]; span.Strikeout == nil || *span.Strikeout {
+		t.Errorf("a blank \\s must reset to off: %+v", span.Strikeout)
+	}
+	if span := doc.Cues[9].Spans[0]; span.ScaleX == nil || *span.ScaleX != 150 {
+		t.Errorf("\\fscx150 = %+v", span.ScaleX)
+	}
+	if span := doc.Cues[9].Spans[1]; span.ScaleY == nil || *span.ScaleY != 50 {
+		t.Errorf("\\fscy50 = %+v", span.ScaleY)
+	}
+	if span := doc.Cues[9].Spans[2]; span.ScaleX != nil {
+		t.Errorf("a blank \\fscx must clear the override: %+v", span.ScaleX)
+	}
+	if span := doc.Cues[9].Spans[3]; span.ScaleY != nil {
+		t.Errorf("a blank \\fscy must clear the override: %+v", span.ScaleY)
+	}
+	if span := doc.Cues[10].Spans[0]; span.ScaleX != nil {
+		t.Errorf("a bad \\fscx must change nothing: %+v", span.ScaleX)
+	}
+}
+
+// TestParseChromaColours covers the custom colour form of \ytchroma.
+func TestParseChromaColours(t *testing.T) {
+	doc := parseOverrides(t)
+	chroma := firstAnimation(doc.Cues[11], func(a model.Animation) bool { return a.Chroma != nil })
+	if chroma == nil || len(chroma.Chroma.Colours) != 3 || chroma.Chroma.Alpha != 191 {
+		t.Fatalf("custom chroma = %+v", chroma)
+	}
+	if chroma.Chroma.Colours[0] != model.NewColour(0, 0, 255, 255) {
+		t.Errorf("first copy colour = %+v", chroma.Chroma.Colours[0])
+	}
+}
+
+// TestParseCursorForms covers the cursor side, tag, animated, and empty
+// forms of \ytkt.
+func TestParseCursorForms(t *testing.T) {
+	doc := parseOverrides(t)
+	left := firstAnimation(doc.Cues[12], func(a model.Animation) bool { return a.Karaoke != nil })
+	if left == nil || !left.Karaoke.CursorLeft || left.Karaoke.Cursor != "<" {
+		t.Errorf("left cursor = %+v", left)
+	}
+	right := firstAnimation(doc.Cues[13], func(a model.Animation) bool { return a.Karaoke != nil })
+	if right == nil || right.Karaoke.CursorLeft || right.Karaoke.Cursor != ">" {
+		t.Errorf("right cursor = %+v", right)
+	}
+	tagged := firstAnimation(doc.Cues[14], func(a model.Animation) bool { return a.Karaoke != nil })
+	if tagged == nil || tagged.Karaoke.CursorTags != `\b1` || tagged.Karaoke.Cursor != "star" {
+		t.Errorf("tagged cursor = %+v", tagged)
+	}
+	animated := firstAnimation(doc.Cues[15], func(a model.Animation) bool { return a.Karaoke != nil })
+	if animated == nil || len(animated.Karaoke.CursorFrames) != 2 || animated.Karaoke.CursorInterval != 100*time.Millisecond {
+		t.Fatalf("animated cursor = %+v", animated)
+	}
+	if animated.Karaoke.CursorFrames[1].Text != "star" {
+		t.Errorf("second frame = %+v", animated.Karaoke.CursorFrames[1])
+	}
+	unpaired := firstAnimation(doc.Cues[16], func(a model.Animation) bool { return a.Karaoke != nil })
+	if unpaired == nil || len(unpaired.Karaoke.CursorFrames) != 1 {
+		t.Errorf("an unpaired frame must be dropped: %+v", unpaired)
+	}
+	empty := firstAnimation(doc.Cues[17], func(a model.Animation) bool { return a.Karaoke != nil })
+	if empty == nil || empty.Karaoke.Cursor != "" || len(empty.Karaoke.CursorFrames) != 0 {
+		t.Errorf("empty cursor = %+v", empty)
+	}
+}
+
 func parseSynthetic(t *testing.T) *model.Document {
 	t.Helper()
 	doc, err := NewReader().Parse(strings.NewReader(syntheticDoc))

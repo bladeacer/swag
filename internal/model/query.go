@@ -16,6 +16,9 @@ func Resolve(style Style, span TextSpan) Resolved {
 		Fore:         style.Primary,
 		Secondary:    style.Secondary,
 		OutlineWidth: style.OutlineWidth,
+		ShadowDepth:  style.ShadowDepth,
+		ScaleX:       100,
+		ScaleY:       100,
 	}
 	if span.Font != nil {
 		r.Font = *span.Font
@@ -32,6 +35,15 @@ func Resolve(style Style, span TextSpan) Resolved {
 	if span.Underline != nil {
 		r.Underline = *span.Underline
 	}
+	if span.Strikeout != nil {
+		r.Strikeout = *span.Strikeout
+	}
+	if span.ScaleX != nil {
+		r.ScaleX = *span.ScaleX
+	}
+	if span.ScaleY != nil {
+		r.ScaleY = *span.ScaleY
+	}
 	if span.Fore != nil {
 		r.Fore = *span.Fore
 	}
@@ -41,8 +53,11 @@ func Resolve(style Style, span TextSpan) Resolved {
 	if span.OutlineWidth != nil {
 		r.OutlineWidth = *span.OutlineWidth
 	}
+	if span.ShadowDepth != nil {
+		r.ShadowDepth = *span.ShadowDepth
+	}
 	r.Shadows = append([]Shadow(nil), span.Shadows...)
-	if len(r.Shadows) == 0 && style.ShadowDepth > 0 {
+	if len(r.Shadows) == 0 && r.ShadowDepth > 0 {
 		r.Shadows = []Shadow{{Kind: ShadowHard, Colour: style.Shadow}}
 	}
 	if len(r.Shadows) == 0 && style.OutlineWidth > 0 && style.Box {
@@ -63,7 +78,14 @@ type Resolved struct {
 	Fore         Colour
 	Secondary    Colour
 	OutlineWidth float64
-	Shadows      []Shadow
+	// ShadowDepth is the effective shadow distance, after the span
+	// override.
+	ShadowDepth float64
+	Strikeout   bool
+	// ScaleX and ScaleY are the effective glyph scales in percent.
+	ScaleX  float64
+	ScaleY  float64
+	Shadows []Shadow
 	// Box reports whether the span renders with a background box instead of
 	// an outline, and BoxColour carries the box colour.
 	Box       bool

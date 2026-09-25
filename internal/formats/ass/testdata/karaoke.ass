@@ -1,4 +1,4 @@
-; karaoke.ass — karaoke fixture for the swag ASS reader tests.
+; karaoke.ass: karaoke fixture for the swag ASS reader tests.
 ; Exercises: \k (duration from unsung colour), \K and \kf (sweep),
 ; \ko (sweep with outline hole), secondary colour, karaoke transparency
 ; (\2a), combined karaoke with inline colours, and a karaoke line with a

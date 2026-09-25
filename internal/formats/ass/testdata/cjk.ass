@@ -1,4 +1,4 @@
-; cjk.ass — CJK and direction fixture for the swag ASS reader tests.
+; cjk.ass: CJK and direction fixture for the swag ASS reader tests.
 ; Exercises: \ytruby with default and explicit positions (8 = over, 2 =
 ; under), \ytvert modes 9, 7, 1, and 3, \ytpack packing, \ytdir4 embedded
 ; right-to-left sentences, and ruby combined with karaoke timing.

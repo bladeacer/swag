@@ -36,6 +36,12 @@ type eventState struct {
 	packed    *bool
 	ruby      *model.RubyPosition
 
+	// strikeout, scaleX, and scaleY are span overrides that have no
+	// style equivalent in the IR.
+	strikeout *bool
+	scaleX    *float64
+	scaleY    *float64
+
 	// outlineSet and shadowSet report that an inline tag changed the
 	// outline or shadow colour, so the span needs an explicit shadow even
 	// when the style thickness is unchanged.
@@ -195,6 +201,10 @@ func (st *eventState) applyDiff(sp *model.TextSpan) {
 		v := eff.OutlineWidth
 		sp.OutlineWidth = &v
 	}
+	if eff.ShadowDepth != base.ShadowDepth {
+		v := eff.ShadowDepth
+		sp.ShadowDepth = &v
+	}
 	// The ASS outline colour doubles as the box colour of a BorderStyle 3
 	// style, and the IR carries it on the span as the background colour.
 	switch {
@@ -226,6 +236,18 @@ func (st *eventState) applyDiff(sp *model.TextSpan) {
 	if st.packed != nil {
 		v := *st.packed
 		sp.Packed = &v
+	}
+	if st.strikeout != nil {
+		v := *st.strikeout
+		sp.Strikeout = &v
+	}
+	if st.scaleX != nil {
+		v := *st.scaleX
+		sp.ScaleX = &v
+	}
+	if st.scaleY != nil {
+		v := *st.scaleY
+		sp.ScaleY = &v
 	}
 }
 
@@ -306,6 +328,15 @@ func (st *eventState) applyTag(tag richtext.Tag) {
 		} else if v, err := strconv.ParseFloat(strings.TrimSpace(tag.Value), 64); err == nil {
 			st.eff.OutlineWidth = v
 		}
+	case "shad", "xshad", "yshad":
+		st.setShadowDepth(tag.Value)
+	case "s":
+		v := flagValue(tag.Value, false)
+		st.strikeout = &v
+	case "fscx":
+		st.scaleX = scaleValue(tag.Value, st.scaleX)
+	case "fscy":
+		st.scaleY = scaleValue(tag.Value, st.scaleY)
 	case "1a", "2a":
 		st.setAlpha(tag.Name, tag.Value)
 	case "alpha":
@@ -318,6 +349,12 @@ func (st *eventState) applyTag(tag richtext.Tag) {
 		if v, err := strconv.Atoi(strings.TrimSpace(tag.Value)); err == nil {
 			a := anchor(v)
 			st.anchor = &a
+		}
+	case "a":
+		if v, err := strconv.Atoi(strings.TrimSpace(tag.Value)); err == nil {
+			if a, ok := legacyAnchor(v); ok {
+				st.anchor = &a
+			}
 		}
 	case "pos":
 		st.pos = pointFromArgs(tag.Args)
@@ -447,6 +484,58 @@ func (st *eventState) reset(value string) {
 	}
 	st.outlineSet = false
 	st.shadowSet = false
+	st.strikeout = nil
+	st.scaleX = nil
+	st.scaleY = nil
+}
+
+// setShadowDepth applies a shadow distance override. A blank value returns
+// to the style distance.
+func (st *eventState) setShadowDepth(value string) {
+	if strings.TrimSpace(value) == "" {
+		st.eff.ShadowDepth = st.cueStyle.ShadowDepth
+		return
+	}
+	v, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
+	if err != nil {
+		return
+	}
+	st.eff.ShadowDepth = v
+}
+
+// legacyAnchors maps an SSA \a alignment onto a numpad anchor. The legacy
+// values cluster by row: 1 to 3 bottom, 5 to 7 top, 9 to 11 middle. The
+// values 4 and 8 stay out because the legacy numbering does not use them.
+var legacyAnchors = map[int]model.Anchor{
+	1:  model.AnchorBottomLeft,
+	2:  model.AnchorBottomCentre,
+	3:  model.AnchorBottomRight,
+	5:  model.AnchorTopLeft,
+	6:  model.AnchorTopCentre,
+	7:  model.AnchorTopRight,
+	9:  model.AnchorMiddleLeft,
+	10: model.AnchorCentre,
+	11: model.AnchorMiddleRight,
+}
+
+// legacyAnchor reads an SSA \a alignment. It reports false for a value
+// outside the legacy table.
+func legacyAnchor(v int) (model.Anchor, bool) {
+	a, ok := legacyAnchors[v]
+	return a, ok
+}
+
+// scaleValue reads a glyph scale override. A blank value clears the
+// override, and an unreadable one keeps the current value.
+func scaleValue(value string, current *float64) *float64 {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	v, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
+	if err != nil {
+		return current
+	}
+	return &v
 }
 
 func (st *eventState) setScript(kind model.ScriptKind) {
@@ -725,12 +814,20 @@ func chromaFromArgs(args []string) *model.Chroma {
 			outTime = v
 		}
 	case len(args) >= 5:
-		// colors, alpha, offsetX, offsetY, intime, outtime
-		n := len(args) - 5
-		if n < 1 {
-			n = 1
+		// colours..., alpha, offsetX, offsetY, intime, outtime
+		end := len(args) - 5
+		for _, raw := range args[:end] {
+			if col, err := parseColour(raw, 255); err == nil {
+				ch.Colours = append(ch.Colours, col)
+			}
 		}
-		copies = n
+		copies = len(ch.Colours)
+		if copies < 1 {
+			copies = 1
+		}
+		if a, err := parseTransparency(args[end]); err == nil {
+			ch.Alpha = a
+		}
 		if v, err := strconv.ParseFloat(args[len(args)-4], 64); err == nil {
 			offsetX = v
 		}
@@ -767,19 +864,35 @@ func spreadOffsets(offsetX, offsetY float64, n int) []model.Point {
 	return offsets
 }
 
+// karaokeFromArgs reads a \ytkt cursor form. The first argument names the
+// cursor kind. The remaining arguments are one text, a tag set and a text,
+// or an interval followed by tag and text pairs for an animated cursor.
 func karaokeFromArgs(args []string) *model.Karaoke {
 	if len(args) == 0 {
 		return nil
 	}
-	switch strings.ToLower(strings.TrimSpace(args[0])) {
+	kind := strings.ToLower(strings.TrimSpace(args[0]))
+	switch kind {
 	case "cursor", "lcursor", "rcursor":
-		k := &model.Karaoke{Kind: model.KaraokeCursor}
-		if len(args) >= 2 {
-			k.Cursor = args[len(args)-1]
-		}
-		return k
+	default:
+		return nil
 	}
-	return nil
+	k := &model.Karaoke{Kind: model.KaraokeCursor, CursorLeft: kind == "lcursor"}
+	rest := args[1:]
+	switch {
+	case len(rest) == 1:
+		k.Cursor = rest[0]
+	case len(rest) == 2:
+		k.CursorTags = rest[0]
+		k.Cursor = rest[1]
+	case len(rest) >= 3:
+		// (kind, interval, tags1, text1, tags2, text2, ...)
+		k.CursorInterval = millis(rest[0])
+		for i := 1; i+1 < len(rest); i += 2 {
+			k.CursorFrames = append(k.CursorFrames, model.KaraokeFrame{Tags: rest[i], Text: rest[i+1]})
+		}
+	}
+	return k
 }
 
 // parseASSTime reads an ASS timestamp of the form H:MM:SS.cc.

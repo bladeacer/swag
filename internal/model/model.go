@@ -147,6 +147,12 @@ type TextSpan struct {
 	Bold      *bool
 	Italic    *bool
 	Underline *bool
+	// Strikeout requests a line through the text (ASS \s).
+	Strikeout *bool
+	// ScaleX and ScaleY scale the glyphs in percent (ASS \fscx and
+	// \fscy). 100 is the original size.
+	ScaleX *float64
+	ScaleY *float64
 
 	// Fore is the foreground (sung) colour, Secondary the unsung karaoke
 	// colour, Back the background box colour.
@@ -159,6 +165,9 @@ type TextSpan struct {
 
 	// OutlineWidth overrides the style outline width.
 	OutlineWidth *float64
+	// ShadowDepth overrides the style shadow distance (ASS \shad,
+	// \xshad, and \yshad). Zero removes the shadow.
+	ShadowDepth *float64
 
 	Vertical  *Vertical
 	Script    *Script

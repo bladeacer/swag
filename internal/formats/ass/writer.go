@@ -294,6 +294,18 @@ func styleTags(span model.TextSpan, losses *lossNotes) []string {
 	if span.OutlineWidth != nil {
 		tags = append(tags, `\bord`+num(*span.OutlineWidth))
 	}
+	if span.ShadowDepth != nil {
+		tags = append(tags, `\shad`+num(*span.ShadowDepth))
+	}
+	if span.Strikeout != nil {
+		tags = append(tags, `\s`+boolDigit(*span.Strikeout))
+	}
+	if span.ScaleX != nil {
+		tags = append(tags, `\fscx`+num(*span.ScaleX))
+	}
+	if span.ScaleY != nil {
+		tags = append(tags, `\fscy`+num(*span.ScaleY))
+	}
 	for _, shadow := range span.Shadows {
 		switch shadow.Kind {
 		case model.ShadowGlow:
@@ -401,6 +413,16 @@ func chromaTag(c model.Chroma, losses *lossNotes) string {
 	if len(c.Offsets) > 1 {
 		losses.add("a chroma with more than one copy keeps the widest offset only")
 	}
+	if len(c.Colours) > 0 {
+		var b strings.Builder
+		b.WriteString(`\ytchroma(`)
+		for _, col := range c.Colours {
+			fmt.Fprintf(&b, `&H%02X%02X%02X&,`, col.B, col.G, col.R)
+		}
+		fmt.Fprintf(&b, `&H%02X&,%s,%s,%d,%d)`, 255-c.Alpha, num(offsetX), num(offsetY),
+			int(c.InTime/time.Millisecond), int(c.OutTime/time.Millisecond))
+		return b.String()
+	}
 	return fmt.Sprintf(`\ytchroma(%s,%s,%d,%d)`, num(offsetX), num(offsetY),
 		int(c.InTime/time.Millisecond), int(c.OutTime/time.Millisecond))
 }
@@ -465,13 +487,37 @@ func karaokeTypeTag(k model.Karaoke, losses *lossNotes) []string {
 	case model.KaraokeGlitch:
 		return []string{`\ytktGlitch`}
 	case model.KaraokeCursor:
-		if k.Cursor == "" {
-			losses.add("a cursor karaoke type with no text cannot be expressed in ASS")
-			return nil
+		if tag := cursorTag(k, losses); tag != "" {
+			return []string{tag}
 		}
-		return []string{`\ytkt(Cursor,` + k.Cursor + `)`}
 	}
 	return nil
+}
+
+// cursorTag renders a \ytkt cursor. It emits the animated form when the
+// cursor carries frames, and the static form otherwise.
+func cursorTag(k model.Karaoke, losses *lossNotes) string {
+	name := "Cursor"
+	if k.CursorLeft {
+		name = "LCursor"
+	}
+	if len(k.CursorFrames) > 0 {
+		var b strings.Builder
+		fmt.Fprintf(&b, `\ytkt(%s,%d`, name, int(k.CursorInterval/time.Millisecond))
+		for _, frame := range k.CursorFrames {
+			b.WriteString("," + frame.Tags + "," + frame.Text)
+		}
+		b.WriteString(")")
+		return b.String()
+	}
+	if k.Cursor == "" {
+		losses.add("a cursor karaoke type with no text cannot be expressed in ASS")
+		return ""
+	}
+	if k.CursorTags != "" {
+		return fmt.Sprintf(`\ytkt(%s,%s,%s)`, name, k.CursorTags, k.Cursor)
+	}
+	return fmt.Sprintf(`\ytkt(%s,%s)`, name, k.Cursor)
 }
 
 // writeBraces writes an override block when it holds at least one tag.

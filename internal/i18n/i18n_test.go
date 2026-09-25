@@ -11,17 +11,41 @@ func TestNormalise(t *testing.T) {
 		{"en_GB", DefaultLocale},
 		{"en-gb", DefaultLocale},
 		{"  en-GB  ", DefaultLocale},
-		{"en", DefaultLocale},
-		{"en-US", DefaultLocale}, // language fallback to the registered en-GB
-		{"fr-FR", frenchLocale},  // the second shipped locale
-		{"fr-fr", frenchLocale},  // the tag match ignores the case
-		{"FR-FR", frenchLocale},  // the tag match ignores the case
-		{"de-DE", DefaultLocale}, // unknown languages resolve to the default
+		{"en", DefaultLocale},    // the language fallback to the registered en-GB
+		{"en-AU", DefaultLocale}, // another English region, no catalogue of its own
+		{"en-US", americanLocale},
+		{"en-us", americanLocale}, // the tag match ignores the case
+		{"EN-US", americanLocale}, // the tag match ignores the case
+		{"de-DE", DefaultLocale},  // an unknown language resolves to the default
 		{"", DefaultLocale},
 	}
 	for _, tt := range tests {
 		if got := Normalise(tt.in); got != tt.want {
 			t.Errorf("Normalise(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+// TestResolveReportsAMatch covers the report of a shipped locale, so the
+// command line can refuse a typo instead of falling back in silence.
+func TestResolveReportsAMatch(t *testing.T) {
+	tests := []struct {
+		in   string
+		want Locale
+		ok   bool
+	}{
+		{"en-GB", DefaultLocale, true},
+		{"en-US", americanLocale, true},
+		{"en_us", americanLocale, true},
+		{"en", DefaultLocale, false}, // no catalogue is registered under the bare language
+		{"en-AU", DefaultLocale, false},
+		{"de-DE", DefaultLocale, false},
+		{"", DefaultLocale, false},
+	}
+	for _, tt := range tests {
+		got, ok := Resolve(tt.in)
+		if got != tt.want || ok != tt.ok {
+			t.Errorf("Resolve(%q) = %q, %v, want %q, %v", tt.in, got, ok, tt.want, tt.ok)
 		}
 	}
 }
@@ -58,43 +82,47 @@ func TestLocaleReportsSelected(t *testing.T) {
 	}
 }
 
-func TestSupportedIncludesDefault(t *testing.T) {
-	found := map[Locale]bool{}
-	for _, l := range Supported() {
-		found[l] = true
+// TestSupportedIsSortedAndComplete pins the locale list. The command line
+// prints it in an error message, so the order must not wobble between runs.
+func TestSupportedIsSortedAndComplete(t *testing.T) {
+	locales := Supported()
+	if len(locales) != 2 {
+		t.Fatalf("Supported() = %v, want the two English locales", locales)
 	}
-	if !found[DefaultLocale] {
-		t.Fatal("Supported() must include the default locale")
-	}
-	if !found[frenchLocale] {
-		t.Fatalf("Supported() must include the second locale %q", frenchLocale)
+	if locales[0] != DefaultLocale || locales[1] != americanLocale {
+		t.Fatalf("Supported() = %v, want %s then %s", locales, DefaultLocale, americanLocale)
 	}
 }
 
-// TestSecondLocaleIsComplete keeps the new locale in step with the default
-// one. A key that lands in en-GB must gain a translation in the same
-// change, so a user of the second locale never reads the raw key.
-func TestSecondLocaleIsComplete(t *testing.T) {
-	for key := range enGB {
-		if _, ok := frFR[key]; !ok {
-			t.Errorf("the %s catalogue is missing the key %q", frenchLocale, key)
-		}
-	}
-	for key := range frFR {
+// TestSecondLocaleIsKnown keeps the second locale in step with the default
+// one. A key that lands in en-GB without a variant is fine, because the
+// lookup falls back, but a key that only the second catalogue carries is a
+// mistake.
+func TestSecondLocaleIsKnown(t *testing.T) {
+	for key := range enUS {
 		if _, ok := enGB[key]; !ok {
-			t.Errorf("the %s catalogue carries an unknown key %q", frenchLocale, key)
+			t.Errorf("the %s catalogue carries an unknown key %q", americanLocale, key)
 		}
+	}
+	if len(enUS) == 0 {
+		t.Fatalf("the %s catalogue must carry the entries whose wording differs", americanLocale)
 	}
 }
 
-// TestSecondLocaleLookup covers the lookup of a translated message and the
-// format of its placeholders.
+// TestSecondLocaleLookup covers the lookup of a variant entry and the
+// fallback for a key the second catalogue does not carry.
 func TestSecondLocaleLookup(t *testing.T) {
-	tr := New("fr-FR")
-	if got := tr.Locale(); got != frenchLocale {
-		t.Fatalf("Locale() = %q, want %q", got, frenchLocale)
+	tr := New("en-US")
+	if got := tr.Locale(); got != americanLocale {
+		t.Fatalf("Locale() = %q, want %q", got, americanLocale)
 	}
-	if got := tr.F(MsgConvertSuccess, "out.ass"); got != "out.ass écrit." {
-		t.Fatalf("F() = %q", got)
+	if got := tr.S(MsgVersionLicence); got != "Apache-2.0 license" {
+		t.Fatalf("the American spelling is missing: %q", got)
+	}
+	if got := tr.S(MsgConvertStart); got != enGB[MsgConvertStart] {
+		t.Fatalf("a shared key must fall back to en-GB: %q", got)
+	}
+	if got := New("en-GB").S(MsgVersionLicence); got != "Apache-2.0 licence" {
+		t.Fatalf("the British spelling is missing: %q", got)
 	}
 }

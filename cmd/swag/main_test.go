@@ -80,16 +80,6 @@ func TestResolveTargetNothingGiven(t *testing.T) {
 	}
 }
 
-func TestTargetNameFallback(t *testing.T) {
-	tr := i18n.New("en-GB")
-	if got := targetName(&ConvertCmd{}, tr); got != "?" {
-		t.Fatalf("targetName = %q, want ?", got)
-	}
-	if got := targetName(&ConvertCmd{Output: "x.sbv"}, tr); got != "sbv" {
-		t.Fatalf("targetName = %q, want sbv", got)
-	}
-}
-
 func TestCheckInput(t *testing.T) {
 	tr := i18n.New("en-GB")
 	if err := checkInput(filepath.Join(t.TempDir(), "missing.srt"), tr); err == nil {
@@ -159,12 +149,6 @@ func TestBannerDoesNotPanic(t *testing.T) {
 	banner(i18n.New("en-GB"))
 }
 
-func TestTargetNameFromFormat(t *testing.T) {
-	if got := targetName(&ConvertCmd{Format: "ass", Output: "x.srt"}, i18n.New("en-GB")); got != "ass" {
-		t.Fatalf("targetName = %q, want ass (the -f flag wins)", got)
-	}
-}
-
 // newRunContext returns the runContext a kong run would inject.
 func newRunContext(verbose bool) *runContext {
 	return &runContext{CLI: &CLI{Verbose: verbose}, T: i18n.New("en-GB")}
@@ -186,16 +170,9 @@ func TestConvertCmdRunWritesFile(t *testing.T) {
 	}
 }
 
+// TestConvertCmdRunVerboseReportsLosses covers the report. The -v flag sits
+// on the app, because the conversion command is the default one.
 func TestConvertCmdRunVerboseReportsLosses(t *testing.T) {
-	in := writeSubtitle(t, "in.ass", assKaraokeFixture)
-	out := filepath.Join(t.TempDir(), "out.srt")
-	c := &ConvertCmd{Input: in, Output: out, Verbose: true}
-	if err := c.Run(newRunContext(false)); err != nil {
-		t.Fatalf("Run: %v", err)
-	}
-}
-
-func TestConvertCmdRunCLIVerboseReportsLosses(t *testing.T) {
 	in := writeSubtitle(t, "in.ass", assKaraokeFixture)
 	out := filepath.Join(t.TempDir(), "out.srt")
 	c := &ConvertCmd{Input: in, Output: out}
@@ -406,11 +383,161 @@ func TestRunReportsADirectoryInput(t *testing.T) {
 }
 
 func TestRunAcceptsALocaleFlag(t *testing.T) {
-	t.Setenv("SWAG_LOCALE", "fr-FR")
+	t.Setenv("SWAG_LOCALE", "en-US")
 	in := writeSubtitle(t, "in.srt", srtFixture)
 	out := filepath.Join(t.TempDir(), "out.sbv")
-	if code := run([]string{"--locale", "fr-FR", "convert", "-i", in, "-o", out}); code != 0 {
+	for _, args := range [][]string{
+		{"--locale", "en-US", "convert", "-i", in, "-o", out},
+		{"-l", "en-GB", "-i", in, "-o", out},
+	} {
+		if code := run(args); code != 0 {
+			t.Errorf("run(%v) exit code = %d, want 0", args, code)
+		}
+	}
+}
+
+// TestCheckLocale covers the refusal of an unshipped locale, so a typo
+// never falls back to the default locale in silence.
+func TestCheckLocale(t *testing.T) {
+	tr := i18n.New("en-GB")
+	if err := checkLocale("en-US", tr); err != nil {
+		t.Fatalf("a shipped locale must pass: %v", err)
+	}
+	err := checkLocale("de-DE", tr)
+	if err == nil {
+		t.Fatal("an unshipped locale must fail")
+	}
+	if !strings.Contains(err.Error(), "de-DE") || !strings.Contains(err.Error(), "en-US") {
+		t.Fatalf("the error must name the tag and the shipped locales: %v", err)
+	}
+}
+
+func TestRunRejectsAnUnknownLocale(t *testing.T) {
+	in := writeSubtitle(t, "in.srt", srtFixture)
+	out := filepath.Join(t.TempDir(), "out.sbv")
+	if code := run([]string{"-i", in, "-o", out, "--locale", "de-DE"}); code != 1 {
+		t.Fatalf("run exit code = %d, want 1", code)
+	}
+}
+
+// TestVersionLine covers the version line and its locale-dependent licence
+// word.
+func TestVersionLine(t *testing.T) {
+	if got := versionLine(i18n.New("en-GB")); !strings.HasSuffix(got, "Apache-2.0 licence") {
+		t.Errorf("the British line = %q", got)
+	}
+	if got := versionLine(i18n.New("en-US")); !strings.HasSuffix(got, "Apache-2.0 license") {
+		t.Errorf("the American line = %q", got)
+	}
+	if got := versionLine(i18n.New("en-GB")); !strings.Contains(got, version) || !strings.Contains(got, commit) {
+		t.Errorf("the line must carry the build information: %q", got)
+	}
+}
+
+// TestHelpAndVersionWords covers the words that end the run before a
+// conversion starts.
+func TestHelpAndVersionWords(t *testing.T) {
+	tests := []struct {
+		args      []string
+		help      bool
+		version   bool
+		remaining []string
+	}{
+		{[]string{"-h"}, true, false, nil},
+		{[]string{"--help"}, true, false, nil},
+		{[]string{"help"}, true, false, nil},
+		{[]string{"help", "convert"}, true, false, []string{"convert"}},
+		{[]string{"convert", "--help"}, true, false, []string{"convert"}},
+		{[]string{"-i", "in.srt", "--help"}, true, false, []string{"-i", "in.srt"}},
+		{[]string{"--", "--help"}, false, false, []string{"--", "--help"}},
+		{[]string{"-V"}, false, true, []string{"-V"}},
+		{[]string{"--version"}, false, true, []string{"--version"}},
+		{[]string{"-i", "in.srt"}, false, false, []string{"-i", "in.srt"}},
+	}
+	for _, tt := range tests {
+		if got := isHelp(tt.args); got != tt.help {
+			t.Errorf("isHelp(%v) = %v, want %v", tt.args, got, tt.help)
+		}
+		if got := isVersion(tt.args); got != tt.version {
+			t.Errorf("isVersion(%v) = %v, want %v", tt.args, got, tt.version)
+		}
+		if got := helpArgs(tt.args); !equalStrings(got, tt.remaining) {
+			t.Errorf("helpArgs(%v) = %v, want %v", tt.args, got, tt.remaining)
+		}
+	}
+}
+
+// equalStrings compares two string slices, treating two empty slices as
+// equal to nil.
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// TestRunHelpExitsZero covers the help words. The page comes from the
+// default command, so it lists every flag of the tool.
+func TestRunHelpExitsZero(t *testing.T) {
+	for _, args := range [][]string{{"--help"}, {"-h"}, {"help"}, {"help", "convert"}, {"convert", "--help"}} {
+		if code := run(args); code != 0 {
+			t.Errorf("run(%v) exit code = %d, want 0", args, code)
+		}
+	}
+}
+
+// TestRunHelpRejectsABadArgument covers the failed trace behind the help
+// page, which reports an unknown flag instead of printing a page for it.
+func TestRunHelpRejectsABadArgument(t *testing.T) {
+	if code := run([]string{"--bogus", "--help"}); code != 1 {
+		t.Fatalf("run exit code = %d, want 1", code)
+	}
+}
+
+func TestRunVersionExitsZero(t *testing.T) {
+	for _, args := range [][]string{{"--version"}, {"-V"}} {
+		if code := run(args); code != 0 {
+			t.Errorf("run(%v) exit code = %d, want 0", args, code)
+		}
+	}
+}
+
+// TestRunFromFlag names the input format, so a file with an odd extension
+// still converts.
+func TestRunFromFlag(t *testing.T) {
+	dir := t.TempDir()
+	in := filepath.Join(dir, "in.txt")
+	if err := os.WriteFile(in, []byte(srtFixture), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	out := filepath.Join(dir, "out.vtt")
+	if code := run([]string{"-i", in, "-o", out, "--from", "srt"}); code != 0 {
 		t.Fatalf("run exit code = %d, want 0", code)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if !strings.HasPrefix(string(data), "WEBVTT") {
+		t.Fatalf("output must be WebVTT:\n%s", data)
+	}
+	// Without the flag the content still decides, so the same file converts.
+	if code := run([]string{"-i", in, "-o", out}); code != 0 {
+		t.Fatalf("run without --from exit code = %d, want 0", code)
+	}
+}
+
+// TestRunTargetMissing covers the error of a run with no -o and no -f. The
+// message must be a whole sentence, with no unfilled placeholder.
+func TestRunTargetMissing(t *testing.T) {
+	in := writeSubtitle(t, "in.srt", srtFixture)
+	if code := run([]string{"-i", in}); code != 1 {
+		t.Fatalf("run exit code = %d, want 1", code)
 	}
 }
 

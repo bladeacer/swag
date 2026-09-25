@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bladeacer/swag/internal/envelope"
 	"github.com/bladeacer/swag/internal/model"
 )
 
@@ -476,10 +477,24 @@ func styleAttrsFromAttrs(attrs []xml.Attr) styleAttrs {
 	return a
 }
 
-// Parse reads a TTML document from source.
+// Parse reads a TTML document from source. A file that carries the
+// integrity block returns the embedded document, so a write that lost a
+// feature still round-trips.
 func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
+	data, err := io.ReadAll(source)
+	if err != nil {
+		return nil, fmt.Errorf("read ttml: %w", err)
+	}
+	embedded, err := envelope.ExtractXML(data)
+	if err != nil {
+		return nil, fmt.Errorf("parse ttml: %w", err)
+	}
+	if embedded != nil {
+		return embedded, nil
+	}
+
 	var root xmlTT
-	if err := xml.NewDecoder(source).Decode(&root); err != nil {
+	if err := xml.Unmarshal(data, &root); err != nil {
 		return nil, fmt.Errorf("parse ttml: %w", err)
 	}
 
@@ -980,10 +995,18 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 		out.WriteString("</p>\n")
 	}
 	out.WriteString("    </div>\n")
-	out.WriteString("  </body>\n")
-	out.WriteString("</tt>\n")
-
 	if _, err := io.WriteString(sink, out.String()); err != nil {
+		return losses.notes, fmt.Errorf("write ttml: %w", err)
+	}
+	// A lossy write keeps the whole document in an XML comment, which every
+	// XML reader ignores. The block closes the body, so it stays inside the
+	// root element.
+	if len(losses.notes) > 0 {
+		if err := envelope.WriteXML(sink, "    ", doc); err != nil {
+			return losses.notes, fmt.Errorf("write ttml: %w", err)
+		}
+	}
+	if _, err := io.WriteString(sink, "  </body>\n</tt>\n"); err != nil {
 		return losses.notes, fmt.Errorf("write ttml: %w", err)
 	}
 	return losses.notes, nil

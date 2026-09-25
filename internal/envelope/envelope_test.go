@@ -132,6 +132,100 @@ func encode(doc *model.Document) (string, error) {
 	return lines[1], nil
 }
 
+// splitXML renders an XML block and returns its lines.
+func splitXML(t *testing.T, doc *model.Document) []string {
+	t.Helper()
+	var out strings.Builder
+	if err := WriteXML(&out, "  ", doc); err != nil {
+		t.Fatalf("WriteXML: %v", err)
+	}
+	return strings.Split(strings.TrimRight(out.String(), "\n"), "\n")
+}
+
+func TestWriteXMLAndExtractXML(t *testing.T) {
+	doc := richDocument()
+	lines := splitXML(t, doc)
+	if len(lines) != 3 {
+		t.Fatalf("block lines = %d, want 3:\n%s", len(lines), strings.Join(lines, "\n"))
+	}
+	if lines[0] != "  "+XMLMarker+" "+Version {
+		t.Errorf("marker line = %q", lines[0])
+	}
+	if lines[2] != "  "+xmlClose {
+		t.Errorf("closing line = %q", lines[2])
+	}
+
+	file := "<tt>\n  <body>\n" + strings.Join(lines, "\n") + "\n  </body>\n</tt>\n"
+	got, err := ExtractXML([]byte(file))
+	if err != nil {
+		t.Fatalf("ExtractXML: %v", err)
+	}
+	if !reflect.DeepEqual(got, doc) {
+		t.Errorf("recovered document differs:\nwant %+v\ngot  %+v", doc, got)
+	}
+}
+
+func TestExtractXMLWithoutBlock(t *testing.T) {
+	got, err := ExtractXML([]byte("<tt><body><p>plain</p></body></tt>"))
+	if err != nil {
+		t.Fatalf("ExtractXML: %v", err)
+	}
+	if got != nil {
+		t.Errorf("document = %+v, want nil", got)
+	}
+}
+
+func TestExtractXMLErrors(t *testing.T) {
+	payload := payloadOf(t, richDocument())
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"no version", XMLMarker, "no version"},
+		{"unknown version", XMLMarker + " 9\n" + payload + "\n" + xmlClose, "unsupported version"},
+		{"no payload", XMLMarker + " " + Version + "\n" + xmlClose, "no payload"},
+		{"bad base64", XMLMarker + " " + Version + "\n!!!!\n" + xmlClose, "decode the payload"},
+		{"bad payload", XMLMarker + " " + Version + "\n" +
+			base64.StdEncoding.EncodeToString([]byte("nope")) + "\n" + xmlClose, "read the payload"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := ExtractXML([]byte(tt.body))
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("error = %v, want %q", err, tt.want)
+			}
+		})
+	}
+}
+
+// payloadOf returns the base64 payload of a document.
+func payloadOf(t *testing.T, doc *model.Document) string {
+	t.Helper()
+	payload, err := encode(doc)
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	return payload
+}
+
+func TestWriteXMLSinkErrors(t *testing.T) {
+	counter := &countWriter{}
+	if err := WriteXML(counter, "  ", richDocument()); err != nil {
+		t.Fatalf("WriteXML: %v", err)
+	}
+	for failAt := 1; failAt <= counter.calls; failAt++ {
+		sink := &failAtWriter{failAt: failAt}
+		if err := WriteXML(sink, "  ", richDocument()); err == nil {
+			t.Errorf("a sink that fails on write %d must return an error", failAt)
+		}
+	}
+	healthy := &failAtWriter{failAt: counter.calls + 1}
+	if err := WriteXML(healthy, "", richDocument()); err != nil {
+		t.Errorf("a healthy sink must accept the block: %v", err)
+	}
+}
+
 func TestReadLines(t *testing.T) {
 	lines, err := ReadLines(strings.NewReader("one\r\ntwo\n\nthree"))
 	if err != nil {

@@ -10,7 +10,8 @@
 //
 // The writer emits inline tags for the style overrides it can express, the
 // voice annotation of a span, and the align and position settings. It
-// reports the features it drops.
+// reports the features it drops, and a lossy write appends the integrity
+// block of internal/envelope as a NOTE block, which the format ignores.
 //
 // # The voice annotation
 //
@@ -29,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bladeacer/swag/internal/envelope"
 	"github.com/bladeacer/swag/internal/model"
 )
 
@@ -75,6 +77,15 @@ func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("read vtt: %w", err)
 	}
+
+	body, embedded, err := envelope.Extract(lines)
+	if err != nil {
+		return nil, fmt.Errorf("parse vtt: %w", err)
+	}
+	if embedded != nil {
+		return embedded, nil
+	}
+	lines = body
 
 	doc := &model.Document{
 		Styles:          []model.Style{DefaultStyle()},
@@ -357,6 +368,14 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 
 	if _, err := io.WriteString(sink, out.String()); err != nil {
 		return losses.notes, fmt.Errorf("write vtt: %w", err)
+	}
+	// A lossy write keeps the whole document in a NOTE block, which the
+	// format treats as a comment. The cue loop ends the file with a blank
+	// line, so the block stands on its own.
+	if len(losses.notes) > 0 {
+		if err := envelope.Write(sink, doc); err != nil {
+			return losses.notes, fmt.Errorf("write vtt: %w", err)
+		}
 	}
 	return losses.notes, nil
 }

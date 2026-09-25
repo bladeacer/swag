@@ -5,10 +5,12 @@ package ttml
 import (
 	"io"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/bladeacer/swag/internal/envelope"
 	"github.com/bladeacer/swag/internal/model"
 )
 
@@ -549,27 +551,111 @@ func TestRenderRoundTrip(t *testing.T) {
 		}
 	}
 
+	// This document loses its ruby fallback, so the write carries the
+	// integrity block, and the reader returns the exact document from it.
 	back, err := NewReader().Parse(strings.NewReader(out))
 	if err != nil {
 		t.Fatalf("re-parse: %v\n%s", err, out)
 	}
-	if len(back.Cues) != len(doc.Cues) {
-		t.Fatalf("cues = %d, want %d", len(back.Cues), len(doc.Cues))
+	if !reflect.DeepEqual(back, doc) {
+		t.Error("the integrity block must return the exact document")
 	}
-	for i := range doc.Cues {
-		if back.Cues[i].Start != doc.Cues[i].Start || back.Cues[i].End != doc.Cues[i].End {
-			t.Errorf("cue %d timing = %v..%v, want %v..%v", i,
-				back.Cues[i].Start, back.Cues[i].End, doc.Cues[i].Start, doc.Cues[i].End)
-		}
+	if !strings.Contains(out, envelope.XMLMarker) {
+		t.Errorf("the block is missing from a lossy write:\n%s", out)
 	}
-	if back.Cues[0].Text() != "Hello" {
-		t.Errorf("first cue text = %q", back.Cues[0].Text())
+}
+
+// TestRenderRoundTripWithoutBlock covers the plain path. A document that
+// fits in TTML writes no block, and the reader rebuilds it from the markup:
+// the style table, the decorations, the region, and the colour alpha that
+// the opacity attribute carries.
+func TestRenderRoundTripWithoutBlock(t *testing.T) {
+	bold, italic, underline, strike := true, true, true, true
+	anchor := model.AnchorTopLeft
+	doc := &model.Document{
+		VideoDimensions: model.Point{X: 1280, Y: 720},
+		Styles: []model.Style{
+			{
+				Name: "Default", Font: "Arial", Size: 20,
+				Primary:   model.NewColour(255, 0, 0, 128),
+				Alignment: model.AnchorBottomCentre,
+			},
+			{
+				Name: "Second", Font: "Verdana", Size: 24,
+				Bold: true, Italic: true, Underline: true,
+				// The background attribute of a style carries its outline
+				// colour, and the flag that marks it is the box.
+				Outline: model.NewColour(0, 0, 255, 255),
+				Box:     true,
+			},
+			{
+				// A style without the box writes its outline width into the
+				// text outline attribute instead.
+				Name: "Third", Font: "Arial", Size: 20,
+				Outline:      model.NewColour(9, 9, 9, 255),
+				OutlineWidth: 3,
+			},
+		},
+		Cues: []model.Cue{{
+			Start: time.Second, End: 2 * time.Second,
+			Layout: &model.Layout{Anchor: &anchor},
+			Spans: []model.TextSpan{
+				{Text: "Hello", Bold: &bold, Italic: &italic, Underline: &underline, Strikeout: &strike},
+				{Text: " plain"},
+			},
+		}},
 	}
-	// The colour alpha survives the opacity attribute exactly. The reader
-	// prepends its own default style, so the written style is the second
-	// one.
+	out, losses := renderDoc(t, doc)
+	if len(losses) != 0 {
+		t.Fatalf("losses = %v, want none", losses)
+	}
+	if strings.Contains(out, envelope.XMLMarker) {
+		t.Fatalf("a plain document must not gain a block:\n%s", out)
+	}
+	back, err := NewReader().Parse(strings.NewReader(out))
+	if err != nil {
+		t.Fatalf("re-parse: %v\n%s", err, out)
+	}
+	if len(back.Cues) != 1 || back.Cues[0].Text() != "Hello plain" {
+		t.Fatalf("cues = %+v", back.Cues)
+	}
+	if back.Cues[0].Start != time.Second || back.Cues[0].End != 2*time.Second {
+		t.Errorf("timing = %v..%v", back.Cues[0].Start, back.Cues[0].End)
+	}
+	if back.Cues[0].Layout == nil || back.Cues[0].Layout.Anchor == nil || *back.Cues[0].Layout.Anchor != model.AnchorTopLeft {
+		t.Errorf("region anchor = %+v", back.Cues[0].Layout)
+	}
+	first := back.Cues[0].Spans[0]
+	if !isTrue(first.Bold) || !isTrue(first.Italic) || !isTrue(first.Underline) || !isTrue(first.Strikeout) {
+		t.Errorf("inline overrides = %+v", first)
+	}
+	if back.Cues[0].Spans[1].Bold != nil {
+		t.Errorf("the second span gained an override: %+v", back.Cues[0].Spans[1])
+	}
+	// The reader prepends its own default style, so the written styles start
+	// at the second entry.
+	if len(back.Styles) != 4 {
+		t.Fatalf("styles = %d, want 4", len(back.Styles))
+	}
 	if got := back.Styles[1].Primary; got != model.NewColour(255, 0, 0, 128) {
 		t.Errorf("style primary = %+v, want red with alpha 128", got)
+	}
+	second := back.Styles[2]
+	if !second.Bold || !second.Italic || !second.Underline {
+		t.Errorf("style decorations = %+v", second)
+	}
+	if second.Outline != model.NewColour(0, 0, 255, 255) {
+		t.Errorf("style background = %+v", second)
+	}
+	if !second.Box {
+		t.Errorf("the background attribute must set the box flag: %+v", second)
+	}
+	third := back.Styles[3]
+	if third.OutlineWidth != 3 || third.Outline != model.NewColour(9, 9, 9, 255) {
+		t.Errorf("text outline = %+v", third)
+	}
+	if third.Box {
+		t.Errorf("a text outline must not set the box flag: %+v", third)
 	}
 }
 
@@ -687,15 +773,158 @@ type failWriter struct{}
 
 func (failWriter) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
 
-func TestRenderWriteError(t *testing.T) {
-	doc := &model.Document{
+// failAtWriter fails on the write call whose number is failAt.
+type failAtWriter struct {
+	calls  int
+	failAt int
+}
+
+func (w *failAtWriter) Write(p []byte) (int, error) {
+	w.calls++
+	if w.calls == w.failAt {
+		return 0, io.ErrClosedPipe
+	}
+	return len(p), nil
+}
+
+// TestParseInlineFontFamily covers the fontFamily attribute of a paragraph
+// and of a span, which the YouTube dialect carries inline as well as in a
+// named style.
+func TestParseInlineFontFamily(t *testing.T) {
+	doc, err := NewReader().Parse(strings.NewReader(withBody(
+		`<p begin="1s" end="2s" tts:fontFamily="Roboto Condensed">plain<span tts:fontFamily="Courier">styled</span></p>`)))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	spans := doc.Cues[0].Spans
+	if len(spans) != 2 {
+		t.Fatalf("spans = %+v", spans)
+	}
+	if spans[0].Font == nil || *spans[0].Font != "Roboto Condensed" {
+		t.Errorf("paragraph font = %+v", spans[0].Font)
+	}
+	if spans[1].Font == nil || *spans[1].Font != "Courier" {
+		t.Errorf("span font = %+v", spans[1].Font)
+	}
+}
+
+// TestRenderWriteErrorsPerCall covers each write call of the writer: the
+// document body, the integrity block of a lossy write, and the closing tags.
+func TestRenderWriteErrorsPerCall(t *testing.T) {
+	plain := &model.Document{
 		VideoDimensions: model.Point{X: 1280, Y: 720},
 		Styles:          []model.Style{DefaultStyle()},
 		Cues:            []model.Cue{{Start: 0, End: time.Second, Spans: []model.TextSpan{{Text: "text"}}}},
 	}
-	if _, err := NewWriter().Render(doc, failWriter{}); err == nil {
-		t.Error("a failing sink must return an error")
+	// A ruby annotation makes the write lossy, so the integrity block follows
+	// the document body.
+	lossy := &model.Document{
+		VideoDimensions: model.Point{X: 1280, Y: 720},
+		Styles:          []model.Style{DefaultStyle()},
+		Cues: []model.Cue{{
+			Start: 0, End: time.Second,
+			Spans: []model.TextSpan{{Text: "漢"}, {Text: "かん", Ruby: &model.Ruby{}}},
+		}},
 	}
+
+	// The document write and the closing write are the two calls of a plain
+	// write, and either one must surface its failure.
+	for _, doc := range []*model.Document{plain, lossy} {
+		counter := &countWriter{}
+		if _, err := NewWriter().Render(doc, counter); err != nil {
+			t.Fatalf("Render: %v", err)
+		}
+		for failAt := 1; failAt <= counter.calls; failAt++ {
+			sink := &failAtWriter{failAt: failAt}
+			if _, err := NewWriter().Render(doc, sink); err == nil {
+				t.Errorf("a sink that fails on write %d must return an error", failAt)
+			}
+		}
+		healthy := &failAtWriter{failAt: counter.calls + 1}
+		if _, err := NewWriter().Render(doc, healthy); err != nil {
+			t.Errorf("a healthy sink must accept the write: %v", err)
+		}
+	}
+}
+
+// countWriter counts its write calls.
+type countWriter struct{ calls int }
+
+func (w *countWriter) Write(p []byte) (int, error) {
+	w.calls++
+	return len(p), nil
+}
+
+func TestRenderWriteErrorFailAll(t *testing.T) {
+	plain := &model.Document{
+		VideoDimensions: model.Point{X: 1280, Y: 720},
+		Styles:          []model.Style{DefaultStyle()},
+		Cues:            []model.Cue{{Start: 0, End: time.Second, Spans: []model.TextSpan{{Text: "text"}}}},
+	}
+	// A ruby annotation makes the write lossy, so the failing sink meets
+	// the integrity block as well as the document.
+	lossy := &model.Document{
+		VideoDimensions: model.Point{X: 1280, Y: 720},
+		Styles:          []model.Style{DefaultStyle()},
+		Cues: []model.Cue{{
+			Start: 0, End: time.Second,
+			Spans: []model.TextSpan{{Text: "漢"}, {Text: "かん", Ruby: &model.Ruby{}}},
+		}},
+	}
+	for _, doc := range []*model.Document{plain, lossy} {
+		if _, err := NewWriter().Render(doc, failWriter{}); err == nil {
+			t.Error("a failing sink must return an error")
+		}
+	}
+}
+
+// errReader fails every read.
+type errReader struct{}
+
+func (errReader) Read([]byte) (int, error) { return 0, io.ErrUnexpectedEOF }
+
+func TestParseReadError(t *testing.T) {
+	if _, err := NewReader().Parse(errReader{}); err == nil {
+		t.Error("a failing reader must return an error")
+	}
+}
+
+// TestParseBlockErrors covers a damaged integrity block, which is an error
+// rather than a silent fallback to the plain cues.
+func TestParseBlockErrors(t *testing.T) {
+	payload := payloadOf(t)
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"bad version", "<tt><body>\n" + envelope.XMLMarker + " 9\n" + payload + "\n-->\n</body></tt>", "unsupported version"},
+		{"no payload", "<tt><body>\n" + envelope.XMLMarker + " 1\n-->\n</body></tt>", "no payload"},
+		{"bad base64", "<tt><body>\n" + envelope.XMLMarker + " 1\n!!!!\n-->\n</body></tt>", "decode the payload"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewReader().Parse(strings.NewReader(tt.body))
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("error = %v, want %q", err, tt.want)
+			}
+		})
+	}
+}
+
+// payloadOf returns the base64 payload of a document with one plain cue.
+func payloadOf(t *testing.T) string {
+	t.Helper()
+	doc := &model.Document{
+		Styles: []model.Style{DefaultStyle()},
+		Cues:   []model.Cue{{End: time.Second, Spans: []model.TextSpan{{Text: "text"}}}},
+	}
+	var out strings.Builder
+	if err := envelope.WriteXML(&out, "", doc); err != nil {
+		t.Fatalf("WriteXML: %v", err)
+	}
+	lines := strings.Split(strings.TrimRight(out.String(), "\n"), "\n")
+	return lines[1]
 }
 
 func TestFormatHelpers(t *testing.T) {

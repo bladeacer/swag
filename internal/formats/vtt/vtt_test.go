@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bladeacer/swag/internal/envelope"
 	"github.com/bladeacer/swag/internal/model"
 )
 
@@ -277,6 +278,92 @@ func TestWriteError(t *testing.T) {
 type failWriter struct{}
 
 func (failWriter) Write([]byte) (int, error) { return 0, errors.New("disk gone") }
+
+// failAtWriter fails on the write call whose number is failAt.
+type failAtWriter struct {
+	calls  int
+	failAt int
+}
+
+func (w *failAtWriter) Write(p []byte) (int, error) {
+	w.calls++
+	if w.calls == w.failAt {
+		return 0, errors.New("disk gone")
+	}
+	return len(p), nil
+}
+
+// countWriter counts its write calls.
+type countWriter struct{ calls int }
+
+func (w *countWriter) Write(p []byte) (int, error) {
+	w.calls++
+	return len(p), nil
+}
+
+// TestParseBlockErrors covers a damaged integrity block, which is an error
+// rather than a silent fallback to the plain cues.
+func TestParseBlockErrors(t *testing.T) {
+	doc := &model.Document{
+		Styles: []model.Style{DefaultStyle()},
+		Cues:   []model.Cue{{End: time.Second, Spans: []model.TextSpan{{Text: "text"}}}},
+	}
+	var block strings.Builder
+	if err := envelope.Write(&block, doc); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	payload := strings.Split(strings.TrimRight(block.String(), "\n"), "\n")[1]
+
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"bad version", "WEBVTT\n\n" + envelope.Marker + " 9\n" + payload + "\n", "unsupported version"},
+		{"no payload", "WEBVTT\n\n" + envelope.Marker + " 1\n", "no payload"},
+		{"bad base64", "WEBVTT\n\n" + envelope.Marker + " 1\n!!!!\n", "decode the payload"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewReader().Parse(strings.NewReader(tt.body))
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("error = %v, want %q", err, tt.want)
+			}
+		})
+	}
+}
+
+// TestWriteErrorsPerCall covers each write call of the writer: the document
+// body, the integrity block of a lossy write, and the closing newline.
+func TestWriteErrorsPerCall(t *testing.T) {
+	plain := &model.Document{
+		Styles: []model.Style{DefaultStyle()},
+		Cues:   []model.Cue{{Start: 0, End: time.Second, Spans: []model.TextSpan{{Text: "text"}}}},
+	}
+	lossy := &model.Document{
+		Styles: []model.Style{DefaultStyle()},
+		Cues: []model.Cue{{
+			Start: 0, End: time.Second,
+			Spans: []model.TextSpan{{Text: "漢"}, {Text: "かん", Ruby: &model.Ruby{}}},
+		}},
+	}
+	for _, doc := range []*model.Document{plain, lossy} {
+		counter := &countWriter{}
+		if _, err := NewWriter().Render(doc, counter); err != nil {
+			t.Fatalf("Render: %v", err)
+		}
+		for failAt := 1; failAt <= counter.calls; failAt++ {
+			sink := &failAtWriter{failAt: failAt}
+			if _, err := NewWriter().Render(doc, sink); err == nil {
+				t.Errorf("a sink that fails on write %d must return an error", failAt)
+			}
+		}
+		healthy := &failAtWriter{failAt: counter.calls + 1}
+		if _, err := NewWriter().Render(doc, healthy); err != nil {
+			t.Errorf("a healthy sink must accept the write: %v", err)
+		}
+	}
+}
 
 type failReader struct{}
 

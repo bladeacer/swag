@@ -26,7 +26,7 @@ func TestVoiceSpanAcrossFormats(t *testing.T) {
 		{format: "ass", wantLoss: true},
 		{format: "ytt", wantLoss: true},
 		{format: "srv3", wantLoss: true},
-		{format: "ttml", wantLoss: true},
+		{format: "ttml", wantLoss: true, carriesName: true},
 		{format: "kdenlive", wantLoss: true},
 	}
 	source, err := Parse("in.vtt", strings.NewReader(voiceVTT), "")
@@ -70,7 +70,8 @@ func TestVoiceSpanAcrossFormats(t *testing.T) {
 // TestVoiceSpanStaysOutOfThePlainText checks the promise of the integrity
 // block: the plain text renders without the speaker name, so a player that
 // knows only SubRip shows the subtitle alone, while the block a swag reader
-// uses still holds the name.
+// uses still holds the name. WebVTT and TTML carry the name in the block
+// too, so those formats join the plain pair.
 func TestVoiceSpanStaysOutOfThePlainText(t *testing.T) {
 	source, err := Parse("in.vtt", strings.NewReader(voiceVTT), "")
 	if err != nil {

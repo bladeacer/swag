@@ -100,15 +100,19 @@ The file is TOML, and every setting is optional. An unknown key is an error, so 
 # registered format.
 # preferred = ["srt", "vtt"]
 
-# The keys of the interactive mode. Each entry maps an action onto a key. The
-# keybinds land with the interactive keybind work, so the tool reads this
-# table and takes no action yet.
+# The conversions that run at once in a batch run, as -j does. The value
+# keeps two cores free when it is absent, and zero uses every core.
+# jobs = 4
+
+# The keys of the interactive mode. Each entry maps an action onto one key. An
+# empty value removes the binding. A modifier joins the parts with +, so
+# ctrl+shift+r is one key, and <leader> stands for the leader key. The actions
+# are accept, help, and quit, and the leader names the leader itself.
 # [keybinds]
-# input = "i"
-# target = "t"
-# output = "o"
-# convert = "c"
-# quit = "q"
+# leader = "ctrl+x"
+# accept = "<leader>a"
+# help = "<leader>?"
+# quit = "<leader>q"
 ```
 
 | Setting | Type | Meaning |
@@ -121,6 +125,28 @@ The file is TOML, and every setting is optional. An unknown key is an error, so 
 | `from` | string | The input format, as `--from` does. |
 | `format` | string | The target format, as `--format` does. The interactive command reads the same setting from `--target`. |
 | `preferred` | list of strings | The target formats of a batch run with no `-f`, and the first choices of the interactive picker. |
-| `keybinds` | table | The keys of the interactive mode. The table is read now, and it takes effect with the keybind work. |
+| `jobs` | integer | The conversions that run at once in a batch run, as `--jobs` does. |
+| `keybinds` | table | The keys of the interactive mode, as [the keybind section](#the-keys-of-the-interactive-mode) records. |
+
+## The keys of the interactive mode
+
+The interactive mode reads one answer per line, and a binding runs an action before an answer arrives. The `accept` action takes the default value of the question. The `help` action prints the bindings and asks the question again. The `quit` action ends the run and writes no file. The `leader` entry names the key that the other bindings start with, and it runs no action of its own.
+
+The notation follows the terminals:
+
+- A modifier joins the parts of a key with `+`, so `ctrl+shift+r` is one key.
+- `<leader>` stands for the leader key, at the start of a key or on its own.
+- The modifiers are `ctrl`, `alt`, `meta`, and `shift`. `meta` is another name for `alt`.
+- The named keys are `esc`, `tab`, `space`, `backspace`, `up`, `down`, `left`, and `right`. Any other key is one character.
+- `ctrl` takes a letter, or one of `@`, `[`, `\\`, `]`, `^`, `_`, and `space`. The terminals do not agree on the rest, so any other key after `ctrl` is an error. The shift of a control letter changes nothing, because a terminal sends the same byte either way.
+
+An entry replaces the built-in binding of its action, and an empty value removes the binding. An action that the tool does not ship is an error, so a typo never leaves a binding inert.
+
+| Binding | Default | Action |
+|---|---|---|
+| `leader` | `ctrl+x` | The key that starts the other bindings. |
+| `accept` | `<leader>a` | Take the default value. |
+| `help` | `<leader>?` | Print the bindings and ask again. |
+| `quit` | `<leader>q` | End the run and write no file. |
 
 [The internationalisation page](i18n.md) covers the locale settings, and [the usage page](usage.md) covers the flags. [The terminal palette page](terminal-palette.md) covers the theme source that sits behind the file.

@@ -125,7 +125,7 @@ A tool that does not know a field leaves it out or sets it to `null`. The reader
 The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for the tool and a simple integer for the file shape:
 
 1. A change that adds a field, removes a field, or changes the meaning of a field bumps the version number. A reader must not guess.
-2. A change that only adds a field with a nil default may keep the number, and a reader of either version reads the file. The project still bumps the number for clarity.
+2. A change that only adds a field with a nil default can keep the number, and a reader of either version reads the file. The project still bumps the number for clarity.
 3. A reader lifts an older file to the current shape before it returns the document. The chain of steps runs in order, so a file from any earlier release opens with the current reader.
 4. A reader rejects a version it has no step for. An unknown version is an error, never a silent partial read.
 
@@ -168,10 +168,10 @@ To add a version, do three things in the same change:
 2. Add a step to the table that lifts the previous version to it. A step that has nothing to change records why.
 3. Add a test that reads a file of the previous shape and asserts the new field. [The JSON1 tests](../internal/formats/json1/json1_test.go) carry one such test per step.
 
-A version 1 file has no `Voice` field on a span, and an empty name has no meaning in that shape, so the step only supplies the metadata map that version 1 could leave out. The reader reports the migrated document, and a nil voice keeps its meaning of "no voice".
+A version 1 file has no `Voice` field on a span, and an empty name has no meaning in that shape, so the step only supplies the metadata map that version 1 can leave out. The reader reports the migrated document, and a nil voice keeps its meaning of "no voice".
 
 ## Limits
 
 - The format is an internal exchange format of this project. No other tool reads it.
-- The writer always writes the current version. There is no flag to write an older one, because a tool that needs an older shape should convert through the format that carries it.
+- The writer always writes the current version. There is no flag to write an older one, because a tool that needs an older shape must convert through the format that carries it.
 - The file carries no schema URL and no self-describing metadata beyond `version`.

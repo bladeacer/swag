@@ -56,7 +56,7 @@ losses, err := sub.ConvertWith(fileName, source, sub.Options{
 - `Format` names the input format. An empty value means auto-detection.
 - `Target` names the output format. It is required.
 - `Styles` renames a style on the way out. The key is the source name and the value the target name. A missing key keeps the name.
-- `Font` replaces the font of every style and every span. A writer may then snap the name to its own font list.
+- `Font` replaces the font of every style and every span. A writer can then snap the name to its own font list.
 - `Loss` decides the handling of a degraded write.
 - `StrictCompat` writes no integrity block, so the output stays inside the specification of the target format. The loss report stays complete. [The integrity page](integrity.md) describes the block.
 
@@ -103,6 +103,26 @@ func main() {
     }
 }
 ```
+
+## API stability
+
+The public surface of `pkg/sub` is frozen as of v0.9.0, which is the release candidate for v1.0.0. The surface is:
+
+| Kind | Name |
+|---|---|
+| Function | `Convert`, `ConvertWith`, `Parse`, `Render`, `Identify`, `DetectFormat`, `Registered` |
+| Type | `Document`, `Options`, `LossPolicy`, `Format`, `ReaderFormat`, `WriterFormat` |
+| Constant | `LossReport`, `LossStrict`, `LossSilent` |
+| Field of `Options` | `Format`, `Target`, `Styles`, `Font`, `Loss`, `StrictCompat` |
+
+A change follows these rules:
+
+- Nothing on the list is removed before v1.0.0. A name that must go gains a deprecation note in its doc comment first, and the note names the replacement. No name carries a deprecation note today.
+- A new name lands in a minor release. It does not change the meaning or the signature of a name already on the list.
+- The behaviour of a name can change only when a bug fix requires it or a changelog entry names the change.
+- The `Document` alias points at the internal IR. A caller reads and writes it, and the IR fields stay outside this promise, because the formats own them.
+
+A caller that holds to the list keeps working across the v1.0.0 boundary. Anything else in the module is internal and can move at any release.
 
 ## Notes
 

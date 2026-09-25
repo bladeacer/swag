@@ -13,6 +13,17 @@ import (
 	"github.com/bladeacer/swag/pkg/sub"
 )
 
+// TestMain fixes the locale of the process, so a run that reads the system
+// locale gives the same answer on every machine and on CI. A test that
+// covers the detection sets the variables itself.
+func TestMain(m *testing.M) {
+	_ = os.Setenv("LC_ALL", "en-GB")
+	_ = os.Setenv("LC_MESSAGES", "en-GB")
+	_ = os.Setenv("LANG", "en-GB")
+	_ = os.Unsetenv("SWAG_LOCALE")
+	os.Exit(m.Run())
+}
+
 const srtFixture = "1\n00:00:00,000 --> 00:00:01,000\nhello\n"
 
 // voiceVTTFixture carries a voice span and inline styling, so a conversion
@@ -439,6 +450,63 @@ func TestRunBatchNeedsATarget(t *testing.T) {
 	}
 }
 
+// TestLocaleOf covers the locale of a run before the flags are parsed: the
+// environment wins over the file, the file wins over the system locale, and
+// the system locale falls back to the default locale.
+func TestLocaleOf(t *testing.T) {
+	tests := []struct {
+		name     string
+		env      map[string]string
+		settings config.Settings
+		want     i18n.Locale
+	}{
+		{"the environment wins over the file", map[string]string{"SWAG_LOCALE": "en-US", "LANG": "en_GB.UTF-8"}, config.Settings{Locale: "en-GB"}, i18n.DefaultLocale},
+		{"the file wins over the system", map[string]string{"LANG": "en_US.UTF-8"}, config.Settings{Locale: "en-GB"}, i18n.BritishLocale},
+		{"the system locale decides", map[string]string{"LANG": "en_GB.UTF-8"}, config.Settings{}, i18n.BritishLocale},
+		{"an unshipped system locale falls back", map[string]string{"LANG": "de_DE.UTF-8"}, config.Settings{}, i18n.DefaultLocale},
+		{"an empty environment falls back", nil, config.Settings{}, i18n.DefaultLocale},
+		{"a bad environment tag falls back", map[string]string{"SWAG_LOCALE": "de-DE"}, config.Settings{}, i18n.DefaultLocale},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := localeOf(fakeEnv(tt.env), tt.settings); got != tt.want {
+				t.Errorf("localeOf = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// fakeEnv answers a variable name from a map, so a test can fix an
+// environment without touching the process.
+func fakeEnv(values map[string]string) func(string) string {
+	return func(name string) string { return values[name] }
+}
+
+// TestRunUsesTheSystemLocale covers the whole path: no flag, no environment,
+// and no file, so the system locale decides the catalogue. An unshipped
+// locale falls back to the default one.
+func TestRunUsesTheSystemLocale(t *testing.T) {
+	t.Setenv("SWAG_LOCALE", "")
+
+	t.Setenv("LC_ALL", "en_GB.UTF-8")
+	out := capturePterm(t)
+	if code := run([]string{"-V"}); code != 0 {
+		t.Fatalf("run exit code = %d, want 0", code)
+	}
+	if !strings.Contains(out.String(), "Apache-2.0 licence") {
+		t.Errorf("the British system locale must reach the version line:\n%s", out.String())
+	}
+
+	t.Setenv("LC_ALL", "de_DE.UTF-8")
+	out = capturePterm(t)
+	if code := run([]string{"-V"}); code != 0 {
+		t.Fatalf("run exit code = %d, want 0", code)
+	}
+	if !strings.Contains(out.String(), "Apache-2.0 license") {
+		t.Errorf("an unshipped system locale must fall back to the default:\n%s", out.String())
+	}
+}
+
 func TestRunAcceptsALocaleFlag(t *testing.T) {
 	t.Setenv("SWAG_LOCALE", "en-US")
 	in := writeSubtitle(t, "in.srt", srtFixture)
@@ -600,7 +668,7 @@ func TestRunTargetMissing(t *testing.T) {
 
 func TestRunContextCarriesLocale(t *testing.T) {
 	ictx := &runContext{CLI: &CLI{Locale: "en-GB"}, T: i18n.New("en-GB")}
-	if ictx.T.Locale() != i18n.DefaultLocale {
+	if ictx.T.Locale() != i18n.BritishLocale {
 		t.Fatalf("locale not carried: %q", ictx.T.Locale())
 	}
 	// The error path formats through the catalogue.

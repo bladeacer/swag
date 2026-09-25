@@ -6,7 +6,7 @@ Unreleased work lands in the file for the next planned version. The release comm
 
 ## Releases
 
-- [v0.9.0, strict compatibility and the configuration file](v0.9.0.md): the `--strict-compat` flag and the matching library option (unreleased)
+- [v0.9.0, configuration, compatibility, and the release candidate](v0.9.0.md): the configuration file, `--strict-compat`, the interactive keybinds, the system locale, the parallel batch, and the frozen public API (unreleased)
 - [v0.8.0, the terminal interface and command line ergonomics](v0.8.0.md): the interactive command, the layout-diffing renderer, the input format flag, a short form for every flag, the themed banner, and the WebVTT and TTML integrity block (unreleased)
 - [v0.7.0, library hardening and format integrity](v0.7.0.md): the configured conversion API, the integrity block of the plain formats, the JSON1 version chain, the voice span, the widened loss reports, the cross-check chains, the fuzzing, the benchmarks, the second locale, and the user guide (unreleased)
 - [v0.6.0, the ASS tag closure and new formats](v0.6.0.md): the Aegisub overrides, the chroma colours, the karaoke cursor forms, and the TTML, WebVTT, Kdenlive, and JSON1 formats (unreleased)

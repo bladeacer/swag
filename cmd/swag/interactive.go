@@ -5,6 +5,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,6 +28,10 @@ var (
 	terminalOut io.Writer = os.Stdout
 )
 
+// errInteractiveQuit stops the run when a user presses the quit key. The
+// command turns it into a clean stop, because a quit is not a failure.
+var errInteractiveQuit = errors.New("interactive: quit")
+
 // prompter gathers the answers of the interactive command.
 type prompter interface {
 	// ask prints label and reads one line. An empty answer returns the
@@ -39,8 +44,8 @@ type prompter interface {
 
 // newPrompter builds the prompter of the interactive command. It is a
 // variable so a test can script the answers.
-var newPrompter = func(in io.Reader, out io.Writer, t *i18n.T) prompter {
-	return &linePrompter{in: bufio.NewReader(in), out: out, t: t}
+var newPrompter = func(in io.Reader, out io.Writer, t *i18n.T, keys *tui.Keymap) prompter {
+	return &linePrompter{in: bufio.NewReader(in), out: out, t: t, keys: keys}
 }
 
 // identify reports the format of the input file. It is a variable so a test
@@ -51,9 +56,10 @@ var identify = sub.Identify
 // pterm styling. It holds no terminal state, so it works on a pipe as well
 // as on a terminal.
 type linePrompter struct {
-	in  *bufio.Reader
-	out io.Writer
-	t   *i18n.T
+	in   *bufio.Reader
+	out  io.Writer
+	t    *i18n.T
+	keys *tui.Keymap
 }
 
 // ask prints a labelled question and returns the answer. An empty answer
@@ -125,14 +131,51 @@ func (p *linePrompter) matchChoice(answer string, options []string, defaultOptio
 	return "", fmt.Errorf("%s", p.t.F(i18n.MsgInteractiveChoice, answer))
 }
 
-// readLine returns one trimmed line of the input. A last line without a
-// newline still counts, and only an empty failing read is an error.
+// readLine returns one line of the input with the keymap applied. The accept
+// binding answers with the empty string, which the caller reads as its
+// default value, and the help binding prints the bindings and asks again.
 func (p *linePrompter) readLine() (string, error) {
+	for {
+		line, err := p.readRaw()
+		if err != nil {
+			return "", err
+		}
+		action, bound := p.keys.Match(line)
+		if !bound {
+			return strings.TrimSpace(line), nil
+		}
+		switch action {
+		case tui.ActionAccept:
+			return "", nil
+		case tui.ActionQuit:
+			return "", errInteractiveQuit
+		case tui.ActionHelp:
+			for _, row := range helpLines(p.t, p.keys) {
+				if _, err := fmt.Fprintln(p.out, row); err != nil {
+					return "", err
+				}
+			}
+		}
+	}
+}
+
+// readRaw returns one line with the newline removed. A last line without a
+// newline still counts, and only an empty failing read is an error.
+func (p *linePrompter) readRaw() (string, error) {
 	line, err := p.in.ReadString('\n')
 	if err != nil && line == "" {
 		return "", fmt.Errorf("%s", p.t.F(i18n.MsgInteractiveRead, err))
 	}
-	return strings.TrimSpace(line), nil
+	return strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r"), nil
+}
+
+// helpLines names every binding, so a user can read the keys of the mode.
+func helpLines(t *i18n.T, keys *tui.Keymap) []string {
+	rows := []string{t.S(i18n.MsgInteractiveHelp)}
+	for _, binding := range keys.Bindings() {
+		rows = append(rows, t.F(i18n.MsgInteractiveKeybind, binding.Notation, binding.Action))
+	}
+	return rows
 }
 
 // InteractiveCmd walks a user through one conversion: it asks for the input
@@ -154,8 +197,25 @@ type InteractiveCmd struct {
 // frames. The second frame adds the outcome, and the renderer writes only
 // the rows that differ between the two.
 func (c *InteractiveCmd) Run(ictx *runContext) error {
+	err := c.run(ictx)
+	if errors.Is(err, errInteractiveQuit) {
+		if _, perr := fmt.Fprintln(terminalOut, ictx.T.S(i18n.MsgInteractiveQuit)); perr != nil {
+			return perr
+		}
+		return nil
+	}
+	return err
+}
+
+// run walks the questions and writes the file. The quit key travels out of
+// it as a sentinel, so the wrapper can turn it into a clean stop.
+func (c *InteractiveCmd) run(ictx *runContext) error {
 	t := ictx.T
-	p := newPrompter(terminalIn, terminalOut, t)
+	keys, err := tui.NewKeymap(ictx.Settings.Keybinds)
+	if err != nil {
+		return err
+	}
+	p := newPrompter(terminalIn, terminalOut, t, keys)
 	renderer := tui.NewRenderer(terminalOut)
 
 	input := c.Input
@@ -170,6 +230,7 @@ func (c *InteractiveCmd) Run(ictx *runContext) error {
 		return err
 	}
 	source, err := openInput(input)
+
 	if err != nil {
 		return fmt.Errorf("%s", t.F(i18n.MsgInputUnreadable, err))
 	}

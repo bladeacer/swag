@@ -35,7 +35,7 @@ The architecture and the intermediate representation live in [the architecture p
 ## Internationalisation
 
 1. User-facing strings come from the message catalogue in `internal/i18n`. The CLI never formats display text inline.
-2. The default locale is `en-GB`. New messages land in the catalogue in the same change that uses them.
+2. The default locale is `en-US`, and the tool reads the system locale first. New messages land in the catalogue in the same change that uses them.
 3. Do not build sentences by concatenation. Give translators a whole string with one placeholder.
 
 ## Changelog, roadmap, and docs

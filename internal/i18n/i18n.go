@@ -1,8 +1,9 @@
 // Package i18n holds the message catalogue of swag.
 //
 // The CLI never formats display text inline: it looks messages up here, so
-// a new language lands as one catalogue file. The default locale is en-GB.
-// Lookups fall back to en-GB for keys that a locale does not carry.
+// a new language lands as one catalogue file. The default locale is en-US.
+// Lookups fall back to the default locale for keys that a locale does not
+// carry.
 package i18n
 
 import (
@@ -14,13 +15,18 @@ import (
 // Locale identifies a message set by its language tag, for example "en-GB".
 type Locale string
 
-// DefaultLocale is the locale of the shipped catalogue.
-const DefaultLocale Locale = "en-GB"
+// DefaultLocale is the locale that the tool picks when the active system
+// locale is not shipped. Its catalogue carries every key.
+const DefaultLocale Locale = "en-US"
 
-// catalogues maps a locale to its message set. The en-GB entry is compiled
-// in; further locales can register through Register.
+// BritishLocale is the locale that overrides the default catalogue with the
+// British spellings.
+const BritishLocale Locale = "en-GB"
+
+// catalogues maps a locale to its message set. The default entry is compiled
+// in and carries every key; a further locale can register through Register.
 var catalogues = map[Locale]map[Key]string{
-	DefaultLocale: enGB,
+	DefaultLocale: enUS,
 }
 
 // Register adds or replaces the message set of a locale. Missing keys fall
@@ -111,6 +117,9 @@ const (
 	MsgInteractiveTargetLine Key = "interactive.line.target"
 	MsgInteractiveOutputLine Key = "interactive.line.output"
 	MsgInteractiveLosses     Key = "interactive.losses"
+	MsgInteractiveHelp       Key = "interactive.help"
+	MsgInteractiveKeybind    Key = "interactive.keybind"
+	MsgInteractiveQuit       Key = "interactive.quit"
 
 	MsgBatchFormatMissing Key = "batch.format-missing"
 	MsgBatchTitle         Key = "batch.title"
@@ -119,6 +128,7 @@ const (
 	MsgBatchRead          Key = "batch.read"
 	MsgBatchFailed        Key = "batch.failed"
 	MsgBatchLosses        Key = "batch.losses"
+	MsgBatchJobs          Key = "batch.jobs"
 
 	MsgPreviewTitle    Key = "preview.title"
 	MsgPreviewStyles   Key = "preview.styles"
@@ -139,13 +149,15 @@ const (
 	MsgConfigWrite    Key = "config.write"
 )
 
-// enGB is the default message set. Values follow the simple-english rules:
-// complete sentences, one instruction per message, condition first.
-var enGB = map[Key]string{
+// enUS is the message set of the default locale. It carries every key, and
+// it is the set that a lookup falls back to. Values follow the
+// simple-english rules: complete sentences, one instruction per message,
+// condition first.
+var enUS = map[Key]string{
 	MsgBannerTitle:      "swag (Subtitles With A Gopher)",
 	MsgBannerTagline:    "Read, write, and convert subtitles.",
 	MsgCliDescription:   "Subtitles With A Gopher: read, write, and convert subtitles.",
-	MsgVersionLicence:   "Apache-2.0 licence",
+	MsgVersionLicence:   "Apache-2.0 license",
 	MsgOutputStdout:     "standard output",
 	MsgConvertStart:     "Converting %s to %s format.",
 	MsgConvertSuccess:   "Wrote %s.",
@@ -177,6 +189,9 @@ var enGB = map[Key]string{
 	MsgInteractiveTargetLine: "Target: %s",
 	MsgInteractiveOutputLine: "Output: %s",
 	MsgInteractiveLosses:     "The target format does not carry %d features.",
+	MsgInteractiveHelp:       "The keys of the interactive mode. The <leader> part is the leader key:",
+	MsgInteractiveKeybind:    "%s runs the %s action.",
+	MsgInteractiveQuit:       "No file was written.",
 
 	MsgBatchFormatMissing: "A directory needs a target format. Name one with -f, for example -f vtt. A comma separates several targets.",
 	MsgBatchTitle:         "Converting %d files",
@@ -185,6 +200,7 @@ var enGB = map[Key]string{
 	MsgBatchRead:          "The directory %s could not be read.",
 	MsgBatchFailed:        "%d files failed. The first failure: %s",
 	MsgBatchLosses:        "%s lost %d features.",
+	MsgBatchJobs:          "The worker count %d is not a count. Name a positive count, or zero to use every core.",
 
 	MsgPreviewTitle:    "swag preview",
 	MsgPreviewStyles:   "Styles",
@@ -210,10 +226,16 @@ type T struct {
 	locale Locale
 }
 
-// New returns a catalogue for the locale. Unknown locales resolve to the
+// New returns a catalogue for the locale tag. An unknown tag resolves to the
 // default locale.
 func New(tag string) *T {
 	return &T{locale: Normalise(tag)}
+}
+
+// For returns the catalogue of a resolved locale, for a caller that holds a
+// Locale already.
+func For(l Locale) *T {
+	return &T{locale: l}
 }
 
 // Locale reports the locale of the catalogue.

@@ -27,12 +27,15 @@ swag -i -- -odd-name.srt -f vtt
 | `--font` | `-n` | Replace the font of every style and every span before the write. |
 | `--strict` | `-s` | Fail when the target format drops a feature. |
 | `--strict-compat` | `-c` | Write no integrity block, so the output stays inside the original specification of the target format. |
+| `--jobs` | `-j` | The conversions that run at once in a batch run. Zero uses every core. |
 | `--verbose` | `-v` | Print the conversion report. |
-| `--locale` | `-l` | The message locale, `en-GB` or `en-US`. The `SWAG_LOCALE` environment variable sets the default. |
+| `--locale` | `-l` | The message locale, for example `en-GB`. The system locale decides when the flag is empty, and `SWAG_LOCALE` sets the value before the flag. |
 | `--version` | `-V` | Print the version, the commit, and the build date. |
 | `--help` | `-h` | Print the help page. The word `help` does the same. |
 
 `--strict` and `--font` work with the long form and with the short form. `-v` prints the report, and `-V` prints the version.
+
+`--jobs` applies to a batch run, which an input directory starts. The default keeps two cores free, so a long conversion does not make the machine crawl. A named count sets the number of conversions that run at once, and zero uses every core.
 
 The other commands carry the flags they need. `interactive` takes `-i`, `-F`, `-f` for the target, `-o`, `-n`, `-s`, and `-c`. `preview` takes `-i`, `-F`, and `--limit` (`-m`), which bounds the cue rows. `config` takes `--init` (`-i`), which writes the default configuration file.
 
@@ -65,7 +68,7 @@ Write to standard output and pipe it on:
 swag -i in.srt -f json1 | jq '.document.Cues | length'
 ```
 
-Fail a build when a conversion would drop a feature:
+Fail a build when a conversion drops a feature:
 
 ```sh
 swag -i in.ass -o out.srt --strict
@@ -93,6 +96,16 @@ swag interactive -i in.ass -f vtt -o out.vtt
 
 The result is one frame. It carries the conversion, the loss report, and a preview of the styles and the karaoke timeline. The command repaints only the rows that change, so a still screen costs nothing and a small change costs a small write.
 
+A question reads one answer per line, and an empty answer takes the default value. Three keys run an action before an answer arrives:
+
+| Key | Action |
+|---|---|
+| `ctrl+x` `a` | Answer with the default value. |
+| `ctrl+x` `?` | Print the keys and ask the question again. |
+| `ctrl+x` `q` | End the run and write no file. |
+
+The first key of each binding is the leader key. [The configuration page](configuration.md) records the notation and the way to move a binding.
+
 ## Batch conversion
 
 An input that is a directory converts every subtitle file under it, including the files in its subdirectories. The `-f` flag names the target, and a comma separates several targets, so one run writes several formats at once:
@@ -106,6 +119,8 @@ The `-o` flag names an output directory, which the command creates. Omit it and 
 
 A file whose extension no format claims is skipped. The command prints a progress bar while it works, and it reports the files that failed. A failed file does not stop the run, and the command exits 1 when any file failed.
 
+The files convert side by side, so a large directory finishes sooner. `--jobs` sets how many run at once. The default keeps two cores free, `--jobs 4` runs four at a time, and `--jobs 0` uses every core. The report does not change with the count. The first failure is the first file in the walk order, and not the first file to finish.
+
 ## Previews
 
 The `preview` command paints the colours, the styles, and the karaoke timeline of a document without converting it:
@@ -114,7 +129,7 @@ The `preview` command paints the colours, the styles, and the karaoke timeline o
 swag preview -i in.ass
 ```
 
-Each style takes one row with a colour swatch, the name, the font, the size, the flags, and a second swatch for a box or an outline. Each cue takes one row with its time range and its text, and a karaoke cue gains a bar underneath, where a covered cell is a sung syllable.
+Each style takes one row with a colour swatch, the name, the font, the size, and the flags. A style with a box or an outline gains a second swatch. Each cue takes one row with its time range and its text. A karaoke cue gains a bar underneath, where a covered cell is a sung syllable.
 
 The colours are a best effort. A terminal that carries no colour shows the hex value of each colour instead, and the command sets `--limit` (`-m`) bounds the cue rows. Pass `--limit 0` to show every cue.
 
@@ -167,12 +182,12 @@ The `--strict-compat` flag writes no block, so the output holds the plain cues a
 | Code | Meaning |
 |---|---|
 | 0 | The conversion succeeded. A bare run, `--help`, and `--version` also exit 0. |
-| 1 | The command line could not be read, the conversion failed, or `--strict` found a loss. |
+| 1 | The command line holds no valid arguments, the conversion failed, or `--strict` found a loss. |
 
 Errors name the file that failed, so a failed run in a script says which input to look at.
 
 ## Messages and locales
 
-Every user-facing message comes from the message catalogue, so a bare run reads the same in every shipped locale. The shipped locales are `en-GB` and `en-US`, and the default is `en-GB`. Pass `--locale` or set `SWAG_LOCALE` to change the locale. A tag that is not shipped is an error, so a typo never falls back in silence. [The internationalisation page](i18n.md) covers the catalogue, the translation guidelines, and how to add a language.
+Every user-facing message comes from the message catalogue, so a bare run reads the same in every shipped locale. The shipped locales are `en-US` and `en-GB`. The command reads the system locale, so a machine set to British English reads `en-GB`, and a machine with no match reads `en-US`. Pass `--locale` or set `SWAG_LOCALE` to name one. A tag that is not shipped is an error, so a typo never falls back in silence. [The internationalisation page](i18n.md) covers the catalogue, the translation guidelines, and how to add a language.
 
 The settings file of the tool follows the platform convention, and the `config` command reports where it looks. [The configuration page](configuration.md) covers the location and the two environment variables that move it.

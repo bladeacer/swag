@@ -29,7 +29,7 @@ internal/envelope/        The integrity block of a plain format: read the
 internal/model/           Core IR types: Cue, Style, TextSpan, colours,
                           plus style resolution helpers
 internal/richtext/        ASS-style tag parser and serialiser (shared)
-internal/i18n/            Message catalogue, locales (en-GB default, fr-FR)
+internal/i18n/            Message catalogue, the system locale, and the two English locales
 pkg/sub/                  Public API: Identify, Parse, Render, Convert,
                           ConvertWith, and the format registry
 ```
@@ -92,7 +92,7 @@ Rules:
 
 ## Plain format integrity
 
-SubRip and SBV hold text and timing only, so a conversion through one of them would lose every other feature. A plain writer that would lose at least one feature appends an integrity block to the end of the file, and the block holds the whole document as JSON1. A `swag` reader restores the document from the block, and a plain player stops at the last cue and ignores it.
+SubRip and SBV hold text and timing only, so a conversion through one of them loses every other feature. A plain writer that loses at least one feature appends an integrity block to the end of the file, and the block holds the whole document as JSON1. A `swag` reader restores the document from the block, and a plain player stops at the last cue and ignores it.
 
 ```
 NOTE swag-ir 1

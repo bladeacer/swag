@@ -12,6 +12,7 @@ Getting started:
 Formats and fidelity:
 
 - [the format notes](formats.md): the support of every format, its specification, and its caveats and limits
+- [the compatibility page](compatibility.md): the release targets, the format matrix, and the players that read each format
 - [the loss report review](loss-report.md): the degradation of every format at a glance
 - [the ASS support page](ass-support.md): the ASS feature list mapped onto the code and the tests
 - [the file integrity page](integrity.md): the block that keeps a plain SubRip or SBV file lossless inside `swag`
@@ -30,6 +31,7 @@ Reference and governance:
 Release notes, in Keep a Changelog form:
 
 - [the changelog index](changelogs/index.md): every release
+- [the v0.9.0 notes](changelogs/v0.9.0.md): the configuration file, the strict compatibility flag, the interactive keybinds, the system locale, and the parallel batch
 - [the v0.8.0 notes](changelogs/v0.8.0.md): the interactive command, the layout-diffing renderer, and the command line ergonomics
 - [the v0.7.0 notes](changelogs/v0.7.0.md): the conversion API, the plain format integrity block, and the reference docs
 - [the v0.6.0 notes](changelogs/v0.6.0.md): the ASS tag closure and the new formats

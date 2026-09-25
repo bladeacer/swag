@@ -93,8 +93,12 @@ func NewKeymap(overrides map[string]string) (*Keymap, error) {
 
 // Match returns the action of a typed line, and reports whether a binding
 // matched it. The line is tried as typed and then without the space around
-// it, so a binding of the space key still works.
+// it, so a binding of the space key still works. A missing keymap matches
+// nothing, so a prompt with no bindings reads every line as an answer.
 func (m *Keymap) Match(line string) (string, bool) {
+	if m == nil {
+		return "", false
+	}
 	if action, ok := m.match[line]; ok {
 		return action, true
 	}
@@ -130,22 +134,28 @@ func knownAction(action string) bool {
 func leaderTokens(notation string) ([]string, error) {
 	tokens := strings.Fields(notation)
 	for _, token := range tokens {
-		if token == leaderToken {
+		if strings.HasPrefix(token, leaderToken) {
 			return nil, fmt.Errorf("the leader cannot name itself")
 		}
 	}
 	return tokens, nil
 }
 
-// expandTokens replaces the leader token with the tokens of the leader.
+// expandTokens replaces the leader token with the keys of the leader. The
+// leader token stands alone or starts a larger key, so <leader>a and
+// <leader> a name the same two keys, and a notation reads either way.
 func expandTokens(notation string, leader []string) []string {
 	var out []string
 	for _, token := range strings.Fields(notation) {
-		if token == leaderToken {
-			out = append(out, leader...)
+		rest, found := strings.CutPrefix(token, leaderToken)
+		if !found {
+			out = append(out, token)
 			continue
 		}
-		out = append(out, token)
+		out = append(out, leader...)
+		if rest != "" {
+			out = append(out, rest)
+		}
 	}
 	return out
 }

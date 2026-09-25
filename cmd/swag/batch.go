@@ -8,7 +8,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/pterm/pterm"
 
@@ -85,6 +87,60 @@ func batchOutput(root, outDir, base, target string) string {
 	return filepath.Join(root, base+"."+target)
 }
 
+// defaultJobs returns the worker count of a batch run that names none. Two
+// cores stay free, so a long conversion does not make the machine crawl.
+func defaultJobs(cores int) int {
+	if cores <= 2 {
+		return 1
+	}
+	return cores - 2
+}
+
+// batchResult carries the outcome of one plan out of a worker. The index
+// keeps the report in plan order, however the workers interleave.
+type batchResult struct {
+	index  int
+	losses []string
+	err    error
+}
+
+// convertAll converts the plans with the given number of workers. One
+// outcome comes back for each plan, in plan order, so the same input always
+// reports the same failure. tick runs once per finished plan, which keeps a
+// progress bar on a single goroutine.
+func (c *ConvertCmd) convertAll(plans []batchPlan, workers int, t *i18n.T, tick func()) []batchResult {
+	work := make(chan int)
+	done := make(chan batchResult, len(plans))
+	var group sync.WaitGroup
+	for range workers {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			for index := range work {
+				losses, err := c.convertOne(plans[index], t)
+				done <- batchResult{index: index, losses: losses, err: err}
+			}
+		}()
+	}
+	go func() {
+		for index := range plans {
+			work <- index
+		}
+		close(work)
+	}()
+	go func() {
+		group.Wait()
+		close(done)
+	}()
+
+	results := make([]batchResult, len(plans))
+	for result := range done {
+		results[result.index] = result
+		tick()
+	}
+	return results
+}
+
 // runBatch converts every subtitle file under a directory. It reads each
 // file once and writes one output per target format, and a progress bar
 // counts the files.
@@ -107,26 +163,39 @@ func (c *ConvertCmd) runBatch(ictx *runContext) error {
 		return fmt.Errorf("%s", t.F(i18n.MsgBatchEmpty, c.Input))
 	}
 
+	// A negative count names no useful number of workers, and zero uses
+	// every core. The workers never outnumber the plans.
+	if c.Jobs < 0 {
+		return fmt.Errorf("%s", t.F(i18n.MsgBatchJobs, c.Jobs))
+	}
+	workers := c.Jobs
+	if workers == 0 {
+		workers = runtime.NumCPU()
+	}
+	if workers > len(plans) {
+		workers = len(plans)
+	}
+
 	// The progress bar is decoration, so its error stays unchecked.
 	bar, _ := pterm.DefaultProgressbar.WithTotal(len(plans)).WithTitle(t.F(i18n.MsgBatchTitle, len(plans))).Start()
+	results := c.convertAll(plans, workers, t, func() { bar.Increment() })
+	_, _ = bar.Stop()
+
 	failed, firstErr := 0, error(nil)
-	for _, plan := range plans {
-		losses, err := c.convertOne(plan, t)
+	for _, result := range results {
 		switch {
-		case err != nil:
+		case result.err != nil:
 			failed++
 			if firstErr == nil {
-				firstErr = err
+				firstErr = result.err
 			}
-		case ictx.CLI.Verbose && len(losses) > 0:
-			pterm.Warning.Println(t.F(i18n.MsgBatchLosses, plan.Output, len(losses)))
-			for _, loss := range losses {
+		case ictx.CLI.Verbose && len(result.losses) > 0:
+			pterm.Warning.Println(t.F(i18n.MsgBatchLosses, plans[result.index].Output, len(result.losses)))
+			for _, loss := range result.losses {
 				pterm.Warning.Printf("  %s\n", loss)
 			}
 		}
-		bar.Increment()
 	}
-	_, _ = bar.Stop()
 	if failed > 0 {
 		return fmt.Errorf("%s", t.F(i18n.MsgBatchFailed, failed, firstErr))
 	}

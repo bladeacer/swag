@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -48,7 +50,7 @@ var commandNames = []string{convertCommand, interactiveCommand, previewCommand, 
 // so `-i in.srt` and `--input in.srt` both work.
 type CLI struct {
 	Version kong.VersionFlag `help:"Print the version." short:"V"`
-	Locale  string           `help:"Message locale, en-GB or en-US." short:"l" default:"en-GB" env:"SWAG_LOCALE"`
+	Locale  string           `help:"Message locale, for example en-GB. The system locale decides when it is empty." short:"l" env:"SWAG_LOCALE"`
 	Verbose bool             `help:"Print the conversion report." short:"v"`
 
 	// The convert command is the default one, and "withargs" lets its flags
@@ -71,6 +73,10 @@ type ConvertCmd struct {
 	// StrictCompat turns the integrity block off, so the output stays
 	// inside the original specification of the target format.
 	StrictCompat bool `help:"Write no integrity block, so the output stays inside the original format." short:"c"`
+	// Jobs is the number of conversions that run at once in a batch run.
+	// Kong fills the default from the vars below, because the count follows
+	// the machine.
+	Jobs int `help:"Convert this many files at once. Zero uses every core." short:"j" default:"${jobs}"`
 }
 
 // Run executes the conversion command. A file input converts once. A
@@ -206,6 +212,20 @@ func versionLine(t *i18n.T) string {
 	return fmt.Sprintf("%s (commit %s, built %s), %s", version, commit, date, t.S(i18n.MsgVersionLicence))
 }
 
+// localeOf resolves the locale before the flags are parsed, so the banner,
+// the help page, and the version line read the same catalogue as the
+// command. The order follows the flag: the environment, then the file, then
+// the system locale.
+func localeOf(env func(string) string, settings config.Settings) i18n.Locale {
+	if tag := env("SWAG_LOCALE"); tag != "" {
+		return i18n.Normalise(tag)
+	}
+	if settings.Locale != "" {
+		return i18n.Normalise(settings.Locale)
+	}
+	return i18n.Detect(env)
+}
+
 // localeList names the shipped locales in a stable order.
 func localeList() string {
 	locales := i18n.Supported()
@@ -297,15 +317,18 @@ func bareRun(args []string) bool {
 // process exit code.
 func run(args []string) int {
 	// The parser needs its description before the flags are parsed, so the
-	// description comes from the environment locale.
-	envCopy := i18n.New(os.Getenv("SWAG_LOCALE"))
+	// description comes from the locale of the environment and the file.
 	settings, settingsErr := settingsFromFile()
+	envCopy := i18n.For(localeOf(os.Getenv, settings))
 
 	cli := CLI{}
 	options := []kong.Option{
 		kong.Name("swag"),
 		kong.Description(envCopy.S(i18n.MsgCliDescription)),
-		kong.Vars{"version": versionLine(envCopy)},
+		kong.Vars{
+			"version": versionLine(envCopy),
+			"jobs":    strconv.Itoa(defaultJobs(runtime.NumCPU())),
+		},
 	}
 	// A file that cannot be read must not stop the help page or the version
 	// line, so the resolver joins the parser only when the file is sound.
@@ -335,13 +358,19 @@ func run(args []string) int {
 	}
 
 	kongCtx, err := parser.Parse(args)
-	ictx := &runContext{CLI: &cli, T: i18n.New(cli.Locale), Settings: settings}
+	// A locale on the command line wins over the file and the system, and
+	// an unshipped one is refused rather than falling back in silence.
+	locale := envCopy.Locale()
+	if cli.Locale != "" {
+		if err := checkLocale(cli.Locale, envCopy); err != nil {
+			pterm.Error.Println(err)
+			return 1
+		}
+		locale = i18n.Normalise(cli.Locale)
+	}
+	ictx := &runContext{CLI: &cli, T: i18n.For(locale), Settings: settings}
 	if err != nil {
 		pterm.Error.Printf(ictx.T.S(i18n.MsgUsageFailed), err)
-		return 1
-	}
-	if err := checkLocale(cli.Locale, ictx.T); err != nil {
-		pterm.Error.Println(err)
 		return 1
 	}
 	if err := kongCtx.Run(ictx); err != nil {

@@ -1,8 +1,8 @@
 # File integrity
 
-SubRip, SBV, WebVTT, and TTML hold text, timing, and a small amount of styling. Everything else that the intermediate representation (IR) can carry, such as ruby text, karaoke timing, and colour, has no form in those formats. A conversion through one of them would therefore lose that content.
+SubRip, SBV, WebVTT, and TTML hold text, timing, and a small amount of styling. Everything else that the intermediate representation (IR) can carry, such as ruby text, karaoke timing, and colour, has no form in those formats. A conversion through one of them loses that content.
 
-`swag` keeps the content instead. A writer that would drop at least one feature appends an integrity block to the file. The block holds the whole document as JSON1, so a `swag` reader restores every feature. A plain subtitle player stops at the last cue and ignores the block.
+`swag` keeps the content instead. A writer that drops at least one feature appends an integrity block to the file. The block holds the whole document as JSON1, so a `swag` reader restores every feature. A plain subtitle player stops at the last cue and ignores the block.
 
 The block is an extension of this project. A file outside `swag` stays a valid plain SubRip, SBV, WebVTT, or TTML file, and a hand-written plain file reads exactly as before. [The lossless exchange page](json1.md) covers the format inside the block. [The format notes](formats.md) name the format that carries no block.
 

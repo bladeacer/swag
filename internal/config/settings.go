@@ -24,7 +24,9 @@ import (
 var DefaultFile string
 
 // Settings is the configuration that a file carries. Every field is
-// optional, and a missing field keeps the default of the tool.
+// optional, and a missing field keeps the default of the tool. A field that
+// carries a value named zero, such as Jobs, is a pointer, so the tool can
+// tell an absent setting from a setting of zero.
 type Settings struct {
 	// Locale names the message locale, for example "en-GB".
 	Locale string `toml:"locale"`
@@ -43,9 +45,12 @@ type Settings struct {
 	// Preferred lists the target formats of a batch run when the -f flag is
 	// absent, and it orders the target question of the interactive mode.
 	Preferred []string `toml:"preferred"`
+	// Jobs is the number of conversions that run at once in a batch run. A
+	// missing value uses the automatic count, which keeps two cores free,
+	// and zero uses every core.
+	Jobs *int `toml:"jobs"`
 	// Keybinds maps an interactive action onto its key. The interactive
-	// keybinds land in a later change, so the tool reads the table and takes
-	// no action yet.
+	// mode reads the table, and an action it does not ship is an error.
 	Keybinds map[string]string `toml:"keybinds"`
 }
 
@@ -116,6 +121,10 @@ func (s Settings) Flag(name string) (any, bool) {
 		return s.From, s.From != ""
 	case "format", "target":
 		return s.Format, s.Format != ""
+	case "jobs":
+		if s.Jobs != nil {
+			return *s.Jobs, true
+		}
 	}
 	return nil, false
 }

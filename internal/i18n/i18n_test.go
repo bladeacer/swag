@@ -7,16 +7,16 @@ func TestNormalise(t *testing.T) {
 		in   string
 		want Locale
 	}{
-		{"en-GB", DefaultLocale},
-		{"en_GB", DefaultLocale},
-		{"en-gb", DefaultLocale},
-		{"  en-GB  ", DefaultLocale},
-		{"en", DefaultLocale},    // the language fallback to the registered en-GB
+		{"en-GB", BritishLocale},
+		{"en_GB", BritishLocale},
+		{"en-gb", BritishLocale},
+		{"  en-GB  ", BritishLocale},
+		{"en", DefaultLocale},    // no catalogue is registered under the bare language
 		{"en-AU", DefaultLocale}, // another English region, no catalogue of its own
-		{"en-US", americanLocale},
-		{"en-us", americanLocale}, // the tag match ignores the case
-		{"EN-US", americanLocale}, // the tag match ignores the case
-		{"de-DE", DefaultLocale},  // an unknown language resolves to the default
+		{"en-US", DefaultLocale},
+		{"en-us", DefaultLocale}, // the tag match ignores the case
+		{"EN-US", DefaultLocale}, // the tag match ignores the case
+		{"de-DE", DefaultLocale}, // an unknown language resolves to the default
 		{"", DefaultLocale},
 	}
 	for _, tt := range tests {
@@ -34,9 +34,9 @@ func TestResolveReportsAMatch(t *testing.T) {
 		want Locale
 		ok   bool
 	}{
-		{"en-GB", DefaultLocale, true},
-		{"en-US", americanLocale, true},
-		{"en_us", americanLocale, true},
+		{"en-GB", BritishLocale, true},
+		{"en-US", DefaultLocale, true},
+		{"en_us", DefaultLocale, true},
 		{"en", DefaultLocale, false}, // no catalogue is registered under the bare language
 		{"en-AU", DefaultLocale, false},
 		{"de-DE", DefaultLocale, false},
@@ -63,8 +63,9 @@ func TestRegisterAndLookup(t *testing.T) {
 	if got := tr.F(MsgConvertSuccess, "out.ass"); got != "TEST out.ass" {
 		t.Fatalf("F() = %q, want formatted message", got)
 	}
-	// A key the test locale does not carry falls back to en-GB.
-	if got := tr.S(MsgFormatUnknown); got != enGB[MsgFormatUnknown] {
+	// A key the test locale does not carry falls back to the default
+	// catalogue.
+	if got := tr.S(MsgFormatUnknown); got != enUS[MsgFormatUnknown] {
 		t.Fatalf("fallback failed: %q", got)
 	}
 }
@@ -77,8 +78,11 @@ func TestUnknownKeyReturnsKey(t *testing.T) {
 }
 
 func TestLocaleReportsSelected(t *testing.T) {
-	if got := New("en-GB").Locale(); got != DefaultLocale {
-		t.Fatalf("Locale() = %q, want %q", got, DefaultLocale)
+	if got := New("en-GB").Locale(); got != BritishLocale {
+		t.Fatalf("Locale() = %q, want %q", got, BritishLocale)
+	}
+	if got := For(BritishLocale).Locale(); got != BritishLocale {
+		t.Fatalf("For() = %q, want %q", got, BritishLocale)
 	}
 }
 
@@ -89,40 +93,39 @@ func TestSupportedIsSortedAndComplete(t *testing.T) {
 	if len(locales) != 2 {
 		t.Fatalf("Supported() = %v, want the two English locales", locales)
 	}
-	if locales[0] != DefaultLocale || locales[1] != americanLocale {
-		t.Fatalf("Supported() = %v, want %s then %s", locales, DefaultLocale, americanLocale)
+	if locales[0] != BritishLocale || locales[1] != DefaultLocale {
+		t.Fatalf("Supported() = %v, want %s then %s", locales, BritishLocale, DefaultLocale)
 	}
 }
 
-// TestSecondLocaleIsKnown keeps the second locale in step with the default
-// one. A key that lands in en-GB without a variant is fine, because the
-// lookup falls back, but a key that only the second catalogue carries is a
-// mistake.
+// TestSecondLocaleIsKnown keeps the British catalogue in step with the
+// default one. A key that only the British catalogue carries is a mistake,
+// because a lookup of a missing key falls back to the default catalogue.
 func TestSecondLocaleIsKnown(t *testing.T) {
-	for key := range enUS {
-		if _, ok := enGB[key]; !ok {
-			t.Errorf("the %s catalogue carries an unknown key %q", americanLocale, key)
+	for key := range enGB {
+		if _, ok := enUS[key]; !ok {
+			t.Errorf("the %s catalogue carries an unknown key %q", BritishLocale, key)
 		}
 	}
-	if len(enUS) == 0 {
-		t.Fatalf("the %s catalogue must carry the entries whose wording differs", americanLocale)
+	if len(enGB) == 0 {
+		t.Fatalf("the %s catalogue must carry the entries whose wording differs", BritishLocale)
 	}
 }
 
-// TestSecondLocaleLookup covers the lookup of a variant entry and the
-// fallback for a key the second catalogue does not carry.
-func TestSecondLocaleLookup(t *testing.T) {
-	tr := New("en-US")
-	if got := tr.Locale(); got != americanLocale {
-		t.Fatalf("Locale() = %q, want %q", got, americanLocale)
+// TestBritishLocaleLookup covers the lookup of a variant entry and the
+// fallback for a key the British catalogue does not carry.
+func TestBritishLocaleLookup(t *testing.T) {
+	tr := New("en-GB")
+	if got := tr.Locale(); got != BritishLocale {
+		t.Fatalf("Locale() = %q, want %q", got, BritishLocale)
 	}
-	if got := tr.S(MsgVersionLicence); got != "Apache-2.0 license" {
-		t.Fatalf("the American spelling is missing: %q", got)
-	}
-	if got := tr.S(MsgConvertStart); got != enGB[MsgConvertStart] {
-		t.Fatalf("a shared key must fall back to en-GB: %q", got)
-	}
-	if got := New("en-GB").S(MsgVersionLicence); got != "Apache-2.0 licence" {
+	if got := tr.S(MsgVersionLicence); got != "Apache-2.0 licence" {
 		t.Fatalf("the British spelling is missing: %q", got)
+	}
+	if got := tr.S(MsgConvertStart); got != enUS[MsgConvertStart] {
+		t.Fatalf("a shared key must fall back to the default catalogue: %q", got)
+	}
+	if got := New("en-US").S(MsgVersionLicence); got != "Apache-2.0 license" {
+		t.Fatalf("the American spelling is missing: %q", got)
 	}
 }

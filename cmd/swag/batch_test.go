@@ -154,6 +154,90 @@ func TestBatchOutput(t *testing.T) {
 	}
 }
 
+// TestDefaultJobs covers the automatic worker count. Two cores stay free,
+// and a small machine keeps one worker.
+func TestDefaultJobs(t *testing.T) {
+	tests := []struct {
+		cores int
+		want  int
+	}{
+		{1, 1},
+		{2, 1},
+		{3, 1},
+		{4, 2},
+		{12, 10},
+	}
+	for _, tt := range tests {
+		if got := defaultJobs(tt.cores); got != tt.want {
+			t.Errorf("defaultJobs(%d) = %d, want %d", tt.cores, got, tt.want)
+		}
+	}
+}
+
+// TestRunBatchJobs covers the worker count: one worker, several workers, a
+// count that outnumbers the plans, and a negative count, which names no
+// useful number of workers.
+func TestRunBatchJobs(t *testing.T) {
+	for _, jobs := range []int{1, 2, 99} {
+		dir := t.TempDir()
+		for _, name := range []string{"a", "b", "c"} {
+			writeFileIn(t, dir, name+".srt", srtFixture)
+		}
+		c := &ConvertCmd{Input: dir, Format: "vtt", Jobs: jobs}
+		if err := c.Run(newRunContext(false)); err != nil {
+			t.Fatalf("Run with %d workers: %v", jobs, err)
+		}
+		for _, name := range []string{"a", "b", "c"} {
+			if _, err := os.Stat(filepath.Join(dir, name+".vtt")); err != nil {
+				t.Errorf("the output %s is missing with %d workers: %v", name, jobs, err)
+			}
+		}
+	}
+
+	dir := t.TempDir()
+	writeFileIn(t, dir, "a.srt", srtFixture)
+	c := &ConvertCmd{Input: dir, Format: "vtt", Jobs: -1}
+	err := c.Run(newRunContext(false))
+	if err == nil {
+		t.Fatal("a negative worker count must fail")
+	}
+	if !strings.Contains(err.Error(), "-1") {
+		t.Errorf("the error must name the count: %v", err)
+	}
+}
+
+// TestRunBatchParallelFailureIsDeterministic covers a failing file among
+// good ones. The good files are still written, and the report names the
+// first failing plan in file order, however the workers interleave.
+func TestRunBatchParallelFailureIsDeterministic(t *testing.T) {
+	dir := t.TempDir()
+	writeFileIn(t, dir, "a.srt", srtFixture)
+	writeFileIn(t, dir, "bad.srt", "1\n00:00:0,000 --> broken\nx\n")
+	writeFileIn(t, dir, "c.srt", srtFixture)
+
+	first := ""
+	for run := range 5 {
+		c := &ConvertCmd{Input: dir, Format: "vtt", Jobs: 3}
+		err := c.Run(newRunContext(false))
+		if err == nil {
+			t.Fatal("a broken file must fail the batch")
+		}
+		if !strings.Contains(err.Error(), "1 files failed") {
+			t.Fatalf("run %d must count one failure: %v", run, err)
+		}
+		if first == "" {
+			first = err.Error()
+		} else if err.Error() != first {
+			t.Fatalf("the report wobbled between runs:\n%s\n%s", first, err)
+		}
+	}
+	for _, name := range []string{"a.vtt", "c.vtt"} {
+		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
+			t.Errorf("a worker must finish a good file after a failure: %v", err)
+		}
+	}
+}
+
 // TestRunBatchConverts covers a whole directory run: two files, one target.
 func TestRunBatchConverts(t *testing.T) {
 	dir := t.TempDir()

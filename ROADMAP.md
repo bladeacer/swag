@@ -106,17 +106,25 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 - [x] Karaoke timeline preview in the terminal
 
 ### v0.9.0: configuration, compatibility, and release candidate
-- [ ] Vim inspired keybinds for the interactive mode, with support for multi-key chords such as `Ctrl+Shift+R` and `Alt+Y`, and a leader key that a bind writes as `<leader>`
+- [x] Vim inspired keybinds for the interactive mode, with support for multi-key chords such as `Ctrl+Shift+R` and `Alt+Y`, and a leader key that a bind writes as `<leader>`
+  - The notation joins a modifier with `+` and a chord with a space, so `ctrl+shift+r` is one key and `ctrl+x a` is two. The actions are `accept`, `help`, and `quit`, and the tool refuses an unknown action and a key that two bindings share. The prompts stay one answer per line, so the keymap is a layer over them and not a full screen input widget.
 - [x] A TOML configuration file with feature parity to the command line: default flags, flag options, the locale, the preferred formats, and custom keybinds. The repository ships the file with its defaults, its other valid options, and comments for each setting
   - The file carries the `keybinds` table now, and the table takes action with the keybind item below. The `preferred` list is the default target set of a batch run and the first choices of the interactive picker.
 - [x] `--strict-compat`: turn the integrity block off, so a read and a write stay inside the original specification of the format. The flag is off by default, because a reader that ignores the block still reads the cues
-- [ ] Locale selection from the active operating system locale. An unsupported locale falls back to `en-US`, this also means changing the default locale to `en-US` as it is a more sensible default for most users
-- [ ] A parallel conversion flag that spreads the work across the CPU cores. The default is `max_cores - 2`, a caller can name a count, and zero uses every core
-- [ ] Public API freeze review. Deprecation notes for anything we cut.
+- [x] Locale selection from the active operating system locale. An unsupported locale falls back to `en-US`, this also means changing the default locale to `en-US` as it is a more sensible default for most users
+  - The tool reads `LC_ALL`, `LC_MESSAGES`, and `LANG` in the order of the POSIX standard, and drops the codeset and the modifier from the value. The flag, the environment, and the file come first, in that order.
+- [x] A parallel conversion flag that spreads the work across the CPU cores. The default is `max_cores - 2`, a caller can name a count, and zero uses every core
+  - The flag is `--jobs` (`-j`), and the configuration file carries the same value under `jobs`. The workers never outnumber the planned outputs, the progress bar stays on one goroutine, and the failure report follows the walk order, so the same directory reports the same failure.
+- [x] Public API freeze review. Deprecation notes for anything we cut.
+  - Nothing was cut, so no name carries a deprecation note. The frozen surface and the rules for a later change live in [the library guide](docs/library.md).
 - [ ] Full doc sweep under `docs/` with the simple-english skill (CHECK mode pass)
-- [ ] Compatibility notes: tested players and platforms matrix published
-- [ ] `goreleaser release --snapshot` produces installable artifacts on all 7 targets, wasm demo included
-- [ ] Signed release tags and changelog discipline verified from v0.1.0 onward
+  - The pass ran over every page and fixed the findings in the pages of this release: no em-dash, no bare link alias, no semicolon, and no banned modal. The older pages still carry 41 sentences over the 25-word limit of rule 6.3, and two released changelogs carry a banned modal. A follow-up change rewrites them.
+- [x] Compatibility notes: tested players and platforms matrix published
+  - [The compatibility page](docs/compatibility.md) carries the matrix, the evidence beside each claim, and the limits of the evidence.
+- [x] `goreleaser release --snapshot` produces installable artifacts on the six native targets
+  - The snapshot writes six archives, a source archive, and a checksums file, and the Linux archive runs after it is unpacked. The `wasm` demo moves to v1.0.0, because the build has no main package yet. The configured build id stays skipped until then.
+- [x] Signed release tags and changelog discipline verified from v0.1.0 onward
+  - Every tag from v0.2.0 carries a signature, and the v0.8.0 signature verifies against the maintainer key. Every release from v0.1.0 has a changelog file, and the index links each one. The release tag itself is created with `make tag`, which suggests the highest changelog and writes the notes link into the tag message.
 
 ### v1.0.0: stable
 - [ ] A performance audit with the Go profiling tools (`pprof` and `go tool trace`) as well as `strace` and `perf`, over the parse, the render, and the conversion of every format, with the bottlenecks it finds recorded and either fixed or documented

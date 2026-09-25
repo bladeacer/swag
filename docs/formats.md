@@ -32,7 +32,7 @@ A source file that carries no style table still gains one style, so a document a
 
 ## SubRip (srt)
 
-**Support.** The reader takes a cue counter, a timing line of the form `hh:mm:ss,mmm --> hh:mm:ss,mmm`, and one or more text lines. It understands two inline tags, `<i>` and `<b>`, and it keeps a line break inside the span that ends the line. The hour field may carry more than two digits. The writer emits the counter, the timing, the text with those two tags, and a lossy write appends [the integrity block](integrity.md).
+**Support.** The reader takes a cue counter, a timing line of the form `hh:mm:ss,mmm --> hh:mm:ss,mmm`, and one or more text lines. It understands two inline tags, `<i>` and `<b>`, and it keeps a line break inside the span that ends the line. The hour field can carry more than two digits. The writer emits the counter, the timing, the text with those two tags, and a lossy write appends [the integrity block](integrity.md).
 
 **Specification.** SubRip has no formal specification. The format comes from [the SubRip program](https://en.wikipedia.org/wiki/SubRip), and the description on [the YouTube caption support page](https://support.google.com/youtube/answer/2734698) covers the shape that upload accepts: plain UTF-8 with no markup. This project follows that common shape and adds the two tags that most tools read.
 
@@ -112,13 +112,13 @@ A lossy write appends [the integrity block](integrity.md) as a `NOTE` block, whi
 
 ## TTML (ttml)
 
-**Support.** The reader covers the YouTube TTML dialect. It reads the named styles of the `styling` section and the placements of the `layout` section, then maps a style onto the document styles and onto the spans of its paragraph. A style reference may extend another style, and the reader merges the chain. It maps a region onto the cue anchor and position. It reads the timing from the `begin` and `end` attributes, or from `begin` and `dur`, and the karaoke timing from the `begin` attribute of a run. It accepts the clock forms `HH:MM:SS`, `HH:MM:SS.mmm`, `HH:MM:SS:FF`, and `MM:SS`, plus the offset forms with an `h`, `m`, `s`, `ms`, or `f` unit.
+**Support.** The reader covers the YouTube TTML dialect. It reads the named styles of the `styling` section and the placements of the `layout` section, then maps a style onto the document styles and onto the spans of its paragraph. A style reference can extend another style, and the reader merges the chain. It maps a region onto the cue anchor and position. It reads the timing from the `begin` and `end` attributes, or from `begin` and `dur`, and the karaoke timing from the `begin` attribute of a run. It accepts the clock forms `HH:MM:SS`, `HH:MM:SS.mmm`, `HH:MM:SS:FF`, and `MM:SS`, plus the offset forms with an `h`, `m`, `s`, `ms`, or `f` unit.
 
 The writer emits general TTML: one `style` element per document style, one `region` element per cue placement, and one `p` element per cue with its inline spans. The inline form carries the font, the size, the bold, the italic, the underline, the strikeout, the foreground colour, the background colour, and the outline width.
 
 **Specification.** [TTML2](https://www.w3.org/TR/ttml2/) is the current Recommendation, and [TTML1](https://www.w3.org/TR/ttml1/) is the basis of the dialect that YouTube accepts on [the caption upload path](https://support.google.com/youtube/answer/2734698). This project reads the YouTube dialect and writes the general form, so the output suits any TTML reader.
 
-**Caveats and limitations.** The writer reports a cue fade, a cue move, an animation, a glyph scale, a shadow, vertical text, packing, a right-to-left marking, a script offset, ruby text, and a voice name. A ruby reading falls back to bracketed text. The writer emits clock times and no `ttp:` frame rate attributes, so a frame-based source writes as clock values. The reader takes a frame value as one thirtieth of a second, because it does not read the frame rate of the document. The reader is deliberately lenient, so it accepts a document that a strict validator would refuse.
+**Caveats and limitations.** The writer reports a cue fade, a cue move, an animation, a glyph scale, a shadow, vertical text, packing, a right-to-left marking, a script offset, ruby text, and a voice name. A ruby reading falls back to bracketed text. The writer emits clock times and no `ttp:` frame rate attributes, so a frame-based source writes as clock values. The reader takes a frame value as one thirtieth of a second, because it does not read the frame rate of the document. The reader is deliberately lenient, so it accepts a document that a strict validator refuses.
 
 A lossy write appends [the integrity block](integrity.md) as an XML comment inside the body. Every XML reader ignores a comment, so the document stays valid, and the block sits inside the root element.
 
@@ -130,7 +130,7 @@ The reader takes the start from `startPos` and the end from the event line. It t
 
 **Specification.** [The Kdenlive subtitle tool](https://docs.kdenlive.org/en/effects_and_filters/subtitles.html) documents the feature from the user side, and [the subtitle model source](https://invent.kde.org/multimedia/kdenlive/-/blob/master/src/bin/model/subtitlemodel.cpp) carries the file shape. The format has no published schema, so this reader follows the fields that Kdenlive writes.
 
-**Caveats and limitations.** The writer reports karaoke timing, positioning, an animation, inline styling, a glyph scale, vertical text, packing, a right-to-left marking, a script offset, ruby text, and a voice name. Kdenlive writes a start position in seconds as a floating point value, so a time below one microsecond cannot be carried exactly. The reader needs the dialogue field to hold a well formed event line; an element without one is an error rather than a skipped entry.
+**Caveats and limitations.** The writer reports karaoke timing, positioning, an animation, inline styling, a glyph scale, vertical text, packing, a right-to-left marking, a script offset, ruby text, and a voice name. Kdenlive writes a start position in seconds as a floating point value, so a time below one microsecond cannot be carried exactly. The reader needs the dialogue field to hold a well formed event line. An element without one is an error rather than a skipped entry.
 
 The format carries no integrity block. Kdenlive keeps a subtitle track as a strict JSON array, so the file has no place for a comment or a marker. The writer reports the loss, and a conversion through JSON1 keeps the content.
 

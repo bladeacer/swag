@@ -30,6 +30,7 @@ font = "Verdana"
 from = "ass"
 format = "vtt"
 preferred = [" srt ", "vtt", ""]
+jobs = 4
 
 [keybinds]
 input = "i"
@@ -39,6 +40,7 @@ quit = "q"
 	if err != nil {
 		t.Fatalf("Decode: %v", err)
 	}
+	jobs := 4
 	want := Settings{
 		Locale:       "en-US",
 		Verbose:      true,
@@ -48,6 +50,7 @@ quit = "q"
 		From:         "ass",
 		Format:       "vtt",
 		Preferred:    []string{"srt", "vtt"},
+		Jobs:         &jobs,
 		Keybinds:     map[string]string{"input": "i", "quit": "q"},
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -111,6 +114,7 @@ func TestLoadReadError(t *testing.T) {
 }
 
 func TestFlag(t *testing.T) {
+	jobs := 4
 	settings := Settings{
 		Locale:       "en-US",
 		Verbose:      true,
@@ -119,6 +123,7 @@ func TestFlag(t *testing.T) {
 		Font:         "Verdana",
 		From:         "ass",
 		Format:       "vtt",
+		Jobs:         &jobs,
 	}
 	tests := []struct {
 		name string
@@ -133,6 +138,7 @@ func TestFlag(t *testing.T) {
 		{"from", "ass", true},
 		{"format", "vtt", true},
 		{"target", "vtt", true},
+		{"jobs", 4, true},
 		{"output", nil, false},
 	}
 	for _, tt := range tests {
@@ -149,7 +155,7 @@ func TestFlag(t *testing.T) {
 // set", so the flag keeps its own default.
 func TestFlagEmptyStrings(t *testing.T) {
 	settings := Default()
-	for _, name := range []string{"locale", "font", "from", "format", "target"} {
+	for _, name := range []string{"locale", "font", "from", "format", "target", "jobs"} {
 		if _, ok := settings.Flag(name); ok {
 			t.Errorf("an empty %s must report false", name)
 		}

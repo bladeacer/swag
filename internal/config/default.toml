@@ -33,12 +33,16 @@
 # registered format.
 # preferred = ["srt", "vtt"]
 
-# The keys of the interactive mode. Each entry maps an action onto a key. The
-# keybinds land with the interactive keybind work, so the tool reads this
-# table and takes no action yet.
+# The conversions that run at once in a batch run, as -j does. The value
+# keeps two cores free when it is absent, and zero uses every core.
+# jobs = 4
+
+# The keys of the interactive mode. Each entry maps an action onto one key. An
+# empty value removes the binding. A modifier joins the parts with +, so
+# ctrl+shift+r is one key, and <leader> stands for the leader key. The actions
+# are accept, help, and quit, and the leader names the leader itself.
 # [keybinds]
-# input = "i"
-# target = "t"
-# output = "o"
-# convert = "c"
-# quit = "q"
+# leader = "ctrl+x"
+# accept = "<leader>a"
+# help = "<leader>?"
+# quit = "<leader>q"

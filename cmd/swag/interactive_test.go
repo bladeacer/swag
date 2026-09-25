@@ -65,7 +65,7 @@ func TestSwapExtension(t *testing.T) {
 
 func TestLinePrompterAsk(t *testing.T) {
 	var out strings.Builder
-	p := newPrompter(strings.NewReader("chosen.ass\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p := newPrompter(strings.NewReader("chosen.ass\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	answer, err := p.ask("Input file", "default.ass")
 	if err != nil {
 		t.Fatalf("ask: %v", err)
@@ -79,7 +79,7 @@ func TestLinePrompterAsk(t *testing.T) {
 
 	// An empty answer takes the default.
 	out.Reset()
-	p = newPrompter(strings.NewReader("\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p = newPrompter(strings.NewReader("\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	answer, err = p.ask("Input file", "default.ass")
 	if err != nil {
 		t.Fatalf("ask: %v", err)
@@ -93,7 +93,7 @@ func TestLinePrompterAsk(t *testing.T) {
 // default value.
 func TestLinePrompterAskWithoutDefault(t *testing.T) {
 	var out strings.Builder
-	p := newPrompter(strings.NewReader("in.ass\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p := newPrompter(strings.NewReader("in.ass\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	answer, err := p.ask("Input file", "")
 	if err != nil {
 		t.Fatalf("ask: %v", err)
@@ -105,7 +105,7 @@ func TestLinePrompterAskWithoutDefault(t *testing.T) {
 		t.Fatalf("a bare prompt must carry no empty default: %q", out.String())
 	}
 	// An empty answer to a bare prompt returns the empty default.
-	p = newPrompter(strings.NewReader("\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p = newPrompter(strings.NewReader("\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	answer, err = p.ask("Input file", "")
 	if err != nil {
 		t.Fatalf("ask: %v", err)
@@ -117,14 +117,14 @@ func TestLinePrompterAskWithoutDefault(t *testing.T) {
 
 func TestLinePrompterAskReadError(t *testing.T) {
 	var out strings.Builder
-	p := newPrompter(strings.NewReader(""), &out, i18n.New("en-GB")).(*linePrompter)
+	p := newPrompter(strings.NewReader(""), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	if _, err := p.ask("Input file", "default"); err == nil {
 		t.Fatal("an empty input must fail the read")
 	}
 }
 
 func TestLinePrompterAskWriteError(t *testing.T) {
-	p := newPrompter(strings.NewReader("x\n"), &failAtWriter{failAt: 1}, i18n.New("en-GB")).(*linePrompter)
+	p := newPrompter(strings.NewReader("x\n"), &failAtWriter{failAt: 1}, i18n.New("en-GB"), nil).(*linePrompter)
 	if _, err := p.ask("Input file", "default"); err == nil {
 		t.Fatal("a failing sink must surface the error")
 	}
@@ -134,7 +134,7 @@ func TestLinePrompterAskChoice(t *testing.T) {
 	options := []string{"ass", "srt", "vtt"}
 	var out strings.Builder
 
-	p := newPrompter(strings.NewReader("2\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p := newPrompter(strings.NewReader("2\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	answer, err := p.askChoice("Target format", options, "ass")
 	if err != nil {
 		t.Fatalf("askChoice: %v", err)
@@ -147,13 +147,13 @@ func TestLinePrompterAskChoice(t *testing.T) {
 	}
 
 	// A name picks the option too.
-	p = newPrompter(strings.NewReader("VTT\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p = newPrompter(strings.NewReader("VTT\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	if answer, err = p.askChoice("Target format", options, "ass"); err != nil || answer != "vtt" {
 		t.Fatalf("askChoice by name = %q, %v", answer, err)
 	}
 
 	// An empty answer takes the default.
-	p = newPrompter(strings.NewReader("\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p = newPrompter(strings.NewReader("\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	if answer, err = p.askChoice("Target format", options, "ass"); err != nil || answer != "ass" {
 		t.Fatalf("askChoice default = %q, %v", answer, err)
 	}
@@ -164,25 +164,25 @@ func TestLinePrompterAskChoiceErrors(t *testing.T) {
 	var out strings.Builder
 
 	// A number outside the list is refused.
-	p := newPrompter(strings.NewReader("9\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p := newPrompter(strings.NewReader("9\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	if _, err := p.askChoice("Target format", options, "ass"); err == nil {
 		t.Fatal("an out-of-range number must fail")
 	}
 
 	// So is an unknown name.
-	p = newPrompter(strings.NewReader("docx\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p = newPrompter(strings.NewReader("docx\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	if _, err := p.askChoice("Target format", options, "ass"); err == nil {
 		t.Fatal("an unknown name must fail")
 	}
 
 	// A locale catalogue with no options has nothing to choose.
-	p = newPrompter(strings.NewReader("\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p = newPrompter(strings.NewReader("\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	if _, err := p.askChoice("Target format", nil, "ass"); err == nil {
 		t.Fatal("an empty option list must fail")
 	}
 
 	// A read error surfaces.
-	p = newPrompter(strings.NewReader(""), &out, i18n.New("en-GB")).(*linePrompter)
+	p = newPrompter(strings.NewReader(""), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	if _, err := p.askChoice("Target format", options, "ass"); err == nil {
 		t.Fatal("an empty input must fail the read")
 	}
@@ -190,7 +190,7 @@ func TestLinePrompterAskChoiceErrors(t *testing.T) {
 	// So does a write error on every line of the question: the label, an
 	// option, and the pick line.
 	for _, failAt := range []int{1, 2, len(options) + 2} {
-		p = newPrompter(strings.NewReader("1\n"), &failAtWriter{failAt: failAt}, i18n.New("en-GB")).(*linePrompter)
+		p = newPrompter(strings.NewReader("1\n"), &failAtWriter{failAt: failAt}, i18n.New("en-GB"), nil).(*linePrompter)
 		if _, err := p.askChoice("Target format", options, "ass"); err == nil {
 			t.Errorf("a sink that fails on write %d must surface the error", failAt)
 		}
@@ -201,7 +201,7 @@ func TestLinePrompterAskChoiceErrors(t *testing.T) {
 // question with no default, which carries no value to name.
 func TestLinePrompterAskChoiceWithoutDefault(t *testing.T) {
 	var out strings.Builder
-	p := newPrompter(strings.NewReader("1\n"), &out, i18n.New("en-GB")).(*linePrompter)
+	p := newPrompter(strings.NewReader("1\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	answer, err := p.askChoice("Target format", []string{"ass", "srt"}, "")
 	if err != nil {
 		t.Fatalf("askChoice: %v", err)
@@ -218,7 +218,7 @@ func TestLinePrompterAskChoiceWithoutDefault(t *testing.T) {
 // end of the input without a newline.
 func TestLinePrompterLastLineWithoutNewline(t *testing.T) {
 	var out strings.Builder
-	p := newPrompter(strings.NewReader("vtt"), &out, i18n.New("en-GB")).(*linePrompter)
+	p := newPrompter(strings.NewReader("vtt"), &out, i18n.New("en-GB"), nil).(*linePrompter)
 	answer, err := p.ask("Target format", "")
 	if err != nil {
 		t.Fatalf("ask: %v", err)
@@ -600,5 +600,209 @@ func TestRunInteractiveStrictCompat(t *testing.T) {
 func TestInteractiveHelpPage(t *testing.T) {
 	if code := run([]string{"interactive", "--help"}); code != 0 {
 		t.Fatalf("run exit code = %d, want 0", code)
+	}
+}
+
+// keymapFor builds a keymap from the built-in bindings, so a test can press
+// a key by its notation.
+func keymapFor(t *testing.T, overrides map[string]string) *tui.Keymap {
+	t.Helper()
+	keymap, err := tui.NewKeymap(overrides)
+	if err != nil {
+		t.Fatalf("NewKeymap: %v", err)
+	}
+	return keymap
+}
+
+// TestLinePrompterKeybinds covers the three bindings of the prompt loop: the
+// accept key takes the default, the help key prints the bindings and asks
+// again, and the quit key stops the run.
+func TestLinePrompterKeybinds(t *testing.T) {
+	keys := keymapFor(t, nil)
+	var out strings.Builder
+
+	// ctrl+x a answers with the empty string, which the caller reads as its
+	// default value.
+	p := newPrompter(strings.NewReader("\x18a\n"), &out, i18n.New("en-GB"), keys).(*linePrompter)
+	answer, err := p.ask("Output file", "in.vtt")
+	if err != nil {
+		t.Fatalf("ask with the accept key: %v", err)
+	}
+	if answer != "in.vtt" {
+		t.Fatalf("ask = %q, want the default", answer)
+	}
+
+	// ctrl+x ? prints the bindings and reads the next line.
+	out.Reset()
+	p = newPrompter(strings.NewReader("\x18?\nchosen.vtt\n"), &out, i18n.New("en-GB"), keys).(*linePrompter)
+	answer, err = p.ask("Output file", "")
+	if err != nil {
+		t.Fatalf("ask after the help key: %v", err)
+	}
+	if answer != "chosen.vtt" {
+		t.Fatalf("ask = %q, want the answer after the help", answer)
+	}
+	if !strings.Contains(out.String(), "<leader>a") || !strings.Contains(out.String(), "accept") {
+		t.Fatalf("the help must name the bindings:\n%s", out.String())
+	}
+
+	// ctrl+x q stops the run.
+	p = newPrompter(strings.NewReader("\x18q\n"), &out, i18n.New("en-GB"), keys).(*linePrompter)
+	if _, err := p.ask("Output file", ""); !errors.Is(err, errInteractiveQuit) {
+		t.Fatalf("ask with the quit key = %v, want the quit sentinel", err)
+	}
+
+	// A failing sink on a help row surfaces.
+	p = newPrompter(strings.NewReader("\x18?\n\n"), &failAtWriter{failAt: 2}, i18n.New("en-GB"), keys).(*linePrompter)
+	if _, err := p.ask("Output file", ""); err == nil {
+		t.Fatal("a failing help sink must surface the error")
+	}
+
+	// A quit key inside a question that lists options works the same way.
+	p = newPrompter(strings.NewReader("\x18q\n"), &out, i18n.New("en-GB"), keys).(*linePrompter)
+	if _, err := p.askChoice("Target format", []string{"srt", "vtt"}, "srt"); !errors.Is(err, errInteractiveQuit) {
+		t.Fatalf("askChoice with the quit key = %v, want the quit sentinel", err)
+	}
+}
+
+// TestLinePrompterWithoutKeymap proves a prompt with no keymap treats every
+// line as an answer, so the plain path stays.
+func TestLinePrompterWithoutKeymap(t *testing.T) {
+	var out strings.Builder
+	p := newPrompter(strings.NewReader("\x18q\n"), &out, i18n.New("en-GB"), nil).(*linePrompter)
+	answer, err := p.ask("Output file", "in.vtt")
+	if err != nil {
+		t.Fatalf("ask: %v", err)
+	}
+	if answer != "\x18q" {
+		t.Fatalf("ask = %q, want the typed line", answer)
+	}
+}
+
+// TestInteractiveCmdRunQuit covers a user who quits at the first question.
+// The command stops cleanly, and it writes nothing.
+func TestInteractiveCmdRunQuit(t *testing.T) {
+	dir := t.TempDir()
+	var screen strings.Builder
+	scriptInteractive(t, "\x18q\n", &screen)
+
+	cmd := &InteractiveCmd{}
+	if err := cmd.Run(newRunContext(false)); err != nil {
+		t.Fatalf("a quit must stop the command cleanly: %v", err)
+	}
+	if !strings.Contains(screen.String(), "No file was written") {
+		t.Fatalf("a quit must say that nothing was written:\n%s", screen.String())
+	}
+	if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
+		t.Fatalf("a quit must write no file: %v, %v", entries, err)
+	}
+}
+
+// TestInteractiveCmdRunQuitWriteError covers a screen that fails on the
+// quit message.
+func TestInteractiveCmdRunQuitWriteError(t *testing.T) {
+	// Write one is the question, and write two is the quit message.
+	scriptInteractive(t, "\x18q\n", &failAtWriter{failAt: 2})
+	if err := (&InteractiveCmd{}).Run(newRunContext(false)); err == nil {
+		t.Fatal("a failing quit message must fail the command")
+	}
+}
+
+// TestInteractiveCmdRunAcceptsTheDefaults covers the accept key on the
+// input question, whose default is empty, so the command refuses the empty
+// path the same way a bare Enter does.
+func TestInteractiveCmdRunAcceptsTheDefaults(t *testing.T) {
+	var screen strings.Builder
+	scriptInteractive(t, "\x18a\n", &screen)
+
+	cmd := &InteractiveCmd{}
+	if err := cmd.Run(newRunContext(false)); err == nil {
+		t.Fatal("an accepted empty input must fail the input check")
+	}
+}
+
+// TestInteractiveCmdRunHelpAndAnswers covers the help key in the middle of
+// the questions, which prints the bindings and asks again.
+func TestInteractiveCmdRunHelpAndAnswers(t *testing.T) {
+	dir := t.TempDir()
+	in := filepath.Join(dir, "in.srt")
+	if err := os.WriteFile(in, []byte(srtFixture), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	out := filepath.Join(dir, "out.vtt")
+	var screen strings.Builder
+	// The help key, the input answer, the target answer, and the output
+	// answer.
+	scriptInteractive(t, "\x18?\n"+in+"\nvtt\n"+out+"\n", &screen)
+
+	cmd := &InteractiveCmd{}
+	if err := cmd.Run(newRunContext(false)); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if !strings.Contains(screen.String(), "accept") {
+		t.Fatalf("the help rows are missing:\n%s", screen.String())
+	}
+	if _, err := os.Stat(out); err != nil {
+		t.Fatalf("output missing: %v", err)
+	}
+}
+
+// TestInteractiveCmdRunKeybindsFromSettings covers the keybind table of the
+// configuration, which moves the leader and removes a binding.
+func TestInteractiveCmdRunKeybindsFromSettings(t *testing.T) {
+	dir := t.TempDir()
+	in := filepath.Join(dir, "in.srt")
+	if err := os.WriteFile(in, []byte(srtFixture), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	var screen strings.Builder
+
+	ictx := newRunContext(false)
+	ictx.Settings.Keybinds = map[string]string{"leader": "ctrl+a", "accept": "ctrl+d"}
+	// The new accept key answers with the empty string, so the input check
+	// refuses it.
+	scriptInteractive(t, "\x04\n", &screen)
+	cmd := &InteractiveCmd{}
+	if err := cmd.Run(ictx); err == nil {
+		t.Fatal("the accept key of the configuration must take the default")
+	}
+}
+
+// TestInteractiveCmdRunBadKeybinds covers a keybind table that names an
+// action the mode does not run, which stops the command before a question.
+func TestInteractiveCmdRunBadKeybinds(t *testing.T) {
+	var screen strings.Builder
+	scriptInteractive(t, "", &screen)
+
+	ictx := newRunContext(false)
+	ictx.Settings.Keybinds = map[string]string{"next": "n"}
+	if err := (&InteractiveCmd{}).Run(ictx); err == nil {
+		t.Fatal("an unknown keybind action must fail the command")
+	}
+}
+
+// TestRunInteractiveWithConfigKeybinds covers the whole path: the file
+// moves the leader to ctrl+a, and the run takes its default output.
+func TestRunInteractiveWithConfigKeybinds(t *testing.T) {
+	dir := t.TempDir()
+	in := filepath.Join(dir, "in.srt")
+	if err := os.WriteFile(in, []byte(srtFixture), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	configFile := filepath.Join(dir, "config.toml")
+	body := "[keybinds]\nleader = \"ctrl+a\"\n"
+	if err := os.WriteFile(configFile, []byte(body), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	t.Setenv("SWAG_CONFIG", configFile)
+	var screen strings.Builder
+	scriptInteractive(t, in+"\nvtt\n\x01a\n", &screen)
+
+	code := run([]string{"interactive"})
+	if code != 0 {
+		t.Fatalf("run exit code = %d, want 0", code)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "in.vtt")); err != nil {
+		t.Fatalf("the accepted default output is missing: %v", err)
 	}
 }

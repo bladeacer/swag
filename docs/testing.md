@@ -16,6 +16,7 @@ Several suites sit above the package tests:
 - [The voice span suite](../pkg/sub/voice_test.go) pins what each format does with a speaker name, from the formats that keep it to the ones that report the loss.
 - [The command line suite](../cmd/swag/main_test.go) walks every registered target through the real command and back, including the bare run and the default command form.
 - [The renderer suite](../internal/tui/tui_test.go) proves the layout diff: an unchanged frame writes no bytes, a changed frame repaints only the changed rows, and a shorter frame clears the rows it leaves out.
+- [The palette suite](../internal/tui/palette_test.go) covers the terminal palette probe: the OSC 4, 10, and 11 queries, the reply forms, a partial answer, and the plain fallback when a terminal stays silent.
 - [The interactive suite](../cmd/swag/interactive_test.go) drives the prompts and the frames through a scripted reader, so a whole conversion runs with no terminal.
 - [The batch and preview suites](../cmd/swag/batch_test.go) cover the directory walk, the target list, the output directory, and the preview rows.
 - [The configuration suite](../internal/config/config_test.go) covers the location rule of every platform, the two environment overrides, and the failure of a platform with no home directory.

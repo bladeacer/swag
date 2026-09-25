@@ -30,7 +30,7 @@ GOOS=freebsd GOARCH=arm64 go build -o swag ./cmd/swag
 
 No build tag and no code generation step stands in the way, so the same command works for `go install`.
 
-[The file integrity page](integrity.md) notes the one place where the platform matters: a damaged integrity block fails the read on every platform, and the block carries no platform specific data.
+[The file integrity page](integrity.md) notes the one place where the platform matters. A damaged integrity block fails the read on every platform, and the block carries no platform specific data.
 
 ## Install the command with Go
 

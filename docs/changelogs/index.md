@@ -6,10 +6,10 @@ Unreleased work lands in the file for the next planned version. The release comm
 
 ## Releases
 
-- [v0.9.0, configuration, compatibility, and the release candidate](v0.9.0.md): the configuration file, `--strict-compat`, the interactive keybinds, the system locale, the parallel batch, and the frozen public API (unreleased)
-- [v0.8.0, the terminal interface and command line ergonomics](v0.8.0.md): the interactive command, the layout-diffing renderer, the input format flag, a short form for every flag, the themed banner, and the WebVTT and TTML integrity block (unreleased)
-- [v0.7.0, library hardening and format integrity](v0.7.0.md): the configured conversion API, the integrity block of the plain formats, the JSON1 version chain, the voice span, the widened loss reports, the cross-check chains, the fuzzing, the benchmarks, the second locale, and the user guide (unreleased)
-- [v0.6.0, the ASS tag closure and new formats](v0.6.0.md): the Aegisub overrides, the chroma colours, the karaoke cursor forms, and the TTML, WebVTT, Kdenlive, and JSON1 formats (unreleased)
+- [v0.9.0, configuration, compatibility, and the release candidate](v0.9.0.md): the configuration file, the interactive keybinds, the system locale, and the parallel batch (unreleased)
+- [v0.8.0, the terminal interface and command line ergonomics](v0.8.0.md): the interactive command, the layout-diffing renderer, and the WebVTT and TTML integrity block (unreleased)
+- [v0.7.0, library hardening and format integrity](v0.7.0.md): the configured conversion API, the integrity block of the plain formats, and the JSON1 version chain (unreleased)
+- [v0.6.0, the ASS tag closure and new formats](v0.6.0.md): the Aegisub overrides, the chroma colours, and the TTML, WebVTT, Kdenlive, and JSON1 formats (unreleased)
 - [v0.5.0, the ASS writer](v0.5.0.md): the ASS writer, the architecture split, and full statement coverage (unreleased)
 - [v0.4.0, the ASS reader](v0.4.0.md): styles, karaoke, animations, ruby, and vertical text (unreleased)
 - [v0.3.0, the YouTube pair](v0.3.0.md): YTT and SRV3 in and out (unreleased)

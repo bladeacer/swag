@@ -16,7 +16,7 @@ The maintainers license this project under [the Apache License 2.0](../LICENSE).
 
 `swag` is a clean-room reimagining (not just reimplementation) of the feature set of YTSubConverter. We thank the YTSubConverter authors for documenting the YouTube subtitle feature set, the platform quirks, and the ASS tag behaviour that `swag` reproduces.
 
-Clean-room statement: the maintainers studied the behaviour and public documentation of YTSubConverter and wrote all `swag` code from scratch. `swag` contains no code, comments, or data tables from YTSubConverter. Where `swag` reproduces a behaviour (for example, the YouTube font allow-list, the opacity ceiling, or the Android dark text workaround), it does so with its own expression and its own tests.
+Clean-room statement: the maintainers studied the behaviour and public documentation of YTSubConverter and wrote all `swag` code from scratch. `swag` contains no code, comments, or data tables from YTSubConverter. `swag` reproduces some behaviours of YTSubConverter with its own expression and its own tests. The YouTube font allow-list, the opacity ceiling, and the Android dark text workaround are examples.
 
 [The sample fetch script](../scripts/fetch-samples.sh) downloads upstream sample files at test time for the end-to-end tests. The files land in the ignored `testdata/upstream/` directory and stay out of the repository. The tests skip when the files are absent.
 
@@ -38,7 +38,7 @@ Clean-room statement: the maintainers studied the behaviour and public documenta
 | Licence | [the MIT licence](https://github.com/muesli/termenv/blob/master/LICENSE) |
 | Use | Reference for the terminal palette query sequence |
 
-The plan for the terminal palette follows the sequence that termenv documents in public: a wait on the file descriptor, a change of the terminal mode, and a cursor position sentinel. No termenv code or comments are copied into this repository. [The terminal palette page](terminal-palette.md) records the plan.
+The plan for the terminal palette follows the sequence that termenv documents in public. It waits on the file descriptor, changes the terminal mode, and writes a cursor position sentinel. No termenv code or comments are copied into this repository. [The terminal palette page](terminal-palette.md) records the plan.
 
 ## Vendored agent skill
 

@@ -75,6 +75,20 @@ func TestReaderParseCounterOptional(t *testing.T) {
 	}
 }
 
+// TestReaderKeepsASignedTextLine proves the counter test reads decimal
+// digits only. A signed number is text, not a cue counter, so the reader
+// keeps it.
+func TestReaderKeepsASignedTextLine(t *testing.T) {
+	input := "00:00:01,000 --> 00:00:02,000\n-1\n"
+	doc, err := NewReader().Parse(strings.NewReader(input))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if len(doc.Cues) != 1 || doc.Cues[0].Text() != "-1" {
+		t.Fatalf("a signed line must stay text: %+v", doc.Cues)
+	}
+}
+
 func TestReaderParseBadTiming(t *testing.T) {
 	input := "1\nnot a time --> also not\nBroken.\n"
 	if _, err := NewReader().Parse(strings.NewReader(input)); err == nil {

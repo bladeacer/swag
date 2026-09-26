@@ -111,22 +111,24 @@ func parseTiming(line string) (time.Duration, time.Duration, error) {
 	return start, end, nil
 }
 
-// parseTimestamp parses h:mm:ss.mmm; the hours field may carry more than
-// one digit.
+// parseTimestamp parses h:mm:ss.mmm. The hours field can carry more than
+// one digit. It finds the two colons instead of splitting the string, so a
+// parse builds no slice for the parts.
 func parseTimestamp(ts string) (time.Duration, error) {
-	parts := strings.Split(ts, ":")
-	if len(parts) != 3 {
+	if strings.Count(ts, ":") != 2 {
 		return 0, fmt.Errorf("parse sbv timestamp %q: want h:mm:ss.mmm", ts)
 	}
-	h, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+	first := strings.Index(ts, ":")
+	second := first + 1 + strings.Index(ts[first+1:], ":")
+	h, err := strconv.Atoi(strings.TrimSpace(ts[:first]))
 	if err != nil {
 		return 0, fmt.Errorf("parse sbv timestamp %q: bad hours", ts)
 	}
-	m, err := strconv.Atoi(parts[1])
+	m, err := strconv.Atoi(ts[first+1 : second])
 	if err != nil {
 		return 0, fmt.Errorf("parse sbv timestamp %q: bad minutes", ts)
 	}
-	sec, err := strconv.ParseFloat(parts[2], 64)
+	sec, err := strconv.ParseFloat(ts[second+1:], 64)
 	if err != nil {
 		return 0, fmt.Errorf("parse sbv timestamp %q: bad seconds", ts)
 	}

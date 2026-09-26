@@ -22,7 +22,9 @@ Several suites sit above the package tests:
 - [The key reader suite](../internal/tui/reader_test.go) covers the line prompt, the timeout sequence, the text fallback, and the echo.
 - [The key source suite](../cmd/swag/keysource_test.go) covers the stream source, the terminal source, and the raw setup, with the terminal calls injected.
 - [The batch and preview suites](../cmd/swag/batch_test.go) cover the directory walk, the target list, the output directory, and the preview rows.
-- [The configuration suite](../internal/config/config_test.go) covers the location rule of every platform, the two environment overrides, the working directory file name, and the failure of a platform with no home directory. [The settings suite](../internal/config/settings_test.go) covers the decode, a broken document, a value of the wrong type, a duplicate key, an unknown setting, the merge of two files, the decode cache, and the file at the repository root. [The command line configuration suite](../cmd/swag/config_test.go) covers the chain from the flag to the working directory file, then the global file, then the built-in default.
+- [The configuration suite](../internal/config/config_test.go) covers the location rule of every platform, the two environment overrides, the working directory file name, and the failure of a platform with no home directory. [The settings suite](../internal/config/settings_test.go) covers the decode, a broken document, a value of the wrong type, a duplicate key, an unknown setting, the merge of two files, the decode cache, the merge cache, and the file at the repository root. [The command line configuration suite](../cmd/swag/config_test.go) walks the whole precedence chain in one table: the command line flag, then the working directory file, then the global file, then the built-in default.
+
+Tests reuse the shipped [default configuration file](../swag.toml) for the default case. [The settings suite](../internal/config/settings_test.go) decodes the embedded copy and the root copy, so neither drifts. A configuration variant that a test needs goes under `internal/config/testdata/`, so the repository root stays free of stray files. [The command line suite](../cmd/swag/main_test.go) points `SWAG_CONFIG_DIR` at a temporary directory, so the suite never reads the global configuration file of the machine that runs it.
 
 ## Fuzzing
 
@@ -40,7 +42,7 @@ go test ./pkg/sub/ -run=^$ -fuzz=^FuzzParseASS$ -fuzztime=30s
 
 ## Benchmarks
 
-[The benchmark file](../pkg/sub/bench_test.go) builds a document with ten thousand cues and measures the parse, the render, and the conversion in every registered format.
+[The benchmark file](../pkg/sub/bench_test.go) builds a document with ten thousand cues and measures the parse, the render, and the conversion in every registered format. The conversion run covers the conversion into SubRip itself, so every cell of the conversion table carries a number.
 
 ```sh
 make bench

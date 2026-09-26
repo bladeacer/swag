@@ -1,6 +1,6 @@
-# swag roadmap to v1.0.0
+# swag roadmap to v1.1.0
 
-`swag` (Subtitles With A Gopher) is a clean-room Go library and CLI for reading, writing, and converting subtitles. This document fixes the scope and the ordered milestones to v1.0.0. The architecture, the intermediate representation, the format matrix, and the ASS tag tiers live in [the architecture page](docs/architecture.md). Agent contributors: tick a checkbox in the same change that completes the work behind it. Documentation follows the vendored `simple-english` skill with the British English override, as [the contributor rules](AGENTS.md) describe.
+`swag` (Subtitles With A Gopher) is a clean-room Go library and CLI for reading, writing, and converting subtitles. This document fixes the scope and the ordered milestones to v1.1.0. The architecture, the intermediate representation, the format matrix, and the ASS tag tiers live in [the architecture page](docs/architecture.md). Agent contributors: tick a checkbox in the same change that completes the work behind it. Documentation follows the vendored `simple-english` skill with the British English override, as [the contributor rules](AGENTS.md) describe.
 
 We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as the source of inspiration for the feature set. We wrote all code from scratch. See [the third-party notices](docs/third-party-notices.md).
 
@@ -152,20 +152,41 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 - [x] The full configuration chain: the command line flag, then the working directory file, then the global file, then the built-in default
   - `internal/config.Merge` layers the two files setting by setting, and the `keybinds` table merges action by action. `cmd/swag/config.go` reads both files, and the `config` command reports both paths. [The configuration page](docs/configuration.md) records the chain.
 - [x] The active default file moves to the repository root as `swag.toml`, and a test keeps the embedded copy in step
-  - [The configuration page](docs/configuration.md), [the documentation index](docs/index.md), and [the README](README.md) link the root file. The keybinds table stays active, so writing or reading the file changes no behaviour.
+  - [The configuration page](docs/configuration.md), [the documentation index](docs/index.md), and [the README](README.md) link the root file. Every fixed setting is active with its built-in default value, so writing or reading the file changes no behaviour.
 - [x] The decoded configuration is cached by path, size, and modification time
   - A changed file is read again, and an unchanged path serves the kept result. [The performance audit](docs/performance.md) records the cached lookup at about half a microsecond against a decode near 40 microseconds.
 - [x] Fuzz targets for the configuration decoder and the keybind token parser, wired into [the nightly fuzz workflow](.github/workflows/fuzz.yml)
   - The workflow now runs twelve targets, and [the testing notes](docs/testing.md) record the new properties.
 - [x] More tests for the YouTube font fallback and the platform quirks
   - `internal/formats/ytt/quirks_test.go` pins the font table, the Roboto fallback, the small caps snap, the shadow space, the opacity ceiling, the white shift, the dark lift, and the scale round trip.
+- [x] The readers reuse their span slices and skip the parser error on a text line, so the SubRip parse allocates half as many objects and the YouTube pair allocates fewer bytes
+  - The SubRip span splitter appends into the cue, the counter test rejects a non-digit before the parser call, and the timestamp parsers find the colons instead of splitting. [The performance audit](docs/performance.md) carries the numbers.
+- [x] The merged configuration result is cached, and the command line suite walks the whole precedence chain
+  - `internal/config.LoadMerged` keys the merge on both paths and both file stamps. `TestPrecedenceChain` covers the flag, the working directory file, the global file, and the built-in default in one table.
 
-## Stretch goals (post-1.0 candidates)
+### v1.1.0: performance and the smaller fixes
+
+- [ ] A writer path that pre-sizes its output slice, so a writer stops growing a slice many times
+- [ ] A streaming envelope reader, so `envelope.ReadLines` does not build a full slice of lines
+- [ ] A cached ruby grouping, so `model.RubyGroups` does not rebuild the grouping for every cue
+- [ ] A lighter configuration reader, so the first decode of a file costs less than it does today
+- [ ] A second full performance audit over the command with `hyperfine`, `strace`, `perf`, `pprof`, and `go tool trace`, and a fresh number for every open item
+  - [The performance audit page](docs/performance.md) holds the first numbers and the open items. Each item moves to this milestone, so the work is tracked rather than lost.
+
+## Post-1.1 candidates
+
+### Formats
+
+- [ ] Survey the subtitle formats that the tool does not support, and add the ones that carry the most value. The candidates include SSA version 4, MicroDVD, SAMI, WebVTT regions and chapters, Universal Subtitle Format, and the broadcast formats below.
+- [ ] SCC/CEA-608 writer on the 32-column grid
+- [ ] FCPXML caption writer for NLE round-trips
+
+### Interfaces
+
+- [ ] Plugin registry for third-party formats (a Go interface and a registration hook)
+- [ ] Simple subtitle editor: start terminal-native with pterm (cue list editor, style editor, live karaoke preview). Web (WASM and a light widget layer) after 1.0 if the terminal editor finds users. Native widget toolkit stays out of scope until then.
+
+### Theming
 
 - [ ] Theming for the command line, with the system theme as the default. The open question is how to read the palette of the terminal, because no portable interface exists. The candidates are the OSC 4, 10, and 11 queries, the `COLORTERM` and `TERM` variables, and a theme file. A query that gets no answer falls back to a plain theme, and every command keeps working without colour.
   - [The terminal palette page](docs/terminal-palette.md) records the findings and the plan. A prototype lives in `internal/tui/palette.go`. It sends the OSC 4, 10, and 11 queries. It reads the replies in the xterm `rgb:rrrr/gggg/bbbb` form and the `#rrggbb` form, and it returns a plain palette when the write fails or the timeout expires. The read runs on a goroutine with a timeout, because a terminal keeps its input open after the answers. The prototype settles part of the question: a terminal that implements the queries answers them, and a terminal that ignores them costs one short wait. It also names the next step. A command that calls the probe must first put the terminal in raw mode and set a read deadline. Without that step, the reading goroutine consumes the next line the user types. No command calls the prototype yet, so the theme of a run stays unchanged.
-- [ ] Survey the subtitle formats that the tool does not support, and add the ones that carry the most value. The candidates include SSA version 4, MicroDVD, SAMI, WebVTT regions and chapters, Universal Subtitle Format, and the broadcast formats below.
-- [ ] Simple subtitle editor: start terminal-native with pterm (cue list editor, style editor, live karaoke preview). Web (WASM + a light widget layer) after 1.0 if the terminal editor finds users. Native widget toolkit stays out of scope until then.
-- [ ] SCC/CEA-608 writer on the 32-column grid
-- [ ] FCPXML caption writer for NLE round-trips
-- [ ] Plugin registry for third-party formats (Go interface + registration hook)

@@ -7,7 +7,7 @@ Getting started:
 - [the install page](install.md): the ways to install the command, the platform support, and the tools for the development loop
 - [the usage page](usage.md): the flags, the interactive mode, the batch conversion, the preview, the format detection, and the exit codes
 - [the configuration page](configuration.md): where the configuration file lives on each platform, how to move it, and the available settings
-- [the default configuration file](../swag.toml): the file that `swag config --init` writes, with the built-in keybinds as active entries
+- [the default configuration file](../swag.toml): the file that `swag config --init` writes, with the built-in defaults as active entries
 - [the library guide](library.md): the public API with a worked example, and the v1.0.0 stability guarantee
 - [the migration guide](migration.md): how to move a YTSubConverter workflow onto `swag`
 
@@ -28,7 +28,7 @@ Reference and governance:
 - [the performance audit](performance.md): the tools, the numbers of every format, the bottlenecks, and the fixes
 - [the browser demo](demo/index.html): the WebAssembly build that converts a document in the browser
 - [the testing notes](testing.md): coverage, fuzzing, and benchmarks
-- [the roadmap](../ROADMAP.md): scope and the ordered milestones to v1.0.0
+- [the roadmap](../ROADMAP.md): scope and the ordered milestones to v1.1.0
 - [the contributor rules](../AGENTS.md): conventions for agent contributors, including the documentation language
 - [the third-party notices](third-party-notices.md): the works this project builds on and their licences
 

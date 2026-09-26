@@ -394,3 +394,85 @@ func TestConfigInitWriteError(t *testing.T) {
 		t.Fatal("an unwritable path must fail the command")
 	}
 }
+
+// TestPrecedenceChain proves the whole resolution order in one place: the
+// command line flag wins over the working directory file, which wins over
+// the global file, which wins over the built-in default. Each case converts
+// the same ASS fixture and reads the font of the output, because the font
+// arrives from whichever source wins.
+func TestPrecedenceChain(t *testing.T) {
+	tests := []struct {
+		name     string
+		global   string
+		local    string
+		flag     []string
+		want     string
+		unwanted []string
+	}{
+		{
+			name:     "built-in default",
+			want:     "Arial",
+			unwanted: []string{"Verdana", "Courier New", "Courier"},
+		},
+		{
+			name:     "global file",
+			global:   "font = \"Verdana\"\n",
+			want:     "Verdana",
+			unwanted: []string{"Arial", "Courier New"},
+		},
+		{
+			name:     "working directory file",
+			global:   "font = \"Verdana\"\n",
+			local:    "font = \"Courier New\"\n",
+			want:     "Courier New",
+			unwanted: []string{"Verdana", "Arial"},
+		},
+		{
+			name:     "command line flag",
+			global:   "font = \"Verdana\"\n",
+			local:    "font = \"Courier New\"\n",
+			flag:     []string{"-n", "Courier"},
+			want:     "Courier",
+			unwanted: []string{"Verdana", "Courier New", "Arial"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			globalPath := filepath.Join(t.TempDir(), "config.toml")
+			if tt.global != "" {
+				if err := os.WriteFile(globalPath, []byte(tt.global), 0o644); err != nil {
+					t.Fatalf("write the global file: %v", err)
+				}
+			}
+			t.Setenv("SWAG_CONFIG", globalPath)
+
+			dir := t.TempDir()
+			if tt.local != "" {
+				if err := os.WriteFile(filepath.Join(dir, config.LocalFileName), []byte(tt.local), 0o644); err != nil {
+					t.Fatalf("write the working directory file: %v", err)
+				}
+			}
+			withWorkingDir(t, dir)
+
+			in := writeSubtitle(t, "in.ass", assKaraokeFixture)
+			out := filepath.Join(t.TempDir(), "out.ass")
+			args := append([]string{"-i", in, "-o", out}, tt.flag...)
+			capturePterm(t)
+			if code := run(args); code != 0 {
+				t.Fatalf("run exit code = %d, want 0", code)
+			}
+			data, err := os.ReadFile(out)
+			if err != nil {
+				t.Fatalf("read the output: %v", err)
+			}
+			if !strings.Contains(string(data), tt.want) {
+				t.Errorf("the output does not carry %q: %s", tt.want, data)
+			}
+			for _, bad := range tt.unwanted {
+				if strings.Contains(string(data), bad) {
+					t.Errorf("the output carries %q, which the winning source shadows: %s", bad, data)
+				}
+			}
+		})
+	}
+}

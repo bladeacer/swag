@@ -26,13 +26,10 @@ var workingDir = os.Getwd
 // order is the command line flag, then the working directory file, then the
 // global file, then the built-in default, so the working directory file wins
 // over the global one. A missing file returns the defaults and no error, so
-// the tool works with no configuration.
+// the tool works with no configuration. The merge itself is cached, so two
+// calls with unchanged files share one result.
 func settingsFromFile() (config.Settings, error) {
 	path, err := configFile(runtime.GOOS, os.Getenv)
-	if err != nil {
-		return config.Settings{}, err
-	}
-	global, err := config.Load(path)
 	if err != nil {
 		return config.Settings{}, err
 	}
@@ -40,11 +37,7 @@ func settingsFromFile() (config.Settings, error) {
 	if err != nil {
 		return config.Settings{}, fmt.Errorf("config: the working directory could not be read: %w", err)
 	}
-	local, err := config.Load(config.LocalFile(dir))
-	if err != nil {
-		return config.Settings{}, err
-	}
-	return config.Merge(global, local), nil
+	return config.LoadMerged(path, config.LocalFile(dir))
 }
 
 // configResolver returns a kong resolver over the settings. The command
@@ -85,7 +78,7 @@ type ConfigCmd struct {
 	Init bool `help:"Write the default configuration file and report where it lands." short:"i"`
 }
 
-// Run resolves the location. With --init it writes the commented default
+// Run resolves the location. With --init it writes the default configuration
 // file, and otherwise it reports the location and the platform.
 func (c *ConfigCmd) Run(ictx *runContext) error {
 	t := ictx.T

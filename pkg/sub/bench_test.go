@@ -90,14 +90,12 @@ func BenchmarkRender(b *testing.B) {
 }
 
 // BenchmarkConvert measures the full conversion of a ten-thousand-cue SubRip
-// document into every other format.
+// document into every registered format, including SubRip itself, so every
+// cell of the conversion table carries a number.
 func BenchmarkConvert(b *testing.B) {
 	inputs := benchInputs(b)
 	source := inputs["srt"]
 	for _, name := range Registered() {
-		if name == "srt" {
-			continue
-		}
 		b.Run(name, func(b *testing.B) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {

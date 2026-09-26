@@ -58,62 +58,69 @@ swag config
 
 ## Write the default file
 
-`swag config --init` writes the commented default file to the resolved path and creates the directory. The command refuses to replace an existing file, so a hand-edited file never disappears:
+`swag config --init` writes the default configuration file to the resolved path and creates the directory. The command refuses to replace an existing file, so a hand-edited file never disappears:
 
 ```sh
 swag config --init
 ```
 
-The written file holds every setting as a comment, so writing it changes no behaviour until you edit it.
+The written file holds every fixed setting as an active entry with its built-in default value, so writing it changes no behaviour until you edit it.
 
 ## The file format
 
-The file is TOML, and every setting is optional. An unknown key is an error, so a typo never passes in silence. A value of the wrong type is an error too, and a broken document names the file and the line that TOML reports. The file that `swag config --init` writes is [the default configuration file](../swag.toml), and the schema below is that file. The keybinds table at the end carries the built-in bindings as active entries, so the file changes no behaviour until you edit it. A working directory file carries the same schema.
+The file is TOML, and every setting is optional. An unknown key is an error, so a typo never passes in silence. A value of the wrong type is an error too, and a broken document names the file and the line that TOML reports. The file that `swag config --init` writes is [the default configuration file](../swag.toml), and the schema below is that file. Every fixed setting is active with its built-in default value, so the file changes no behaviour until you edit it. The `jobs` count stays absent, because its default follows the machine. A working directory file carries the same schema.
 
 ```toml
 # The swag configuration file.
 #
-# Every setting is optional. A setting that is absent keeps the default of the
-# tool. Every setting below is commented out, except the keybinds table at the
-# end. The keybinds carry the built-in values, so this file changes no
-# behaviour until you edit it.
+# Every setting is optional. The settings below are active, and each one
+# carries the built-in default value. This file changes no behaviour until
+# you edit it.
 #
-# The command line wins over the environment, the environment wins over this
-# file, and this file wins over the built-in default.
+# A commented line gives an alternative value or an explanation. The keybinds
+# table at the end carries the built-in bindings as active entries.
+#
+# Five sources can carry one setting. The tool reads them in this order: the
+# command line flag, the environment, the working directory file, the global
+# file, and the built-in default.
 
-# The message locale. The shipped locales are en-GB and en-US. Any other
-# value is an error, so a typo never falls back in silence.
-# locale = "en-US"
+# The message locale. The shipped locales are en-GB and en-US. An empty value
+# detects the locale from the system. Any other value is an error, so a typo
+# never falls back in silence.
+locale = ""
 
 # Print the conversion report, as the -v flag does. The value must be true or
 # false.
-# verbose = true
+verbose = false
 
 # Fail a conversion that drops a feature, as the -s flag does.
-# strict = true
+strict = false
 
 # Write no integrity block, as the -c flag does.
-# strict_compat = true
+strict_compat = false
 
-# Replace the font of every style and span, as the -n flag does.
-# font = "Verdana"
+# Replace the font of every style and span, as the -n flag does. An empty
+# value keeps the font of the document.
+font = ""
 
 # The input format, as the -F flag does. An empty value detects the format
 # from the file.
-# from = "ass"
+from = ""
 
 # The target format, as the -f flag does. An empty value uses the extension
 # of the output file.
-# format = "vtt"
+format = ""
 
 # The target formats that a batch run writes when -f is absent. The same list
-# orders the target question of the interactive mode. Every name must be a
-# registered format, and an unknown name is dropped.
-# preferred = ["srt", "vtt"]
+# orders the target question of the interactive mode. An empty list uses the
+# built-in order. Every name must be a registered format, and an unknown name
+# is dropped.
+preferred = []
 
-# The conversions that run at once in a batch run, as -j does. The value keeps
-# two cores free when it is absent, and zero uses every core. A negative value
-# is an error.
+# The conversions that run at once in a batch run, as -j does. The built-in
+# default depends on the machine, because it keeps two cores free, so this
+# line stays absent. Set a positive number to fix the count. Zero uses every
+# core, and a negative value is an error.
 # jobs = 4
 
 # The keys of the interactive mode. Each entry maps an action onto a list of
@@ -178,4 +185,4 @@ An entry replaces the built-in binding of its action, and an empty list removes 
 | `help` | `["<leader>", "?"]` | Print the bindings and ask again. |
 | `quit` | `["<leader>", "q"]` | End the run and write no file. |
 
-[The internationalisation page](i18n.md) covers the locale settings, and [the usage page](usage.md) covers the flags. [The terminal palette page](terminal-palette.md) covers the theme source that sits behind the file, and [the default configuration file](../swag.toml) carries the built-in keybinds as active entries.
+[The internationalisation page](i18n.md) covers the locale settings, and [the usage page](usage.md) covers the flags. [The terminal palette page](terminal-palette.md) covers the theme source that sits behind the file, and [the default configuration file](../swag.toml) carries the built-in defaults as active entries.

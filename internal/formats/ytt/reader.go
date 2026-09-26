@@ -58,6 +58,7 @@ func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
 		Metadata:        map[string]string{},
 		Styles:          []model.Style{style},
 		VideoDimensions: model.Point{X: width, Y: height},
+		Cues:            make([]model.Cue, 0, len(root.Body.Paragraphs)),
 	}
 	if root.Format != "" {
 		doc.Metadata["ytt.format"] = root.Format
@@ -147,12 +148,14 @@ func parseParagraph(
 
 // buildSpans walks the runs of a paragraph in order and returns the spans
 // with their karaoke times in milliseconds, where -1 means untimed. Text
-// outside an <s> element takes the pen of the line; text inside one takes
+// outside an <s> element takes the pen of the line. Text inside one takes
 // its own pen.
 func buildSpans(para xmlParagraph, linePen pen, pens map[int]pen, baseSize float64) ([]model.TextSpan, []int, error) {
-	var spans []model.TextSpan
-	var times []int
-	var explicit []bool
+	// The run count bounds the span count, so the three slices grow no more
+	// than once. The pair of readers shares this path.
+	spans := make([]model.TextSpan, 0, len(para.Runs))
+	times := make([]int, 0, len(para.Runs))
+	explicit := make([]bool, 0, len(para.Runs))
 
 	appendText := func(text string) {
 		if n := len(spans); n > 0 && !explicit[n-1] {

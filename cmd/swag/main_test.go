@@ -15,13 +15,22 @@ import (
 
 // TestMain fixes the locale of the process, so a run that reads the system
 // locale gives the same answer on every machine and on CI. A test that
-// covers the detection sets the variables itself.
+// covers the detection sets the variables itself. It also points the global
+// configuration directory at a temporary directory, so the suite never reads
+// the configuration file of the machine that runs it.
 func TestMain(m *testing.M) {
 	_ = os.Setenv("LC_ALL", "en-GB")
 	_ = os.Setenv("LC_MESSAGES", "en-GB")
 	_ = os.Setenv("LANG", "en-GB")
 	_ = os.Unsetenv("SWAG_LOCALE")
-	os.Exit(m.Run())
+	configDir, err := os.MkdirTemp("", "swag-test-config")
+	if err != nil {
+		panic(err)
+	}
+	_ = os.Setenv(config.EnvDir, configDir)
+	code := m.Run()
+	_ = os.RemoveAll(configDir)
+	os.Exit(code)
 }
 
 const srtFixture = "1\n00:00:00,000 --> 00:00:01,000\nhello\n"

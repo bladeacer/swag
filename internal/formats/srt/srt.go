@@ -82,14 +82,21 @@ func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
 				// the span that ended the line before this one.
 				cue.Spans[len(cue.Spans)-1].Text += "\n"
 			}
-			cue.Spans = append(cue.Spans, SplitTags(line)...)
+			cue.Spans = appendSpans(cue.Spans, line)
 		}
 	}
 	return doc, nil
 }
 
-// isCounter reports whether the line is a decimal cue counter.
+// isCounter reports whether the line is a decimal cue counter. It rejects a
+// line that carries a non-digit before it calls the parser, because the
+// parser builds an error for every failed parse and most lines are text.
 func isCounter(line string) bool {
+	for i := 0; i < len(line); i++ {
+		if line[i] < '0' || line[i] > '9' {
+			return false
+		}
+	}
 	_, err := strconv.Atoi(line)
 	return err == nil
 }
@@ -111,23 +118,25 @@ func parseTiming(line string) (time.Duration, time.Duration, error) {
 	return start, end, nil
 }
 
-// parseTimestamp parses hh:mm:ss,mmm; the hours field may carry more than
-// two digits.
+// parseTimestamp parses hh:mm:ss,mmm. The hours field can carry more than
+// two digits. It finds the two colons instead of splitting the string, so a
+// parse builds no slice for the parts.
 func parseTimestamp(ts string) (time.Duration, error) {
 	ts = strings.ReplaceAll(ts, ",", ".")
-	parts := strings.Split(ts, ":")
-	if len(parts) != 3 {
+	if strings.Count(ts, ":") != 2 {
 		return 0, fmt.Errorf("parse srt timestamp %q: want hh:mm:ss,mmm", ts)
 	}
-	h, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+	first := strings.Index(ts, ":")
+	second := first + 1 + strings.Index(ts[first+1:], ":")
+	h, err := strconv.Atoi(strings.TrimSpace(ts[:first]))
 	if err != nil {
 		return 0, fmt.Errorf("parse srt timestamp %q: bad hours", ts)
 	}
-	m, err := strconv.Atoi(parts[1])
+	m, err := strconv.Atoi(ts[first+1 : second])
 	if err != nil {
 		return 0, fmt.Errorf("parse srt timestamp %q: bad minutes", ts)
 	}
-	sec, err := strconv.ParseFloat(parts[2], 64)
+	sec, err := strconv.ParseFloat(ts[second+1:], 64)
 	if err != nil {
 		return 0, fmt.Errorf("parse srt timestamp %q: bad seconds", ts)
 	}
@@ -139,7 +148,13 @@ func parseTimestamp(ts string) (time.Duration, error) {
 // A line can carry any number of toggles. Other markup passes through as
 // text.
 func SplitTags(line string) []model.TextSpan {
-	var spans []model.TextSpan
+	return appendSpans(nil, line)
+}
+
+// appendSpans splits one text line into spans on italic and bold toggles and
+// appends them to dst. A reader passes the span slice of the cue, so the
+// call builds no intermediate slice for every line.
+func appendSpans(dst []model.TextSpan, line string) []model.TextSpan {
 	bold, italic := false, false
 
 	flush := func(text string) {
@@ -154,7 +169,7 @@ func SplitTags(line string) []model.TextSpan {
 		if i {
 			span.Italic = &i
 		}
-		spans = append(spans, span)
+		dst = append(dst, span)
 	}
 
 	for line != "" {
@@ -182,7 +197,7 @@ func SplitTags(line string) []model.TextSpan {
 			}
 		}
 	}
-	return spans
+	return dst
 }
 
 // cutPrefix removes prefix from the head of s and reports whether it was
@@ -195,10 +210,14 @@ func cutPrefix(s *string, prefix string) bool {
 	return true
 }
 
+// inlineTags lists the SubRip inline tags in one place, so the scan reuses
+// the slice rather than building a fresh one for every call.
+var inlineTags = []string{tagItalicOn, tagItalicOff, tagBoldOn, tagBoldOff}
+
 // nextTagIndex returns the index of the earliest inline tag in line, or -1.
 func nextTagIndex(line string) int {
 	best := -1
-	for _, tag := range []string{tagItalicOn, tagItalicOff, tagBoldOn, tagBoldOff} {
+	for _, tag := range inlineTags {
 		if idx := strings.Index(line, tag); idx >= 0 && (best < 0 || idx < best) {
 			best = idx
 		}

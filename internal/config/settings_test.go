@@ -277,22 +277,27 @@ func TestWriteFileError(t *testing.T) {
 	}
 }
 
-// TestDefaultFileHoldsTheBuiltInKeybinds proves that writing the default
-// file changes no behaviour. Every optional setting sits in a comment, and
-// the keybinds table carries the built-in values.
-func TestDefaultFileHoldsTheBuiltInKeybinds(t *testing.T) {
+// TestDefaultFileHoldsTheBuiltInDefaults proves that writing the default
+// file changes no behaviour. Every fixed setting is active with its built-in
+// default value, the keybinds table carries the built-in bindings, and the
+// jobs count stays absent because its default follows the machine.
+func TestDefaultFileHoldsTheBuiltInDefaults(t *testing.T) {
 	got, err := Decode(strings.NewReader(DefaultFile))
 	if err != nil {
 		t.Fatalf("the default file must parse: %v", err)
 	}
-	want := Settings{Keybinds: map[string][]string{
+	want := Default()
+	want.Verbose = boolPtr(false)
+	want.Strict = boolPtr(false)
+	want.StrictCompat = boolPtr(false)
+	want.Keybinds = map[string][]string{
 		"leader": {"Ctrl", "x"},
 		"accept": {"<leader>", "a"},
 		"help":   {"<leader>", "?"},
 		"quit":   {"<leader>", "q"},
-	}}
+	}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("the default file = %+v, want the built-in keybinds", got)
+		t.Fatalf("the default file = %+v, want the built-in defaults", got)
 	}
 }
 
@@ -456,5 +461,105 @@ func TestLoadRereadsAChangedFile(t *testing.T) {
 	}
 	if got.Font != "Courier New" {
 		t.Fatalf("the changed file = %+v, want the new font", got)
+	}
+}
+
+// writeConfigAt writes a configuration body to a named file under dir and
+// returns its path.
+func writeConfigAt(t *testing.T, dir, name, body string) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatalf("write %s: %v", name, err)
+	}
+	return path
+}
+
+// TestLoadMerged layers two files and keeps the result for the next lookup.
+// The second call shares the keybind map of the first, which proves that the
+// merge cache served it instead of building a new map.
+func TestLoadMerged(t *testing.T) {
+	dir := t.TempDir()
+	base := writeConfigAt(t, dir, "global.toml", "font = \"Verdana\"\nfrom = \"ass\"\n")
+	override := writeConfigAt(t, dir, "local.toml", "font = \"Courier New\"\n[keybinds]\nquit = [\"q\"]\n")
+
+	first, err := LoadMerged(base, override)
+	if err != nil {
+		t.Fatalf("LoadMerged: %v", err)
+	}
+	if first.Font != "Courier New" || first.From != "ass" {
+		t.Fatalf("LoadMerged = %+v, want the override font and the base from", first)
+	}
+	second, err := LoadMerged(base, override)
+	if err != nil {
+		t.Fatalf("second LoadMerged: %v", err)
+	}
+	if !reflect.DeepEqual(first, second) {
+		t.Fatalf("the kept merge differs: %+v and %+v", first, second)
+	}
+	if reflect.ValueOf(first.Keybinds).Pointer() != reflect.ValueOf(second.Keybinds).Pointer() {
+		t.Fatalf("the merge cache was not reused: %v and %v", first.Keybinds, second.Keybinds)
+	}
+	if err := os.WriteFile(override, []byte("font = \"Arial Bold\"\n"), 0o644); err != nil {
+		t.Fatalf("rewrite the override: %v", err)
+	}
+	third, err := LoadMerged(base, override)
+	if err != nil {
+		t.Fatalf("LoadMerged after the edit: %v", err)
+	}
+	if third.Font != "Arial Bold" {
+		t.Fatalf("the changed override = %+v, want the new font", third)
+	}
+}
+
+// TestLoadMergedMissingFiles keeps the defaults when both files are absent.
+func TestLoadMergedMissingFiles(t *testing.T) {
+	dir := t.TempDir()
+	got, err := LoadMerged(filepath.Join(dir, "no-global.toml"), filepath.Join(dir, "no-local.toml"))
+	if err != nil {
+		t.Fatalf("LoadMerged: %v", err)
+	}
+	if !reflect.DeepEqual(got, Default()) {
+		t.Fatalf("LoadMerged of two missing files = %+v, want the defaults", got)
+	}
+}
+
+// TestLoadMergedBaseError covers a base file that cannot be read.
+func TestLoadMergedBaseError(t *testing.T) {
+	blocker := filepath.Join(t.TempDir(), "blocker")
+	if err := os.WriteFile(blocker, []byte("not a directory\n"), 0o644); err != nil {
+		t.Fatalf("write the blocker: %v", err)
+	}
+	if _, err := LoadMerged(filepath.Join(blocker, "global.toml"), filepath.Join(t.TempDir(), "local.toml")); err == nil {
+		t.Fatal("a base path under a file must fail")
+	}
+}
+
+// TestLoadMergedBaseDecodeError covers a broken base file.
+func TestLoadMergedBaseDecodeError(t *testing.T) {
+	dir := t.TempDir()
+	base := writeConfigAt(t, dir, "global.toml", "bogus = 1\n")
+	if _, err := LoadMerged(base, filepath.Join(dir, "missing.toml")); err == nil {
+		t.Fatal("a broken base file must fail")
+	}
+}
+
+// TestLoadMergedOverrideError covers an override file that cannot be read.
+func TestLoadMergedOverrideError(t *testing.T) {
+	blocker := filepath.Join(t.TempDir(), "blocker")
+	if err := os.WriteFile(blocker, []byte("not a directory\n"), 0o644); err != nil {
+		t.Fatalf("write the blocker: %v", err)
+	}
+	if _, err := LoadMerged(filepath.Join(t.TempDir(), "global.toml"), filepath.Join(blocker, "local.toml")); err == nil {
+		t.Fatal("an override path under a file must fail")
+	}
+}
+
+// TestLoadMergedOverrideDecodeError covers a broken override file.
+func TestLoadMergedOverrideDecodeError(t *testing.T) {
+	dir := t.TempDir()
+	override := writeConfigAt(t, dir, "local.toml", "bogus = 1\n")
+	if _, err := LoadMerged(filepath.Join(dir, "missing.toml"), override); err == nil {
+		t.Fatal("a broken override file must fail")
 	}
 }

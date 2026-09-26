@@ -19,7 +19,7 @@
 //
 // The package also carries the settings of a file. Load reads them, Flag
 // maps a command line flag name onto its setting, and Write creates the
-// commented default file. Every command looks in one place.
+// default configuration file. Every command looks in one place.
 package config
 
 import (

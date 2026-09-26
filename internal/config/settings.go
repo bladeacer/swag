@@ -19,10 +19,11 @@ import (
 )
 
 // DefaultFile is the configuration file that the tool writes when a caller
-// asks for it. Every optional setting sits in a comment and the keybinds
-// table carries the built-in values, so writing the file changes no
-// behaviour until the user edits it. The copy at the repository root is the
-// one a reader opens, and a test keeps the two in step.
+// asks for it. Every fixed setting is active with its built-in default
+// value, and the keybinds table carries the built-in bindings, so writing
+// the file changes no behaviour until the user edits it. The copy at the
+// repository root is the one a reader opens, and a test keeps the two in
+// step.
 //
 //go:embed swag.toml
 var DefaultFile string
@@ -176,18 +177,43 @@ func Decode(r io.Reader) (Settings, error) {
 
 // cachedEntry holds a decoded file and the stamp of the file it came from.
 // The stamp catches a change between two loads, so the cache never serves a
-// stale document.
+// stale document. A missing file carries a false exists value and the
+// defaults, so a file that appears later still reaches the caller.
 type cachedEntry struct {
 	modTime  time.Time
 	size     int64
+	exists   bool
 	settings Settings
 	err      error
+}
+
+// fileStamp identifies the state of one file for the merge cache. A missing
+// file carries a zero stamp, so a file that appears later misses the cache.
+type fileStamp struct {
+	modTime time.Time
+	size    int64
+	exists  bool
+}
+
+// stamp returns the file stamp of an entry.
+func (e cachedEntry) stamp() fileStamp {
+	return fileStamp{modTime: e.modTime, size: e.size, exists: e.exists}
 }
 
 var (
 	cacheMu sync.Mutex
 	cache   = map[string]cachedEntry{}
+
+	mergeMu    sync.Mutex
+	mergeCache = map[mergeKey]Settings{}
 )
+
+// mergeKey names the two files of a merge and the state of each. The paths
+// and the two stamps decide whether a kept merge is still valid.
+type mergeKey struct {
+	base, override           string
+	baseStamp, overrideStamp fileStamp
+}
 
 // Load reads the settings from the file at path. A missing file returns the
 // defaults and no error, so the tool works with no configuration. Any other
@@ -198,26 +224,85 @@ var (
 // again. The interactive mode resolves the global file and the working
 // directory file in one run, and the cache keeps a repeated lookup cheap.
 func Load(path string) (Settings, error) {
+	entry, err := loadEntry(path)
+	if err != nil {
+		return Settings{}, err
+	}
+	return entry.settings, entry.err
+}
+
+// loadEntry returns the entry of one file. A missing file returns the
+// defaults with a zero stamp and no error. A stat or read failure returns an
+// error that names the file. A decode failure stays in the entry, so a
+// caller can keep the read error for the merged cache.
+func loadEntry(path string) (cachedEntry, error) {
 	info, err := os.Stat(path)
 	if errors.Is(err, fs.ErrNotExist) {
-		return Default(), nil
+		return cachedEntry{settings: Default()}, nil
 	}
 	if err != nil {
-		return Settings{}, fmt.Errorf("config: read %s: %w", path, err)
+		return cachedEntry{}, fmt.Errorf("config: read %s: %w", path, err)
 	}
 	if entry, ok := cached(path, info); ok {
-		return entry.settings, entry.err
+		return entry, nil
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return Settings{}, fmt.Errorf("config: read %s: %w", path, err)
+		return cachedEntry{}, fmt.Errorf("config: read %s: %w", path, err)
 	}
 	settings, err := Decode(bytes.NewReader(data))
 	if err != nil {
 		err = fmt.Errorf("config: %s: %w", path, err)
 	}
-	store(path, info, settings, err)
-	return settings, err
+	entry := cachedEntry{modTime: info.ModTime(), size: info.Size(), exists: true, settings: settings, err: err}
+	store(path, entry)
+	return entry, nil
+}
+
+// LoadMerged reads the base file and the override file and layers the
+// override over the base. The closer file wins, so a caller passes the
+// global file first and the working directory file second.
+//
+// The pair of paths and the state of each file are kept, so a repeated
+// lookup of two unchanged files returns the kept merge. A missing file keeps
+// the defaults and changes no behaviour.
+func LoadMerged(basePath, overridePath string) (Settings, error) {
+	base, err := loadEntry(basePath)
+	if err != nil {
+		return Settings{}, err
+	}
+	if base.err != nil {
+		return Settings{}, base.err
+	}
+	override, err := loadEntry(overridePath)
+	if err != nil {
+		return Settings{}, err
+	}
+	if override.err != nil {
+		return Settings{}, override.err
+	}
+	key := mergeKey{base: basePath, override: overridePath, baseStamp: base.stamp(), overrideStamp: override.stamp()}
+	if merged, ok := keptMerge(key); ok {
+		return merged, nil
+	}
+	merged := Merge(base.settings, override.settings)
+	keepMerge(key, merged)
+	return merged, nil
+}
+
+// keptMerge returns the kept merge of a pair of unchanged files.
+func keptMerge(key mergeKey) (Settings, bool) {
+	mergeMu.Lock()
+	defer mergeMu.Unlock()
+	merged, ok := mergeCache[key]
+	return merged, ok
+}
+
+// keepMerge stores a merge for the next lookup of the same pair of files.
+func keepMerge(key mergeKey, merged Settings) {
+	mergeMu.Lock()
+	defer mergeMu.Unlock()
+	mergeCache[key] = merged
 }
 
 // cached returns the decoded file for a path when the file is unchanged
@@ -233,10 +318,10 @@ func cached(path string, info os.FileInfo) (cachedEntry, bool) {
 }
 
 // store keeps a decoded file for the next load of the same path.
-func store(path string, info os.FileInfo, settings Settings, err error) {
+func store(path string, entry cachedEntry) {
 	cacheMu.Lock()
 	defer cacheMu.Unlock()
-	cache[path] = cachedEntry{modTime: info.ModTime(), size: info.Size(), settings: settings, err: err}
+	cache[path] = entry
 }
 
 // normalise trims the list settings, so a name that carries space still

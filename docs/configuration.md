@@ -42,7 +42,7 @@ SWAG_CONFIG_DIR=./config swag config
 
 ## Report the location
 
-The `config` command prints the resolved path, whether the file is present, and the platform of the build:
+The `config` command prints the path of the global file, the path of the working directory file, whether each file is present, and the platform of the build:
 
 ```sh
 swag config

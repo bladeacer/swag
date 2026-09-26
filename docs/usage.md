@@ -39,7 +39,7 @@ swag -i -- -odd-name.srt -f vtt
 
 The other commands carry the flags they need. `interactive` takes `-i`, `-F`, `-f` for the target, `-o`, `-n`, `-s`, and `-c`. `preview` takes `-i`, `-F`, and `--limit` (`-m`), which bounds the cue rows. `config` takes `--init` (`-i`), which writes the default configuration file.
 
-A setting in the configuration file supplies a default for a flag, so `swag -i in.ass -o out.vtt` uses the configured font when the file names one. The command line wins over the environment, the environment wins over the file, and the file wins over the built-in default. [The configuration page](configuration.md) covers the file.
+A setting in the configuration file supplies a default for a flag, so `swag -i in.ass -o out.vtt` uses the configured font when the file names one. The command line wins over the environment, the environment wins over the files, and the working directory file wins over the global file, which wins over the built-in default. [The configuration page](configuration.md) covers the files and the order.
 
 ## Examples
 

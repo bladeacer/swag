@@ -376,6 +376,20 @@ func TestMerge(t *testing.T) {
 	if tokens := base.Keybinds["help"]; tokens[0] != "h" {
 		t.Errorf("Merge mutated the base keybinds: %v", base.Keybinds)
 	}
+
+	// A false bool and a string override replace the base value too.
+	full := Merge(base, Settings{
+		Strict:       boolPtr(false),
+		StrictCompat: boolPtr(false),
+		From:         "srt",
+		Format:       "sbv",
+	})
+	if full.Strict == nil || *full.Strict || full.StrictCompat == nil || *full.StrictCompat {
+		t.Errorf("a false bool override did not win: %+v", full)
+	}
+	if full.From != "srt" || full.Format != "sbv" {
+		t.Errorf("a string override did not win: %+v", full)
+	}
 }
 
 // TestMergeEmptyOverride keeps every base value.
@@ -388,6 +402,18 @@ func TestMergeEmptyOverride(t *testing.T) {
 	}
 	if tokens := got.Keybinds["quit"]; len(tokens) != 1 || tokens[0] != "q" {
 		t.Fatalf("an empty override dropped the keybinds: %+v", got.Keybinds)
+	}
+}
+
+// TestLoadStatError covers a path under a regular file, where the stat fails
+// for a reason other than a missing file.
+func TestLoadStatError(t *testing.T) {
+	blocker := filepath.Join(t.TempDir(), "blocker")
+	if err := os.WriteFile(blocker, []byte("not a directory\n"), 0o644); err != nil {
+		t.Fatalf("write the blocker: %v", err)
+	}
+	if _, err := Load(filepath.Join(blocker, "config.toml")); err == nil {
+		t.Fatal("a path under a file must fail the stat")
 	}
 }
 

@@ -318,6 +318,36 @@ func TestWorkingDirectoryFileKeepsTheGlobalSettings(t *testing.T) {
 	}
 }
 
+// TestWorkingDirectoryFileError covers a broken working directory file.
+func TestWorkingDirectoryFileError(t *testing.T) {
+	t.Setenv("SWAG_CONFIG", writeConfig(t, "font = \"Verdana\"\n"))
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.LocalFileName), []byte("bogus = 1\n"), 0o644); err != nil {
+		t.Fatalf("write the working directory file: %v", err)
+	}
+	withWorkingDir(t, dir)
+	if _, err := settingsFromFile(); err == nil {
+		t.Fatal("a broken working directory file must fail the load")
+	}
+	capturePterm(t)
+	if code := run([]string{"config"}); code != 1 {
+		t.Fatalf("run exit code = %d, want 1", code)
+	}
+}
+
+// TestConfigCmdWorkingDirectoryError covers the report of both paths when
+// the working directory cannot be read.
+func TestConfigCmdWorkingDirectoryError(t *testing.T) {
+	t.Setenv("SWAG_CONFIG", writeConfig(t, "font = \"Verdana\"\n"))
+	original := workingDir
+	workingDir = func() (string, error) { return "", errors.New("boom") }
+	t.Cleanup(func() { workingDir = original })
+
+	if err := (&ConfigCmd{}).Run(newRunContext(false)); err == nil {
+		t.Fatal("a failed working directory must fail the command")
+	}
+}
+
 // TestWorkingDirectoryError covers a working directory that cannot be read.
 func TestWorkingDirectoryError(t *testing.T) {
 	original := workingDir

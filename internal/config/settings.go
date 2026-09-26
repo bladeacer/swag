@@ -49,9 +49,10 @@ type Settings struct {
 	// missing value uses the automatic count, which keeps two cores free,
 	// and zero uses every core.
 	Jobs *int `toml:"jobs"`
-	// Keybinds maps an interactive action onto its key. The interactive
-	// mode reads the table, and an action it does not ship is an error.
-	Keybinds map[string]string `toml:"keybinds"`
+	// Keybinds maps an interactive action onto the tokens of its binding.
+	// The interactive mode reads the table, and an action it does not ship
+	// is an error. An empty list removes the default binding.
+	Keybinds map[string][]string `toml:"keybinds"`
 }
 
 // Default returns the settings of a configuration file that names nothing.
@@ -61,22 +62,69 @@ func Default() Settings {
 	return Settings{}
 }
 
-// Decode reads the settings from a TOML stream. An unknown key is an error,
-// so a typo never passes in silence.
+// settingTypes names the TOML type of every setting. A value of another type
+// is an error, so a broken document never half-loads in silence. The check
+// catches the keybind table in particular, because the decoding library
+// passes a scalar for a map field without a report.
+var settingTypes = map[string]string{
+	"locale":        "String",
+	"verbose":       "Bool",
+	"strict":        "Bool",
+	"strict_compat": "Bool",
+	"font":          "String",
+	"from":          "String",
+	"format":        "String",
+	"preferred":     "Array",
+	"jobs":          "Integer",
+	"keybinds":      "Hash",
+}
+
+// typeLabel names a TOML type for a reader. The library calls a table a
+// hash and a boolean a bool, and the label says table and boolean instead.
+func typeLabel(tomlType string) string {
+	switch tomlType {
+	case "Hash":
+		return "table"
+	case "Bool":
+		return "boolean"
+	}
+	return strings.ToLower(tomlType)
+}
+
+// checkTypes refuses a setting whose TOML type differs from the schema.
+func checkTypes(meta toml.MetaData) error {
+	for name, want := range settingTypes {
+		if !meta.IsDefined(name) {
+			continue
+		}
+		if got := meta.Type(name); got != want {
+			return fmt.Errorf("the setting %q must be a %s, not a %s", name, typeLabel(want), typeLabel(got))
+		}
+	}
+	return nil
+}
+
+// Decode reads the settings from a TOML stream. A broken document, a value
+// of the wrong type, and an unknown key are each an error, so a typo never
+// passes in silence.
 func Decode(r io.Reader) (Settings, error) {
 	var settings Settings
 	meta, err := toml.NewDecoder(r).Decode(&settings)
 	if err != nil {
-		return Settings{}, fmt.Errorf("config: %w", err)
+		return Settings{}, fmt.Errorf("parse: %w", err)
+	}
+	if err := checkTypes(meta); err != nil {
+		return Settings{}, err
 	}
 	if unknown := meta.Undecoded(); len(unknown) > 0 {
-		return Settings{}, fmt.Errorf("config: unknown setting %q", unknown[0].String())
+		return Settings{}, fmt.Errorf("unknown setting %q", unknown[0].String())
 	}
 	return normalise(settings), nil
 }
 
 // Load reads the settings from the file at path. A missing file returns the
-// defaults and no error, so the tool works with no configuration.
+// defaults and no error, so the tool works with no configuration. Any other
+// failure names the file, so a broken document is easy to find.
 func Load(path string) (Settings, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -85,7 +133,11 @@ func Load(path string) (Settings, error) {
 	if err != nil {
 		return Settings{}, fmt.Errorf("config: read %s: %w", path, err)
 	}
-	return Decode(bytes.NewReader(data))
+	settings, err := Decode(bytes.NewReader(data))
+	if err != nil {
+		return Settings{}, fmt.Errorf("config: %s: %w", path, err)
+	}
+	return settings, nil
 }
 
 // normalise trims the list settings, so a name that carries space still

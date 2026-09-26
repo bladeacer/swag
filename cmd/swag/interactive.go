@@ -3,7 +3,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -12,8 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/pterm/pterm"
 
 	"github.com/bladeacer/swag/internal/i18n"
 	"github.com/bladeacer/swag/internal/tui"
@@ -40,12 +37,25 @@ type prompter interface {
 	// askChoice lists options and reads a number or a name. An empty answer
 	// returns the default option.
 	askChoice(label string, options []string, defaultOption string) (string, error)
+	// close releases the terminal state of the source.
+	close()
 }
 
 // newPrompter builds the prompter of the interactive command. It is a
 // variable so a test can script the answers.
-var newPrompter = func(in io.Reader, out io.Writer, t *i18n.T, keys *tui.Keymap) prompter {
-	return &linePrompter{in: bufio.NewReader(in), out: out, t: t, keys: keys}
+var newPrompter = defaultPrompter
+
+// defaultPrompter builds the line prompter over the key source. A terminal
+// reads one key at a time in raw mode with a timeout, and every other reader
+// keeps the line prompt.
+func defaultPrompter(in io.Reader, out io.Writer, t *i18n.T, keys *tui.Keymap) prompter {
+	source := keySourceFor(in)
+	_, raw := source.(*terminalSource)
+	reader := &tui.Reader{Keys: keys, Source: source, Timeout: chordTimeout, Linewise: !raw}
+	if raw {
+		reader.Echo = out
+	}
+	return &linePrompter{out: out, t: t, keys: keys, source: source, reader: reader}
 }
 
 // identify reports the format of the input file. It is a variable so a test
@@ -53,13 +63,14 @@ var newPrompter = func(in io.Reader, out io.Writer, t *i18n.T, keys *tui.Keymap)
 var identify = sub.Identify
 
 // linePrompter reads one answer per line and prints the questions with
-// pterm styling. It holds no terminal state, so it works on a pipe as well
-// as on a terminal.
+// pterm styling. It holds no terminal state of its own, so it works on a
+// pipe as well as on a terminal.
 type linePrompter struct {
-	in   *bufio.Reader
-	out  io.Writer
-	t    *i18n.T
-	keys *tui.Keymap
+	out    io.Writer
+	t      *i18n.T
+	keys   *tui.Keymap
+	source tui.ByteSource
+	reader *tui.Reader
 }
 
 // ask prints a labelled question and returns the answer. An empty answer
@@ -69,7 +80,7 @@ func (p *linePrompter) ask(label, defaultValue string) (string, error) {
 	if defaultValue != "" {
 		question = p.t.F(i18n.MsgInteractivePrompt, label, defaultValue)
 	}
-	if _, err := fmt.Fprintln(p.out, pterm.LightCyan(question)); err != nil {
+	if _, err := fmt.Fprintln(p.out, questionStyle.Sprint(question)); err != nil {
 		return "", err
 	}
 	answer, err := p.readLine()
@@ -89,7 +100,7 @@ func (p *linePrompter) askChoice(label string, options []string, defaultOption s
 	if len(options) == 0 {
 		return "", fmt.Errorf("%s", p.t.S(i18n.MsgInteractiveNone))
 	}
-	if _, err := fmt.Fprintln(p.out, pterm.LightCyan(label)); err != nil {
+	if _, err := fmt.Fprintln(p.out, questionStyle.Sprint(label)); err != nil {
 		return "", err
 	}
 	for i, option := range options {
@@ -136,13 +147,12 @@ func (p *linePrompter) matchChoice(answer string, options []string, defaultOptio
 // default value, and the help binding prints the bindings and asks again.
 func (p *linePrompter) readLine() (string, error) {
 	for {
-		line, err := p.readRaw()
+		line, action, bound, err := p.reader.ReadAnswer()
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("%s", p.t.F(i18n.MsgInteractiveRead, err))
 		}
-		action, bound := p.keys.Match(line)
 		if !bound {
-			return strings.TrimSpace(line), nil
+			return line, nil
 		}
 		switch action {
 		case tui.ActionAccept:
@@ -159,14 +169,11 @@ func (p *linePrompter) readLine() (string, error) {
 	}
 }
 
-// readRaw returns one line with the newline removed. A last line without a
-// newline still counts, and only an empty failing read is an error.
-func (p *linePrompter) readRaw() (string, error) {
-	line, err := p.in.ReadString('\n')
-	if err != nil && line == "" {
-		return "", fmt.Errorf("%s", p.t.F(i18n.MsgInteractiveRead, err))
+// close releases the terminal state of the source.
+func (p *linePrompter) close() {
+	if p.source != nil {
+		p.source.Close()
 	}
-	return strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r"), nil
 }
 
 // helpLines names every binding, so a user can read the keys of the mode.
@@ -216,6 +223,7 @@ func (c *InteractiveCmd) run(ictx *runContext) error {
 		return err
 	}
 	p := newPrompter(terminalIn, terminalOut, t, keys)
+	defer p.close()
 	renderer := tui.NewRenderer(terminalOut)
 
 	input := c.Input

@@ -202,7 +202,7 @@ func outputLabel(output string, t *i18n.T) string {
 // message of the tool.
 func banner(t *i18n.T) {
 	pterm.Println()
-	pterm.Println(pterm.LightCyan(pterm.Bold.Sprint(t.S(i18n.MsgBannerTitle))))
+	pterm.Println(headingStyle.Sprint(t.S(i18n.MsgBannerTitle)))
 	pterm.Info.Println(t.S(i18n.MsgBannerTagline))
 }
 
@@ -291,6 +291,8 @@ func helpArgs(args []string) []string {
 // carries the conversion flags. A bad argument reports an error instead of
 // gaining a page of its own.
 func printHelp(parser *kong.Kong, args []string, t *i18n.T) error {
+	pterm.Println(headingStyle.Sprint(t.S(i18n.MsgBannerTitle)))
+	pterm.Println()
 	if len(args) == 0 {
 		pterm.Println(t.F(i18n.MsgUsageCommands, strings.Join(commandNames, ", ")))
 		pterm.Println()

@@ -19,13 +19,16 @@ func TestStyleHelpMarksHeadingsAndNames(t *testing.T) {
 	page := "Usage: swag convert [flags]\n\nFlags:\n  -i, --input=STRING  Input file.\n\nCommands:\n  convert  Convert a file.\n"
 	got := styleHelp(page)
 
-	if !strings.Contains(got, helpHeadingStyle.Sprint("Flags:")) {
+	if !strings.Contains(got, headingStyle.Sprint("Usage:")) {
+		t.Errorf("the usage word must carry the heading style:\n%s", got)
+	}
+	if !strings.Contains(got, headingStyle.Sprint("Flags:")) {
 		t.Errorf("the heading must carry the heading style:\n%s", got)
 	}
-	if !strings.Contains(got, helpNameStyle.Sprint("-i, --input=STRING")) {
+	if !strings.Contains(got, nameStyle.Sprint("-i, --input=STRING")) {
 		t.Errorf("the flag name must carry the name style:\n%s", got)
 	}
-	if !strings.Contains(got, helpNameStyle.Sprint("convert")) {
+	if !strings.Contains(got, nameStyle.Sprint("convert")) {
 		t.Errorf("the command name must carry the name style:\n%s", got)
 	}
 	if !strings.Contains(got, "Input file.") {
@@ -64,5 +67,22 @@ func TestStyledHelpPrinterRendersThePage(t *testing.T) {
 	}
 	if !strings.Contains(page, "--input") {
 		t.Errorf("the help page lacks a flag name:\n%s", page)
+	}
+}
+
+// TestStyledHelpPrinterWriteError covers a sink that fails the styled write.
+func TestStyledHelpPrinterWriteError(t *testing.T) {
+	var cli struct {
+		Input string `help:"Input subtitle file." short:"i"`
+	}
+	var out strings.Builder
+	parser := kong.Must(&cli, kong.Name("swag"), kong.Help(styledHelpPrinter), kong.Writers(&out, &out))
+	ctx, err := parser.Parse(nil)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	ctx.Stdout = &failAtWriter{failAt: 1}
+	if err := ctx.PrintUsage(false); err == nil {
+		t.Fatal("a failing sink must surface the write error")
 	}
 }

@@ -140,7 +140,15 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 - [x] Use colour and box styling sparingly, so a terminal theme stays in charge
   - The theme uses one accent colour for a heading and one for a name, and it draws no box and no background. The rules live in `cmd/swag/style.go`.
 - [x] Integrate the pterm and kong styling into one look, so a bare run and `--help` match
-  - `cmd/swag/style.go` renders the kong help page through the pterm theme through `kong.Help`, so the banner and the help page share one look. A test keeps each mark and the combined page.
+  - `cmd/swag/style.go` renders the kong help page through the pterm theme through `kong.Help`, and the banner, the prompts, and the help share one palette. A test keeps each mark and the combined page.
+- [x] The keybind table takes a token list, so a modifier can stand in any order, an upper-case letter means shift, a repeated modifier is dropped, and one binding can carry several keys
+  - `internal/tui/keys.go` parses the tokens and builds a byte trie for the incremental matcher. [The configuration page](docs/configuration.md) records the notation, and the default file carries the built-in values as active entries.
+- [x] The interactive mode reads a terminal one key at a time with a timeout, and keeps the line prompt for a pipe or a script
+  - `internal/tui/reader.go` carries both paths, and `cmd/swag/keysource.go` provides the stream and terminal sources. A pause of 150 milliseconds ends a key sequence that carries no match.
+- [x] A broken configuration file names itself, with tests for the syntax, the type, the duplicate key, and the unknown setting
+  - `internal/config` wraps a decode failure with the file path, and the test suite covers each broken shape.
+- [x] More performance audits, with benchmarks of the configuration decode and the keybind engine and a `make bench-all` target
+  - [The performance audit page](docs/performance.md) records the numbers of the interactive path.
 
 ## Stretch goals (post-1.0 candidates)
 

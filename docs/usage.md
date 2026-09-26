@@ -96,15 +96,15 @@ swag interactive -i in.ass -f vtt -o out.vtt
 
 The result is one frame. It carries the conversion, the loss report, and a preview of the styles and the karaoke timeline. The command repaints only the rows that change, so a still screen costs nothing and a small change costs a small write.
 
-A question reads one answer per line, and an empty answer takes the default value. Three keys run an action before an answer arrives:
+A question reads an answer, and an empty answer takes the default value. A terminal reads one key at a time, so a binding fires as soon as its last key arrives. A short pause ends a key sequence that carries no match, and the prompt then reads the keys as text. A pipe or a script reads a whole line, and the line must equal a binding. Three bindings run an action before an answer arrives:
 
-| Key | Action |
+| Binding | Action |
 |---|---|
-| `ctrl+x` `a` | Answer with the default value. |
-| `ctrl+x` `?` | Print the keys and ask the question again. |
-| `ctrl+x` `q` | End the run and write no file. |
+| `Ctrl`, `x`, then `a` | Answer with the default value. |
+| `Ctrl`, `x`, then `?` | Print the keys and ask the question again. |
+| `Ctrl`, `x`, then `q` | End the run and write no file. |
 
-The first key of each binding is the leader key. [The configuration page](configuration.md) records the notation and the way to move a binding.
+The first chord of each binding is the leader key. [The configuration page](configuration.md) records the token list and the way to move a binding.
 
 ## Batch conversion
 

@@ -33,6 +33,7 @@ func (s stubPrompter) ask(string, string) (string, error) { return s.text, nil }
 func (s stubPrompter) askChoice(string, []string, string) (string, error) {
 	return s.choice, nil
 }
+func (s stubPrompter) close() {}
 
 // failAtWriter fails on the write call whose number is failAt.
 type failAtWriter struct {
@@ -605,7 +606,7 @@ func TestInteractiveHelpPage(t *testing.T) {
 
 // keymapFor builds a keymap from the built-in bindings, so a test can press
 // a key by its notation.
-func keymapFor(t *testing.T, overrides map[string]string) *tui.Keymap {
+func keymapFor(t *testing.T, overrides map[string][]string) *tui.Keymap {
 	t.Helper()
 	keymap, err := tui.NewKeymap(overrides)
 	if err != nil {
@@ -642,7 +643,7 @@ func TestLinePrompterKeybinds(t *testing.T) {
 	if answer != "chosen.vtt" {
 		t.Fatalf("ask = %q, want the answer after the help", answer)
 	}
-	if !strings.Contains(out.String(), "<leader>a") || !strings.Contains(out.String(), "accept") {
+	if !strings.Contains(out.String(), "<leader> a") || !strings.Contains(out.String(), "accept") {
 		t.Fatalf("the help must name the bindings:\n%s", out.String())
 	}
 
@@ -758,7 +759,7 @@ func TestInteractiveCmdRunKeybindsFromSettings(t *testing.T) {
 	var screen strings.Builder
 
 	ictx := newRunContext(false)
-	ictx.Settings.Keybinds = map[string]string{"leader": "ctrl+a", "accept": "ctrl+d"}
+	ictx.Settings.Keybinds = map[string][]string{"leader": {"Ctrl", "a"}, "accept": {"Ctrl", "d"}}
 	// The new accept key answers with the empty string, so the input check
 	// refuses it.
 	scriptInteractive(t, "\x04\n", &screen)
@@ -775,7 +776,7 @@ func TestInteractiveCmdRunBadKeybinds(t *testing.T) {
 	scriptInteractive(t, "", &screen)
 
 	ictx := newRunContext(false)
-	ictx.Settings.Keybinds = map[string]string{"next": "n"}
+	ictx.Settings.Keybinds = map[string][]string{"next": {"n"}}
 	if err := (&InteractiveCmd{}).Run(ictx); err == nil {
 		t.Fatal("an unknown keybind action must fail the command")
 	}
@@ -790,7 +791,7 @@ func TestRunInteractiveWithConfigKeybinds(t *testing.T) {
 		t.Fatalf("write fixture: %v", err)
 	}
 	configFile := filepath.Join(dir, "config.toml")
-	body := "[keybinds]\nleader = \"ctrl+a\"\n"
+	body := "[keybinds]\nleader = [\"Ctrl\", \"a\"]\n"
 	if err := os.WriteFile(configFile, []byte(body), 0o644); err != nil {
 		t.Fatalf("write config: %v", err)
 	}

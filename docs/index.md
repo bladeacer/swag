@@ -6,7 +6,8 @@ Getting started:
 
 - [the install page](install.md): the ways to install the command, the platform support, and the tools for the development loop
 - [the usage page](usage.md): the flags, the interactive mode, the batch conversion, the preview, the format detection, and the exit codes
-- [the configuration page](configuration.md): where the configuration file lives on each platform, and how to move it
+- [the configuration page](configuration.md): where the configuration file lives on each platform, how to move it, and the available settings
+- [the default configuration file](../internal/config/default.toml): the file that `swag config --init` writes, with the built-in keybinds as active entries
 - [the library guide](library.md): the public API with a worked example, and the v1.0.0 stability guarantee
 - [the migration guide](migration.md): how to move a YTSubConverter workflow onto `swag`
 

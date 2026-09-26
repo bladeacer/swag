@@ -7,6 +7,7 @@ This page records the performance audit of the v1.0.0 release. It names the tool
 The benchmarks live in `pkg/sub/bench_test.go`. Each one builds a document of ten thousand cues, then parses it, renders it, or converts it. The benchmark results are the first evidence.
 
 - `make bench` runs the full set with memory numbers.
+- `make bench-all` runs the benchmarks of every package that carries one, including the configuration and the keybind engine.
 - `make bench-save` writes a baseline to `bench.txt`, and `make bench-compare` compares a new run with it through `benchstat`.
 - `make profile-cpu` writes `cpu.prof` from the benchmark run. Read it with `go tool pprof -top cpu.prof`.
 - `make profile-trace` writes `trace.out`. Read it with `go tool trace trace.out`.
@@ -60,6 +61,19 @@ The WebVTT reader and writer called `strings.NewReplacer` inside `decodeEntities
 | Render, `vtt` | 26.96 ms, 140 158 allocs | 8.48 ms, 70 041 allocs |
 
 The parse is about two and a half times faster, and the render is about three times faster. The allocation count falls by more than half in both cases. The fix is the same change that the profile points at, and no test lost coverage.
+
+## The interactive path
+
+The interactive mode reads its configuration and builds its keymap before the first question. Both steps are small, and the table records them so a later change is visible.
+
+| Benchmark | Result |
+|---|---:|
+| Decode of the default configuration | 39.8 µs, 135 allocs |
+| Keymap build | 1.82 µs, 41 allocs |
+| Whole-line key match | 8.21 ns, no alloc |
+| One key-sequence step | 14.30 ns, no alloc |
+
+The decode of the configuration costs about 40 microseconds on every startup that reads a file. The keymap builds once per interactive session. The match and the step of the matcher allocate nothing, so a typed key costs no garbage collection. The first finding is a candidate for a later change: a cached schema, or a lighter reader, can remove part of the decode cost.
 
 ## Open items
 

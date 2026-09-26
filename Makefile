@@ -11,7 +11,7 @@ CHANGELOG_URL_BASE := https://github.com/bladeacer/swag/blob/main/docs/changelog
 
 .PHONY: help build install run test cover cover-html cover-verify coverage-svg \
         samples vet fmt tidy watch release-test tag snapshot wasm clean tools \
-        bench bench-save bench-compare profile-cpu profile-trace
+        bench bench-all bench-save bench-compare profile-cpu profile-trace
 
 help: ## Show this help
 	@printf "swag (Subtitles With A Gopher)\n\n"
@@ -57,6 +57,9 @@ cover-verify: ## Fail when module coverage sits below the 100% floor
 
 bench: ## Run the 10k-cue benchmarks for parsing, rendering, and conversion
 	$(GO) test -run=^$$ -bench=. -benchmem ./pkg/sub/
+
+bench-all: ## Run the benchmarks of every package that carries one
+	$(GO) test -run=^$$ -bench=. -benchmem ./... -count=1
 
 bench-save: ## Save a benchmark run as the comparison baseline (bench.txt)
 	$(GO) test -run=^$$ -bench=. -benchmem ./pkg/sub/ -count=1 | tee bench.txt

@@ -17,9 +17,12 @@ Several suites sit above the package tests:
 - [The command line suite](../cmd/swag/main_test.go) walks every registered target through the real command and back, including the bare run and the default command form.
 - [The renderer suite](../internal/tui/tui_test.go) proves the layout diff. An unchanged frame writes no bytes, a changed frame repaints only the changed rows, and a shorter frame clears the rows it leaves out.
 - [The palette suite](../internal/tui/palette_test.go) covers the terminal palette probe. It covers the OSC 4, 10, and 11 queries, the reply forms, a partial answer, and the plain fallback when a terminal stays silent.
-- [The interactive suite](../cmd/swag/interactive_test.go) drives the prompts and the frames through a scripted reader, so a whole conversion runs with no terminal.
+- [The interactive suite](../cmd/swag/interactive_test.go) drives the prompts and the frames through a scripted reader, so a whole conversion runs with no terminal. It covers both the line prompt and the key bindings.
+- [The keybind suite](../internal/tui/keys_test.go) covers the token grammar, the commutative modifiers, the upper-case shorthand, the incremental matcher, and the prefix conflicts.
+- [The key reader suite](../internal/tui/reader_test.go) covers the line prompt, the timeout sequence, the text fallback, and the echo.
+- [The key source suite](../cmd/swag/keysource_test.go) covers the stream source, the terminal source, and the raw setup, with the terminal calls injected.
 - [The batch and preview suites](../cmd/swag/batch_test.go) cover the directory walk, the target list, the output directory, and the preview rows.
-- [The configuration suite](../internal/config/config_test.go) covers the location rule of every platform, the two environment overrides, and the failure of a platform with no home directory.
+- [The configuration suite](../internal/config/config_test.go) covers the location rule of every platform, the two environment overrides, and the failure of a platform with no home directory. [The settings suite](../internal/config/settings_test.go) covers the decode, a broken document, a value of the wrong type, a duplicate key, and an unknown setting.
 
 ## Fuzzing
 
@@ -39,6 +42,12 @@ go test ./pkg/sub/ -run=^$ -fuzz=^FuzzParseASS$ -fuzztime=30s
 
 ```sh
 make bench
+```
+
+[The configuration benchmark](../internal/config/bench_test.go) and [the keybind benchmark](../internal/tui/bench_test.go) cover the interactive startup and the key matching. Run every benchmark in the module with:
+
+```sh
+make bench-all
 ```
 
 For a regression check, save a baseline on the same machine and compare a fresh run with `benchstat`:

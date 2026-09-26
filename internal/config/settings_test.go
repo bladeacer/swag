@@ -33,8 +33,8 @@ preferred = [" srt ", "vtt", ""]
 jobs = 4
 
 [keybinds]
-input = "i"
-quit = "q"
+accept = ["Ctrl", "a"]
+quit = ["q"]
 `
 	got, err := Decode(strings.NewReader(source))
 	if err != nil {
@@ -51,7 +51,7 @@ quit = "q"
 		Format:       "vtt",
 		Preferred:    []string{"srt", "vtt"},
 		Jobs:         &jobs,
-		Keybinds:     map[string]string{"input": "i", "quit": "q"},
+		Keybinds:     map[string][]string{"accept": {"Ctrl", "a"}, "quit": {"q"}},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Decode = %+v, want %+v", got, want)
@@ -79,6 +79,79 @@ func TestDecodeBadValue(t *testing.T) {
 	_, err := Decode(strings.NewReader("verbose = \"yes\"\n"))
 	if err == nil {
 		t.Fatal("a value of the wrong type must fail")
+	}
+}
+
+// TestDecodeBrokenDocument covers a document that TOML cannot parse, such as
+// an unclosed table header.
+func TestDecodeBrokenDocument(t *testing.T) {
+	_, err := Decode(strings.NewReader("[keybinds\nquit = [\"q\"]\n"))
+	if err == nil || !strings.Contains(err.Error(), "parse") {
+		t.Fatalf("a broken document must fail with a parse error, got %v", err)
+	}
+}
+
+// TestDecodeKeybindsType covers a keybind value of the wrong type and an
+// element that is not a string.
+func TestDecodeKeybindsType(t *testing.T) {
+	for _, source := range []string{
+		"[keybinds]\nquit = \"q\"\n",
+		"[keybinds]\nquit = [1, 2]\n",
+		"keybinds = \"oops\"\n",
+		"keybinds = 5\n",
+		"keybinds = [\"a\"]\n",
+	} {
+		if _, err := Decode(strings.NewReader(source)); err == nil {
+			t.Errorf("Decode(%q) must fail", source)
+		}
+	}
+}
+
+// TestDecodeEmptyKeybindRemoves covers an empty list, which removes a
+// binding rather than leaving it inert.
+func TestDecodeEmptyKeybindRemoves(t *testing.T) {
+	got, err := Decode(strings.NewReader("[keybinds]\nquit = []\n"))
+	if err != nil {
+		t.Fatalf("Decode: %v", err)
+	}
+	if tokens, ok := got.Keybinds["quit"]; !ok || len(tokens) != 0 {
+		t.Fatalf("an empty list = %v, want an empty entry", got.Keybinds)
+	}
+}
+
+// TestTypeLabel covers the reader-facing names of the TOML types.
+func TestTypeLabel(t *testing.T) {
+	tests := map[string]string{
+		"Hash":    "table",
+		"Bool":    "boolean",
+		"String":  "string",
+		"Integer": "integer",
+		"Array":   "array",
+	}
+	for in, want := range tests {
+		if got := typeLabel(in); got != want {
+			t.Errorf("typeLabel(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// TestLoadNamesTheFile covers a broken document, whose error names the file
+// that carries it.
+func TestLoadNamesTheFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("verbose = \n"), 0o644); err != nil {
+		t.Fatalf("write the file: %v", err)
+	}
+	_, err := Load(path)
+	if err == nil || !strings.Contains(err.Error(), path) {
+		t.Fatalf("a broken file must name the file, got %v", err)
+	}
+}
+
+// TestDecodeDuplicateKey covers a repeated key, which TOML refuses.
+func TestDecodeDuplicateKey(t *testing.T) {
+	if _, err := Decode(strings.NewReader("font = \"A\"\nfont = \"B\"\n")); err == nil {
+		t.Fatal("a duplicate key must fail")
 	}
 }
 
@@ -200,15 +273,22 @@ func TestWriteFileError(t *testing.T) {
 	}
 }
 
-// TestDefaultFileHoldsNoSetting proves that writing the default file changes
-// no behaviour, because every setting sits in a comment.
-func TestDefaultFileHoldsNoSetting(t *testing.T) {
+// TestDefaultFileHoldsTheBuiltInKeybinds proves that writing the default
+// file changes no behaviour. Every optional setting sits in a comment, and
+// the keybinds table carries the built-in values.
+func TestDefaultFileHoldsTheBuiltInKeybinds(t *testing.T) {
 	got, err := Decode(strings.NewReader(DefaultFile))
 	if err != nil {
 		t.Fatalf("the default file must parse: %v", err)
 	}
-	if !reflect.DeepEqual(got, Default()) {
-		t.Fatalf("the default file = %+v, want the defaults", got)
+	want := Settings{Keybinds: map[string][]string{
+		"leader": {"Ctrl", "x"},
+		"accept": {"<leader>", "a"},
+		"help":   {"<leader>", "?"},
+		"quit":   {"<leader>", "q"},
+	}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("the default file = %+v, want the built-in keybinds", got)
 	}
 }
 

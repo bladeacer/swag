@@ -118,8 +118,10 @@ Legend: R = read, W = write, ⊕ = with the platform quirks that the writer appl
 | WebVTT | Broader | R | W | Signature, cue ids, note blocks, align and position settings, inline tags |
 | Kdenlive subtitle JSON | Broader | R | W | The subtitle track JSON of Kdenlive |
 | JSON1 (exchange) | Broader | R | W | Our lossless interchange format for editors and pipelines |
-| FCPXML captions | Later | - | W | Stretch goal, for NLE round-trips |
-| SCC / CEA-608 | Later | - | W | Stretch goal, 32-column grid limits everything |
+| FCPXML captions | Later | - | Deferred | For NLE round-trips, tracked by [the FCPXML issue](https://github.com/bladeacer/swag/issues?q=FCPXML) |
+| SCC / CEA-608 | Later | - | Deferred | The 32-column grid limits everything, tracked by [the SCC issue](https://github.com/bladeacer/swag/issues?q=SCC) |
+
+Every read cell and every write cell of a Core or Broader format ships in v1.0.0. Two cells stay deferred, and each one carries a link to its issue: [the FCPXML issue](https://github.com/bladeacer/swag/issues?q=FCPXML) and [the SCC issue](https://github.com/bladeacer/swag/issues?q=SCC). [The roadmap](../ROADMAP.md) holds them as stretch goals.
 
 We deliberately reproduce these platform quirks on write, each with a test:
 

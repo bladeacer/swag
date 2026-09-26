@@ -107,13 +107,16 @@ losses, err := sub.Render(doc, "vtt", sink)
 - [File integrity](docs/integrity.md)
 - [The JSON1 exchange format](docs/json1.md)
 - [The library guide](docs/library.md)
+- [Migration from YTSubConverter](docs/migration.md)
+- [Performance audit](docs/performance.md)
+- [Browser demo](docs/demo/index.html)
 - [The architecture page](docs/architecture.md)
 - [The roadmap](ROADMAP.md)
 - [The changelog](docs/changelogs/index.md)
 
 ## Status
 
-The project is in development. [The roadmap](ROADMAP.md) carries the milestones to v1.0.0 and [the changelog index](docs/changelogs/index.md) carries the releases. The v0.9.0 release candidate adds the configuration file, `--strict-compat`, the interactive keybinds, the system locale, and the parallel batch conversion. The v0.8.0 release adds the interactive mode, the layout-diffing renderer, the `--from` flag, the shorthands, and the widened integrity block. The v0.7.0 release adds the configured conversion API, the integrity block for the plain formats, and the JSON1 version chain. It adds the WebVTT voice span, the second locale, and the reference docs. The v0.6.0 release closes the ASS tag list and adds the TTML, WebVTT, Kdenlive, and JSON1 formats. The v0.5.0 release adds the ASS writer, and the v0.4.0 release adds the ASS reader. The YouTube pair (YTT and SRV3) arrives in v0.3.0, and the plain formats (SRT and SBV) in v0.2.0.
+The project is stable at v1.0.0. [The changelog index](docs/changelogs/index.md) carries the releases and [the roadmap](ROADMAP.md) carries the milestones. The v1.0.0 release freezes the public API of `pkg/sub`, adds [the browser demo](docs/demo/index.html), and records [the performance audit](docs/performance.md). It also adds [the migration guide](docs/migration.md) from YTSubConverter workflows. The v0.9.0 release candidate adds the configuration file, `--strict-compat`, the interactive keybinds, the system locale, and the parallel batch conversion. The v0.8.0 release adds the interactive mode, the layout-diffing renderer, the `--from` flag, the shorthands, and the widened integrity block. The v0.7.0 release adds the configured conversion API, the integrity block for the plain formats, and the JSON1 version chain. It adds the WebVTT voice span, the second locale, and the reference docs. The v0.6.0 release closes the ASS tag list and adds the TTML, WebVTT, Kdenlive, and JSON1 formats. The v0.5.0 release adds the ASS writer, and the v0.4.0 release adds the ASS reader. The YouTube pair (YTT and SRV3) arrives in v0.3.0, and the plain formats (SRT and SBV) in v0.2.0.
 
 The project started as a clean-room reimagining of [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter). We thank that project for the inspiration. All code here is original. [The third-party notices](docs/third-party-notices.md) record the attribution.
 

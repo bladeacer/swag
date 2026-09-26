@@ -28,7 +28,7 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
   # The wasm build ships the library for the browser demo under docs/demo/.
-  # It has no main package until v1.0.0, so the build id stays skipped.
+  # The demo page loads swag.wasm, and `make wasm` builds the pair locally.
   - id: swag-wasm
     main: ./cmd/swag-wasm
     binary: swag
@@ -42,7 +42,7 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-    skip: true # flip to false when cmd/swag-wasm lands (v1.0.0)
+    skip: false
 
 archives:
   - formats: ["tar.gz"]

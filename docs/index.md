@@ -7,7 +7,8 @@ Getting started:
 - [the install page](install.md): the ways to install the command, the platform support, and the tools for the development loop
 - [the usage page](usage.md): the flags, the interactive mode, the batch conversion, the preview, the format detection, and the exit codes
 - [the configuration page](configuration.md): where the configuration file lives on each platform, and how to move it
-- [the library guide](library.md): the public API with a worked example
+- [the library guide](library.md): the public API with a worked example, and the v1.0.0 stability guarantee
+- [the migration guide](migration.md): how to move a YTSubConverter workflow onto `swag`
 
 Formats and fidelity:
 
@@ -23,6 +24,8 @@ Reference and governance:
 - [the architecture page](architecture.md): packages, the intermediate representation, the format matrix, and the ASS tag tiers
 - [the internationalisation page](i18n.md): the message catalogue, the locales, and how to add a language
 - [the terminal palette page](terminal-palette.md): the OSC query for the terminal colours, what the prototype found, and the plan for theming
+- [the performance audit](performance.md): the tools, the numbers of every format, the bottlenecks, and the fixes
+- [the browser demo](demo/index.html): the WebAssembly build that converts a document in the browser
 - [the testing notes](testing.md): coverage, fuzzing, and benchmarks
 - [the roadmap](../ROADMAP.md): scope and the ordered milestones to v1.0.0
 - [the contributor rules](../AGENTS.md): conventions for agent contributors, including the documentation language
@@ -31,6 +34,7 @@ Reference and governance:
 Release notes, in Keep a Changelog form:
 
 - [the changelog index](changelogs/index.md): every release
+- [the v1.0.0 notes](changelogs/v1.0.0.md): the stable release, the frozen API, the browser demo, and the performance audit
 - [the v0.9.0 notes](changelogs/v0.9.0.md): the configuration file, the strict compatibility flag, the interactive keybinds, the system locale, and the parallel batch
 - [the v0.8.0 notes](changelogs/v0.8.0.md): the interactive command, the layout-diffing renderer, and the command line ergonomics
 - [the v0.7.0 notes](changelogs/v0.7.0.md): the conversion API, the plain format integrity block, and the reference docs
@@ -41,4 +45,4 @@ Release notes, in Keep a Changelog form:
 - [the v0.2.0 notes](changelogs/v0.2.0.md): the plain formats release
 - [the v0.1.0 notes](changelogs/v0.1.0.md): the foundation release
 
-The WASM demo page lands with v1.0.0.
+[The browser demo](demo/index.html) runs the conversion of a document through the WebAssembly build. Build the assets with `make wasm`.

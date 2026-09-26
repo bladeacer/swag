@@ -325,6 +325,7 @@ func run(args []string) int {
 	options := []kong.Option{
 		kong.Name("swag"),
 		kong.Description(envCopy.S(i18n.MsgCliDescription)),
+		kong.Help(styledHelpPrinter),
 		kong.Vars{
 			"version": versionLine(envCopy),
 			"jobs":    strconv.Itoa(defaultJobs(runtime.NumCPU())),

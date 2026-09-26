@@ -127,11 +127,20 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
   - Every tag from v0.2.0 carries a signature, and the v0.8.0 signature verifies against the maintainer key. Every release from v0.1.0 has a changelog file, and the index links each one. The release tag itself is created with `make tag`, which suggests the highest changelog and writes the notes link into the tag message.
 
 ### v1.0.0: stable
-- [ ] A performance audit with the Go profiling tools (`pprof` and `go tool trace`) as well as `strace` and `perf`, over the parse, the render, and the conversion of every format, with the bottlenecks it finds recorded and either fixed or documented
-- [ ] SemVer stability guarantee published for `pkg/sub` (breaking changes only at 2.0.0)
-- [ ] Guilt-free WASM: `swag` compiles and runs core conversions in a browser demo page
-- [ ] All matrix cells shipped or explicitly deferred with an issue link
-- [ ] 1.0 release notes, migration guide from YTSubConverter workflows
+- [x] A performance audit with the Go profiling tools (`pprof` and `go tool trace`) as well as `strace` and `perf`, over the parse, the render, and the conversion of every format, with the bottlenecks it finds recorded and either fixed or documented
+  - [The performance audit page](docs/performance.md) records the tools, the machine, the numbers of every format, the bottlenecks, and the open items. The WebVTT entity replacer is fixed, so the WebVTT parse is about two and a half times faster and the render is about three times faster.
+- [x] SemVer stability guarantee published for `pkg/sub` (breaking changes only at 2.0.0)
+  - [The library guide](docs/library.md) freezes the surface of `pkg/sub` at v1.0.0 and names v2.0.0 as the only place for a breaking change.
+- [x] Guilt-free WASM: `swag` compiles and runs core conversions in a browser demo page
+  - `cmd/swag-wasm` exposes `swag.convert` to [the browser demo page](docs/demo/index.html), and the `js/wasm` build of [the GoReleaser configuration](.goreleaser.yml) no longer carries a skip.
+- [x] All matrix cells shipped or explicitly deferred with an issue link
+  - Every Core and Broader cell ships. FCPXML captions and SCC/CEA-608 stay deferred, and each one links its issue in [the architecture page](docs/architecture.md).
+- [x] 1.0 release notes, migration guide from YTSubConverter workflows
+  - [The v1.0.0 notes](docs/changelogs/v1.0.0.md) carry the release, and [the migration guide](docs/migration.md) maps the YTSubConverter commands onto `swag`.
+- [x] Use colour and box styling sparingly, so a terminal theme stays in charge
+  - The theme uses one accent colour for a heading and one for a name, and it draws no box and no background. The rules live in `cmd/swag/style.go`.
+- [x] Integrate the pterm and kong styling into one look, so a bare run and `--help` match
+  - `cmd/swag/style.go` renders the kong help page through the pterm theme through `kong.Help`, so the banner and the help page share one look. A test keeps each mark and the combined page.
 
 ## Stretch goals (post-1.0 candidates)
 

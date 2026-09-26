@@ -308,9 +308,12 @@ func parseSpans(text string) []model.TextSpan {
 	return spans
 }
 
-// decodeEntities resolves the character references of a cue payload.
-func decodeEntities(s string) string {
-	replacer := strings.NewReplacer(
+// The entity replacers are built once. A replacer holds a trie that costs
+// time and memory to build, and a reader or writer would otherwise build it
+// for every cue payload.
+var (
+	// entityDecoder resolves the character references of a cue payload.
+	entityDecoder = strings.NewReplacer(
 		"&amp;", "&",
 		"&lt;", "<",
 		"&gt;", ">",
@@ -318,17 +321,22 @@ func decodeEntities(s string) string {
 		"&lrm;", "\u200e",
 		"&rlm;", "\u200f",
 	)
-	return replacer.Replace(s)
-}
-
-// encodeText escapes the characters that carry meaning in a cue payload.
-func encodeText(s string) string {
-	replacer := strings.NewReplacer(
+	// entityEncoder escapes the characters that carry meaning in a payload.
+	entityEncoder = strings.NewReplacer(
 		"&", "&amp;",
 		"<", "&lt;",
 		">", "&gt;",
 	)
-	return replacer.Replace(s)
+)
+
+// decodeEntities resolves the character references of a cue payload.
+func decodeEntities(s string) string {
+	return entityDecoder.Replace(s)
+}
+
+// encodeText escapes the characters that carry meaning in a cue payload.
+func encodeText(s string) string {
+	return entityEncoder.Replace(s)
 }
 
 // lossNotes collects the degradations of one write.

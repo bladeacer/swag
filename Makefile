@@ -10,8 +10,8 @@ CHANGELOG_URL_BASE := https://github.com/bladeacer/swag/blob/main/docs/changelog
 .DEFAULT_GOAL := help
 
 .PHONY: help build install run test cover cover-html cover-verify coverage-svg \
-        samples vet fmt tidy watch release-test tag snapshot clean tools \
-        bench bench-save bench-compare
+        samples vet fmt tidy watch release-test tag snapshot wasm clean tools \
+        bench bench-save bench-compare profile-cpu profile-trace
 
 help: ## Show this help
 	@printf "swag (Subtitles With A Gopher)\n\n"
@@ -85,6 +85,17 @@ release-test: ## Dry-run the release: build every target into dist/ (no upload)
 snapshot: ## Test GoReleaser locally in snapshot mode
 	$(GORELEASER) release --snapshot --clean
 
+wasm: ## Build the browser demo assets (swag.wasm, wasm_exec.js) into docs/demo/
+	GOOS=js GOARCH=wasm $(GO) build -trimpath -ldflags "-s -w" -o docs/demo/swag.wasm ./cmd/swag-wasm
+	@cp "$$($(GO) env GOROOT)/lib/wasm/wasm_exec.js" docs/demo/wasm_exec.js 2>/dev/null || \
+		cp "$$($(GO) env GOROOT)/misc/wasm/wasm_exec.js" docs/demo/wasm_exec.js
+
+profile-cpu: ## Write a CPU profile of the benchmark run into cpu.prof
+	$(GO) test -run=^$$ -bench=. -benchmem ./pkg/sub/ -cpuprofile=cpu.prof
+
+profile-trace: ## Write an execution trace of the benchmark run into trace.out
+	$(GO) test -run=^$$ -bench=. ./pkg/sub/ -trace=trace.out
+
 tag: ## Tag the suggested version (the highest changelog) and push the tag
 	@HIGHEST=$$(ls docs/changelogs/v*.md 2>/dev/null | sed -E 's|.*/v([0-9]+\.[0-9]+\.[0-9]+)\.md|\1|' | sort -V | tail -1); \
 	if [ -z "$$HIGHEST" ]; then \
@@ -114,7 +125,8 @@ tag: ## Tag the suggested version (the highest changelog) and push the tag
 
 clean: ## Remove build artefacts
 	$(GO) clean -cache -test-cache 2>/dev/null || true
-	rm -rf bin dist coverage.out build-errors.log bench.txt new-bench.txt
+	rm -rf bin dist coverage.out build-errors.log bench.txt new-bench.txt \
+		cpu.prof trace.out *.test docs/demo/swag.wasm docs/demo/wasm_exec.js
 
 tools: ## Install the development tools (air, goreleaser, go-test-coverage)
 	go install github.com/air-verse/air@latest

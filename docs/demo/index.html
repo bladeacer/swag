@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>swag demo</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; margin: 0 auto; max-width: 52rem; padding: 1rem; line-height: 1.5; }
+  h1 { font-size: 1.4rem; }
+  label { display: block; margin-top: 1rem; font-weight: 600; }
+  textarea, select { width: 100%; box-sizing: border-box; font: inherit; padding: 0.5rem; }
+  textarea { min-height: 10rem; }
+  button { margin-top: 0.75rem; font: inherit; padding: 0.5rem 1.2rem; }
+  pre { white-space: pre-wrap; word-break: break-word; padding: 0.75rem; border: 1px solid currentColor; }
+  ul { padding-left: 1.2rem; }
+  .quiet { opacity: 0.7; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<h1>swag demo</h1>
+<p>This page converts a subtitle document in the browser with the WebAssembly build of swag. No file leaves the machine.</p>
+
+<label for="source">Input document</label>
+<textarea id="source" spellcheck="false" placeholder="Paste a subtitle file here.">1
+00:00:01,000 --&gt; 00:00:03,000
+We are in the Milky Way.</textarea>
+<p class="quiet">Or open a file: <input type="file" id="file"></p>
+
+<label for="target">Target format</label>
+<select id="target"></select>
+
+<button id="convert" type="button">Convert</button>
+
+<h2>Result</h2>
+<pre id="output">The result appears here.</pre>
+<h2>Loss report</h2>
+<ul id="losses"><li class="quiet">No conversion has run yet.</li></ul>
+
+<script src="wasm_exec.js"></script>
+<script>
+const go = new Go();
+let ready = false;
+
+function show(message) {
+  document.getElementById("output").textContent = message;
+}
+
+function convert() {
+  if (!ready) { show("The module is still loading."); return; }
+  const name = "input." + document.getElementById("target").value;
+  const content = document.getElementById("source").value;
+  const target = document.getElementById("target").value;
+  const answer = JSON.parse(swag.convert(name, content, target));
+  const losses = document.getElementById("losses");
+  losses.replaceChildren();
+  if (answer.error) {
+    show("The conversion failed. " + answer.error);
+    return;
+  }
+  show(answer.output);
+  if (!answer.losses || answer.losses.length === 0) {
+    const item = document.createElement("li");
+    item.className = "quiet";
+    item.textContent = "The target format carries every feature.";
+    losses.append(item);
+    return;
+  }
+  for (const loss of answer.losses) {
+    const item = document.createElement("li");
+    item.textContent = loss;
+    losses.append(item);
+  }
+}
+
+WebAssembly.instantiateStreaming(fetch("swag.wasm"), go.importObject).then((result) => {
+  go.run(result.instance);
+  const select = document.getElementById("target");
+  for (const name of swag.formats) {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    select.append(option);
+  }
+  select.value = "vtt";
+  ready = true;
+  show("The module is ready.");
+}).catch(() => {
+  show("The WebAssembly module could not be loaded. Build it with make wasm.");
+});
+
+document.getElementById("convert").addEventListener("click", convert);
+document.getElementById("file").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) { return; }
+  document.getElementById("source").value = await file.text();
+  const dot = file.name.lastIndexOf(".");
+  if (dot > 0) {
+    const extension = file.name.slice(dot + 1).toLowerCase();
+    const select = document.getElementById("target");
+    for (const option of select.options) {
+      if (option.value === extension) { select.value = extension; }
+    }
+  }
+});
+</script>
+</body>
+</html>

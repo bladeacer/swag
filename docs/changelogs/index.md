@@ -6,6 +6,7 @@ Unreleased work lands in the file for the next planned version. The release comm
 
 ## Releases
 
+- [v1.0.0, stable](v1.0.0.md): the frozen public API, the browser demo, the performance audit, and the migration guide (unreleased)
 - [v0.9.0, configuration, compatibility, and the release candidate](v0.9.0.md): the configuration file, the interactive keybinds, the system locale, and the parallel batch (unreleased)
 - [v0.8.0, the terminal interface and command line ergonomics](v0.8.0.md): the interactive command, the layout-diffing renderer, and the WebVTT and TTML integrity block (unreleased)
 - [v0.7.0, library hardening and format integrity](v0.7.0.md): the configured conversion API, the integrity block of the plain formats, and the JSON1 version chain (unreleased)

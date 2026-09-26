@@ -517,3 +517,28 @@ func TestVoiceSpanRoundTrip(t *testing.T) {
 		t.Fatalf("the voice and the bold flag must survive: %+v", span)
 	}
 }
+
+// TestEntityReplacers keeps the behaviour of the package-level replacers
+// that the reader and the writer share. The values are built once, so a
+// later change that drops one would show here.
+func TestEntityReplacers(t *testing.T) {
+	decode := map[string]string{
+		"&amp;":  "&",
+		"&lt;":   "<",
+		"&gt;":   ">",
+		"&nbsp;": "\u00a0",
+		"&lrm;":  "\u200e",
+		"&rlm;":  "\u200f",
+	}
+	for in, want := range decode {
+		if got := decodeEntities(in); got != want {
+			t.Errorf("decodeEntities(%q) = %q, want %q", in, got, want)
+		}
+	}
+	if got := encodeText("a & b < c > d"); got != "a &amp; b &lt; c &gt; d" {
+		t.Errorf("encodeText = %q", got)
+	}
+	if got := decodeEntities(encodeText("x & y")); got != "x & y" {
+		t.Errorf("the entity round trip = %q", got)
+	}
+}

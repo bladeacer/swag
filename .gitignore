@@ -3,9 +3,16 @@
 /dist/
 coverage.out
 build-errors.log
+*.test
+cpu.prof
+trace.out
 
 # Upstream samples pulled for the end-to-end tests
 /testdata/upstream/
+
+# Browser demo assets built by `make wasm`
+/docs/demo/swag.wasm
+/docs/demo/wasm_exec.js
 
 # Air hot-reload artefacts
 *.log

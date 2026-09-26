@@ -106,7 +106,7 @@ func main() {
 
 ## API stability
 
-The public surface of `pkg/sub` is frozen as of v0.9.0, which is the release candidate for v1.0.0. The surface is:
+The public surface of `pkg/sub` is frozen at v1.0.0. The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). A breaking change to a name on the list below arrives only in v2.0.0. The surface is:
 
 | Kind | Name |
 |---|---|
@@ -117,12 +117,12 @@ The public surface of `pkg/sub` is frozen as of v0.9.0, which is the release can
 
 A change follows these rules:
 
-- Nothing on the list is removed before v1.0.0. A name that must go gains a deprecation note in its doc comment first, and the note names the replacement. No name carries a deprecation note today.
+- A name on the list is not removed before v2.0.0. A name that must go gains a deprecation note in its doc comment first, and the note names the replacement. No name carries a deprecation note today.
 - A new name lands in a minor release. It does not change the meaning or the signature of a name already on the list.
-- The behaviour of a name can change only when a bug fix requires it or a changelog entry names the change.
-- The `Document` alias points at the internal IR. A caller reads and writes it, and the IR fields stay outside this promise, because the formats own them.
+- A patch release carries a bug fix and no new behaviour. The behaviour of a name changes only when a bug fix requires it, or when a minor release names the change in its notes.
+- The `Document` alias points at the internal IR. A caller reads and writes it, and the IR fields stay outside this guarantee, because the formats own them.
 
-A caller that holds to the list keeps working across the v1.0.0 boundary. Anything else in the module is internal and can move at any release.
+A caller that holds to the list keeps working across every v1 release. Anything else in the module is internal and can move at any release. The command line follows the same rules for its flags.
 
 ## Notes
 

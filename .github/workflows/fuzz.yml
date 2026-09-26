@@ -15,30 +15,45 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - FuzzParseSRT
-          - FuzzParseSBV
-          - FuzzParseYTT
-          - FuzzParseSRV3
-          - FuzzParseASS
-          - FuzzParseJSON1
-          - FuzzParseVTT
-          - FuzzParseTTML
-          - FuzzParseKdenlive
+        include:
+          - package: ./pkg/sub/
+            target: FuzzParseSRT
+          - package: ./pkg/sub/
+            target: FuzzParseSBV
+          - package: ./pkg/sub/
+            target: FuzzParseYTT
+          - package: ./pkg/sub/
+            target: FuzzParseSRV3
+          - package: ./pkg/sub/
+            target: FuzzParseASS
+          - package: ./pkg/sub/
+            target: FuzzParseJSON1
+          - package: ./pkg/sub/
+            target: FuzzParseVTT
+          - package: ./pkg/sub/
+            target: FuzzParseTTML
+          - package: ./pkg/sub/
+            target: FuzzParseKdenlive
+          - package: ./internal/config/
+            target: FuzzDecode
+          - package: ./internal/tui/
+            target: FuzzParseTokens
+          - package: ./internal/tui/
+            target: FuzzNewKeymap
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
           check-latest: true
-      # Each target runs for a few minutes. With nine targets the nightly
+      # Each target runs for a few minutes. With twelve targets the nightly
       # session spends roughly half an hour in total.
       - name: fuzz ${{ matrix.target }}
-        run: go test ./pkg/sub/ -run=^$ -fuzz=^${{ matrix.target }}$ -fuzztime=3m
+        run: go test ${{ matrix.package }} -run=^$ -fuzz=^${{ matrix.target }}$ -fuzztime=3m
       - name: upload the crash corpus
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: fuzz-corpus-${{ matrix.target }}
-          path: pkg/sub/testdata/fuzz/${{ matrix.target }}/
+          path: ${{ matrix.package }}testdata/fuzz/${{ matrix.target }}/
           if-no-files-found: ignore

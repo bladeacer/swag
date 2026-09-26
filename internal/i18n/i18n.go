@@ -138,15 +138,17 @@ const (
 	MsgPreviewMore     Key = "preview.more"
 	MsgPreviewStatus   Key = "preview.status"
 
-	MsgConfigFile     Key = "config.file"
-	MsgConfigPresent  Key = "config.present"
-	MsgConfigAbsent   Key = "config.absent"
-	MsgConfigPlatform Key = "config.platform"
-	MsgConfigError    Key = "config.error"
-	MsgConfigInvalid  Key = "config.invalid"
-	MsgConfigInit     Key = "config.init"
-	MsgConfigExists   Key = "config.exists"
-	MsgConfigWrite    Key = "config.write"
+	MsgConfigFile        Key = "config.file"
+	MsgConfigLocal       Key = "config.local"
+	MsgConfigPresent     Key = "config.present"
+	MsgConfigAbsent      Key = "config.absent"
+	MsgConfigLocalAbsent Key = "config.local-absent"
+	MsgConfigPlatform    Key = "config.platform"
+	MsgConfigError       Key = "config.error"
+	MsgConfigInvalid     Key = "config.invalid"
+	MsgConfigInit        Key = "config.init"
+	MsgConfigExists      Key = "config.exists"
+	MsgConfigWrite       Key = "config.write"
 )
 
 // enUS is the message set of the default locale. It carries every key, and
@@ -210,15 +212,17 @@ var enUS = map[Key]string{
 	MsgPreviewMore:     "and %d more cues",
 	MsgPreviewStatus:   "%d styles, %d cues.",
 
-	MsgConfigFile:     "The configuration file is %s.",
-	MsgConfigPresent:  "The file is present, and the tool reads it.",
-	MsgConfigAbsent:   "The file is absent, so the tool uses its own defaults.",
-	MsgConfigPlatform: "This build runs on %s/%s.",
-	MsgConfigError:    "The configuration location could not be resolved. %s",
-	MsgConfigInvalid:  "The configuration could not be read. %s",
-	MsgConfigInit:     "Wrote the default configuration file to %s.",
-	MsgConfigExists:   "The file %s is already present. Move it aside before you write the default.",
-	MsgConfigWrite:    "The configuration file could not be written. %s",
+	MsgConfigFile:        "The configuration file is %s.",
+	MsgConfigLocal:       "The working directory configuration file is %s.",
+	MsgConfigPresent:     "The file is present, and the tool reads it.",
+	MsgConfigAbsent:      "The file is absent, so the tool uses its own defaults.",
+	MsgConfigLocalAbsent: "The working directory file is absent, so the global file and the built-in defaults apply.",
+	MsgConfigPlatform:    "This build runs on %s/%s.",
+	MsgConfigError:       "The configuration location could not be resolved. %s",
+	MsgConfigInvalid:     "The configuration could not be read. %s",
+	MsgConfigInit:        "Wrote the default configuration file to %s.",
+	MsgConfigExists:      "The file %s is already present. Move it aside before you write the default.",
+	MsgConfigWrite:       "The configuration file could not be written. %s",
 }
 
 // T is a catalogue bound to one locale. It is safe for concurrent use.

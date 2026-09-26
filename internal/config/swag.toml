@@ -1,0 +1,69 @@
+# The swag configuration file.
+#
+# Every setting is optional. A setting that is absent keeps the default of the
+# tool. Every setting below is commented out, except the keybinds table at the
+# end. The keybinds carry the built-in values, so this file changes no
+# behaviour until you edit it.
+#
+# The command line wins over the environment, the environment wins over this
+# file, and this file wins over the built-in default.
+
+# The message locale. The shipped locales are en-GB and en-US. Any other
+# value is an error, so a typo never falls back in silence.
+# locale = "en-US"
+
+# Print the conversion report, as the -v flag does. The value must be true or
+# false.
+# verbose = true
+
+# Fail a conversion that drops a feature, as the -s flag does.
+# strict = true
+
+# Write no integrity block, as the -c flag does.
+# strict_compat = true
+
+# Replace the font of every style and span, as the -n flag does.
+# font = "Verdana"
+
+# The input format, as the -F flag does. An empty value detects the format
+# from the file.
+# from = "ass"
+
+# The target format, as the -f flag does. An empty value uses the extension
+# of the output file.
+# format = "vtt"
+
+# The target formats that a batch run writes when -f is absent. The same list
+# orders the target question of the interactive mode. Every name must be a
+# registered format, and an unknown name is dropped.
+# preferred = ["srt", "vtt"]
+
+# The conversions that run at once in a batch run, as -j does. The value keeps
+# two cores free when it is absent, and zero uses every core. A negative value
+# is an error.
+# jobs = 4
+
+# The keys of the interactive mode. Each entry maps an action onto a list of
+# key tokens. An empty list removes the binding. The actions are accept, help,
+# and quit, and the leader names the leader key itself.
+#
+# A token is a modifier (Ctrl, Alt, Meta, Shift) or a key. A modifier name is
+# case-insensitive, and Meta means Alt. A regular key keeps its case, and a
+# single upper-case letter means Shift with that letter. A named key is esc,
+# tab, space, backspace, up, down, left, or right, and a named key is
+# case-insensitive too, so Shift with a named key changes nothing.
+#
+# A modifier joins the key that follows it, so ["Ctrl", "x"] is Ctrl+x. A
+# modifier at the end joins the key before it, so ["Ctrl", "x", "Shift"] and
+# ["Ctrl", "Shift", "x"] name the same chord. The order of the modifiers is
+# free, and a repeated modifier is dropped, so ["Ctrl", "Ctrl", "x"] is
+# Ctrl+x. A key with no modifier is a plain key.
+#
+# A binding can carry several chords, so ["<leader>", "Ctrl", "a", "s"] is the
+# leader, then Ctrl+a, then a plain s. The leader expands to its own token
+# list first, so <leader> stands at the start of a binding.
+[keybinds]
+leader = ["Ctrl", "x"]
+accept = ["<leader>", "a"]
+help = ["<leader>", "?"]
+quit = ["<leader>", "q"]

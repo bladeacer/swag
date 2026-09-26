@@ -149,6 +149,16 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
   - `internal/config` wraps a decode failure with the file path, and the test suite covers each broken shape.
 - [x] More performance audits, with benchmarks of the configuration decode and the keybind engine and a `make bench-all` target
   - [The performance audit page](docs/performance.md) records the numbers of the interactive path.
+- [x] The full configuration chain: the command line flag, then the working directory file, then the global file, then the built-in default
+  - `internal/config.Merge` layers the two files setting by setting, and the `keybinds` table merges action by action. `cmd/swag/config.go` reads both files, and the `config` command reports both paths. [The configuration page](docs/configuration.md) records the chain.
+- [x] The active default file moves to the repository root as `swag.toml`, and a test keeps the embedded copy in step
+  - [The configuration page](docs/configuration.md), [the documentation index](docs/index.md), and [the README](README.md) link the root file. The keybinds table stays active, so writing or reading the file changes no behaviour.
+- [x] The decoded configuration is cached by path, size, and modification time
+  - A changed file is read again, and an unchanged path serves the kept result. [The performance audit](docs/performance.md) records the cached lookup at about half a microsecond against a decode near 40 microseconds.
+- [x] Fuzz targets for the configuration decoder and the keybind token parser, wired into [the nightly fuzz workflow](.github/workflows/fuzz.yml)
+  - The workflow now runs twelve targets, and [the testing notes](docs/testing.md) record the new properties.
+- [x] More tests for the YouTube font fallback and the platform quirks
+  - `internal/formats/ytt/quirks_test.go` pins the font table, the Roboto fallback, the small caps snap, the shadow space, the opacity ceiling, the white shift, the dark lift, and the scale round trip.
 
 ## Stretch goals (post-1.0 candidates)
 

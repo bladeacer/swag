@@ -12,7 +12,12 @@
 // The SWAG_CONFIG_DIR environment variable names the directory outright and
 // SWAG_CONFIG names the file, so a portable install needs no platform rule.
 //
-// The package also carries the settings of the file. Load reads them, Flag
+// A run resolves two files. The working directory file, swag.toml, wins over
+// the global file, and Merge layers one over the other. The full order is
+// the command line flag, then the working directory file, then the global
+// file, then the built-in default.
+//
+// The package also carries the settings of a file. Load reads them, Flag
 // maps a command line flag name onto its setting, and Write creates the
 // commented default file. Every command looks in one place.
 package config
@@ -31,6 +36,12 @@ const EnvFile = "SWAG_CONFIG"
 
 // FileName is the name of the configuration file inside the directory.
 const FileName = "config.toml"
+
+// LocalFileName is the name of a configuration file in the working
+// directory. The tool reads it after the global file, so a project can carry
+// its own settings. The keybinds table merges action by action, so a project
+// file can change one binding and keep the rest.
+const LocalFileName = "swag.toml"
 
 // dirName is the directory name of the tool inside the platform
 // configuration directory.
@@ -78,6 +89,11 @@ func File(goos string, env func(string) string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(dir, FileName), nil
+}
+
+// LocalFile returns the path of the working directory configuration file.
+func LocalFile(dir string) string {
+	return filepath.Join(dir, LocalFileName)
 }
 
 // Exists reports whether a configuration file is present. A directory is not

@@ -10,6 +10,10 @@ import (
 	"testing"
 )
 
+// boolPtr returns the address of a bool, for a field that tells an absent
+// setting from a setting of false.
+func boolPtr(v bool) *bool { return &v }
+
 func TestDefault(t *testing.T) {
 	settings := Default()
 	if !reflect.DeepEqual(settings, Settings{}) {
@@ -43,9 +47,9 @@ quit = ["q"]
 	jobs := 4
 	want := Settings{
 		Locale:       "en-US",
-		Verbose:      true,
-		Strict:       true,
-		StrictCompat: true,
+		Verbose:      boolPtr(true),
+		Strict:       boolPtr(true),
+		StrictCompat: boolPtr(true),
 		Font:         "Verdana",
 		From:         "ass",
 		Format:       "vtt",
@@ -190,9 +194,9 @@ func TestFlag(t *testing.T) {
 	jobs := 4
 	settings := Settings{
 		Locale:       "en-US",
-		Verbose:      true,
-		Strict:       true,
-		StrictCompat: true,
+		Verbose:      boolPtr(true),
+		Strict:       boolPtr(true),
+		StrictCompat: boolPtr(true),
 		Font:         "Verdana",
 		From:         "ass",
 		Format:       "vtt",
@@ -228,7 +232,7 @@ func TestFlag(t *testing.T) {
 // set", so the flag keeps its own default.
 func TestFlagEmptyStrings(t *testing.T) {
 	settings := Default()
-	for _, name := range []string{"locale", "font", "from", "format", "target", "jobs"} {
+	for _, name := range []string{"locale", "font", "from", "format", "target", "jobs", "verbose", "strict", "strict-compat"} {
 		if _, ok := settings.Flag(name); ok {
 			t.Errorf("an empty %s must report false", name)
 		}
@@ -301,5 +305,130 @@ func TestDefaultFileMatchesTheDocs(t *testing.T) {
 	}
 	if !strings.Contains(string(data), "```toml\n"+DefaultFile+"```") {
 		t.Fatal("the configuration page does not carry the default file verbatim")
+	}
+}
+
+// TestRootSwagTomlMatchesTheEmbeddedDefault keeps the file at the repository
+// root in step with the embedded default, because a reader opens the root
+// file and the tool writes the embedded one.
+func TestRootSwagTomlMatchesTheEmbeddedDefault(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "swag.toml"))
+	if err != nil {
+		t.Fatalf("read the root file: %v", err)
+	}
+	if string(data) != DefaultFile {
+		t.Fatal("the root swag.toml differs from the embedded default")
+	}
+}
+
+// TestMerge covers the layering of two files. A setting that the override
+// carries wins, a setting it leaves absent keeps the base value, and the
+// keybinds table merges one action at a time.
+func TestMerge(t *testing.T) {
+	baseJobs, overrideJobs := 2, 8
+	base := Settings{
+		Locale:       "en-US",
+		Verbose:      boolPtr(false),
+		Strict:       boolPtr(true),
+		StrictCompat: boolPtr(true),
+		Font:         "Verdana",
+		From:         "ass",
+		Format:       "vtt",
+		Preferred:    []string{"srt"},
+		Jobs:         &baseJobs,
+		Keybinds:     map[string][]string{"quit": {"q"}, "help": {"h"}},
+	}
+	override := Settings{
+		Locale:    "en-GB",
+		Verbose:   boolPtr(true),
+		Font:      "Courier New",
+		Preferred: []string{"vtt", "srt"},
+		Jobs:      &overrideJobs,
+		Keybinds:  map[string][]string{"help": {"?"}},
+	}
+	got := Merge(base, override)
+
+	if got.Locale != "en-GB" || got.Font != "Courier New" {
+		t.Errorf("a carried override did not win: %+v", got)
+	}
+	if got.Verbose == nil || !*got.Verbose {
+		t.Errorf("a carried bool override did not win: %+v", got.Verbose)
+	}
+	if got.Strict == nil || !*got.Strict || got.StrictCompat == nil || !*got.StrictCompat {
+		t.Errorf("an absent bool override dropped the base value: %+v", got)
+	}
+	if got.From != "ass" || got.Format != "vtt" {
+		t.Errorf("an absent string override dropped the base value: %+v", got)
+	}
+	if len(got.Preferred) != 2 || got.Preferred[0] != "vtt" {
+		t.Errorf("preferred = %v, want the override", got.Preferred)
+	}
+	if got.Jobs == nil || *got.Jobs != 8 {
+		t.Errorf("jobs = %v, want the override", got.Jobs)
+	}
+	if tokens := got.Keybinds["help"]; len(tokens) != 1 || tokens[0] != "?" {
+		t.Errorf("the overridden keybind = %v, want [?]", tokens)
+	}
+	if tokens := got.Keybinds["quit"]; len(tokens) != 1 || tokens[0] != "q" {
+		t.Errorf("the kept keybind = %v, want [q]", tokens)
+	}
+	// The merge must not mutate the base map.
+	if tokens := base.Keybinds["help"]; tokens[0] != "h" {
+		t.Errorf("Merge mutated the base keybinds: %v", base.Keybinds)
+	}
+}
+
+// TestMergeEmptyOverride keeps every base value.
+func TestMergeEmptyOverride(t *testing.T) {
+	baseJobs := 3
+	base := Settings{Locale: "en-US", Jobs: &baseJobs, Keybinds: map[string][]string{"quit": {"q"}}}
+	got := Merge(base, Default())
+	if got.Locale != "en-US" || got.Jobs == nil || *got.Jobs != 3 {
+		t.Fatalf("an empty override changed the base: %+v", got)
+	}
+	if tokens := got.Keybinds["quit"]; len(tokens) != 1 || tokens[0] != "q" {
+		t.Fatalf("an empty override dropped the keybinds: %+v", got.Keybinds)
+	}
+}
+
+// TestLoadCachesDecode proves that a second load of an unchanged file serves
+// the kept result instead of reading the file again.
+func TestLoadCachesDecode(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("font = \"Verdana\"\n"), 0o644); err != nil {
+		t.Fatalf("write the file: %v", err)
+	}
+	first, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	second, err := Load(path)
+	if err != nil {
+		t.Fatalf("second Load: %v", err)
+	}
+	if !reflect.DeepEqual(first, second) {
+		t.Fatalf("the cached load differs: %+v and %+v", first, second)
+	}
+}
+
+// TestLoadRereadsAChangedFile proves that an edit between two loads reaches
+// the caller, because the cache notices the new size.
+func TestLoadRereadsAChangedFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("font = \"Verdana\"\n"), 0o644); err != nil {
+		t.Fatalf("write the file: %v", err)
+	}
+	if _, err := Load(path); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("font = \"Courier New\"\n"), 0o644); err != nil {
+		t.Fatalf("rewrite the file: %v", err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load after the edit: %v", err)
+	}
+	if got.Font != "Courier New" {
+		t.Fatalf("the changed file = %+v, want the new font", got)
 	}
 }

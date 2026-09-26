@@ -110,6 +110,16 @@ func TestFileError(t *testing.T) {
 	}
 }
 
+func TestLocalFile(t *testing.T) {
+	if LocalFileName != "swag.toml" {
+		t.Fatalf("the working directory file must be named swag.toml, got %q", LocalFileName)
+	}
+	got := LocalFile(filepath.Join("work", "project"))
+	if want := filepath.Join("work", "project", LocalFileName); got != want {
+		t.Fatalf("LocalFile = %q, want %q", got, want)
+	}
+}
+
 func TestExists(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.Join(dir, "config.toml")

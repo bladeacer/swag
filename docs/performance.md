@@ -69,11 +69,12 @@ The interactive mode reads its configuration and builds its keymap before the fi
 | Benchmark | Result |
 |---|---:|
 | Decode of the default configuration | 39.8 µs, 135 allocs |
+| Cached load of an unchanged file | 510 ns, 2 allocs |
 | Keymap build | 1.82 µs, 41 allocs |
 | Whole-line key match | 8.21 ns, no alloc |
 | One key-sequence step | 14.30 ns, no alloc |
 
-The decode of the configuration costs about 40 microseconds on every startup that reads a file. The keymap builds once per interactive session. The match and the step of the matcher allocate nothing, so a typed key costs no garbage collection. The first finding is a candidate for a later change: a cached schema, or a lighter reader, can remove part of the decode cost.
+The decode of the configuration costs about 40 microseconds on a startup that reads a file. The keymap builds once per interactive session. The match and the step of the matcher allocate nothing, so a typed key costs no garbage collection. [The settings suite](../internal/config/settings_test.go) keeps the cache honest: an edit between two loads reaches the caller. The cache serves the second and later loads of an unchanged path in about half a microsecond, so the two files of one run pay the decode once each. The first decode of a path still carries the full cost, and a lighter reader stays a candidate for a later change.
 
 ## Open items
 

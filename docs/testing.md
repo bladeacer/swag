@@ -22,13 +22,15 @@ Several suites sit above the package tests:
 - [The key reader suite](../internal/tui/reader_test.go) covers the line prompt, the timeout sequence, the text fallback, and the echo.
 - [The key source suite](../cmd/swag/keysource_test.go) covers the stream source, the terminal source, and the raw setup, with the terminal calls injected.
 - [The batch and preview suites](../cmd/swag/batch_test.go) cover the directory walk, the target list, the output directory, and the preview rows.
-- [The configuration suite](../internal/config/config_test.go) covers the location rule of every platform, the two environment overrides, and the failure of a platform with no home directory. [The settings suite](../internal/config/settings_test.go) covers the decode, a broken document, a value of the wrong type, a duplicate key, and an unknown setting.
+- [The configuration suite](../internal/config/config_test.go) covers the location rule of every platform, the two environment overrides, the working directory file name, and the failure of a platform with no home directory. [The settings suite](../internal/config/settings_test.go) covers the decode, a broken document, a value of the wrong type, a duplicate key, an unknown setting, the merge of two files, the decode cache, and the file at the repository root. [The command line configuration suite](../cmd/swag/config_test.go) covers the chain from the flag to the working directory file, then the global file, then the built-in default.
 
 ## Fuzzing
 
 Every reader has a fuzz target in [the fuzz file](../pkg/sub/fuzz_test.go). A target parses an arbitrary string, then renders the result as JSON1, so a reader must not panic and a document it accepts must render. The targets run their seed corpus during a normal test run.
 
 A longer search runs in [the nightly fuzz workflow](../.github/workflows/fuzz.yml). The workflow runs each target for three minutes on a schedule, which spends about half an hour in total. It uploads a crash corpus on a failure. Fuzzing found a crash in the ASS reader: a `\t` tag with two arguments read past the end of its argument list. [The regression test](../internal/formats/ass/gaps_test.go) covers that input. A later short run of all nine targets, about twenty seconds each, found no further crash.
+
+The configuration decoder and the keybind token parser carry targets too, so the workflow runs twelve in total. [The configuration fuzz file](../internal/config/fuzz_test.go) checks that a decoded document keeps no blank preferred name. [The keybind fuzz file](../internal/tui/fuzz_test.go) checks that a parsed token list names at least one key and that the keymap builder answers a binding lookup for an accepted override table.
 
 Run one target by hand with:
 

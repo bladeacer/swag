@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/pterm/pterm"
+
+	"github.com/bladeacer/swag/internal/config"
 )
 
 // capturePterm sends the pterm output of a test into a buffer.
@@ -255,6 +257,98 @@ func TestRunConfigInit(t *testing.T) {
 
 	if code := run([]string{"config", "--init"}); code != 1 {
 		t.Fatalf("the second run exited %d, want 1", code)
+	}
+}
+
+// withWorkingDir pins the working directory for a test, so the working
+// directory configuration file is read from a known place.
+func withWorkingDir(t *testing.T, dir string) {
+	t.Helper()
+	original := workingDir
+	workingDir = func() (string, error) { return dir, nil }
+	t.Cleanup(func() { workingDir = original })
+}
+
+// TestWorkingDirectoryFileOverridesTheGlobalFile proves the chain: a font in
+// the working directory file wins over the font in the global file.
+func TestWorkingDirectoryFileOverridesTheGlobalFile(t *testing.T) {
+	t.Setenv("SWAG_CONFIG", writeConfig(t, "font = \"Verdana\"\n"))
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.LocalFileName), []byte("font = \"Courier New\"\n"), 0o644); err != nil {
+		t.Fatalf("write the working directory file: %v", err)
+	}
+	withWorkingDir(t, dir)
+	in := writeSubtitle(t, "in.ass", assKaraokeFixture)
+	out := filepath.Join(t.TempDir(), "out.ass")
+	capturePterm(t)
+
+	if code := run([]string{"-i", in, "-o", out}); code != 0 {
+		t.Fatalf("run exit code = %d, want 0", code)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatalf("read the output: %v", err)
+	}
+	if !strings.Contains(string(data), "Courier New") {
+		t.Fatalf("the working directory file did not win:\n%s", data)
+	}
+	if strings.Contains(string(data), "Verdana") {
+		t.Fatalf("the global file leaked through:\n%s", data)
+	}
+}
+
+// TestWorkingDirectoryFileKeepsTheGlobalSettings proves that the working
+// directory file changes one setting and keeps the rest of the global file.
+func TestWorkingDirectoryFileKeepsTheGlobalSettings(t *testing.T) {
+	t.Setenv("SWAG_CONFIG", writeConfig(t, "font = \"Verdana\"\nfrom = \"ass\"\n"))
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.LocalFileName), []byte("verbose = true\n"), 0o644); err != nil {
+		t.Fatalf("write the working directory file: %v", err)
+	}
+	withWorkingDir(t, dir)
+	settings, err := settingsFromFile()
+	if err != nil {
+		t.Fatalf("settingsFromFile: %v", err)
+	}
+	if settings.Font != "Verdana" || settings.From != "ass" {
+		t.Fatalf("the global settings were dropped: %+v", settings)
+	}
+	if settings.Verbose == nil || !*settings.Verbose {
+		t.Fatalf("the working directory setting was dropped: %+v", settings.Verbose)
+	}
+}
+
+// TestWorkingDirectoryError covers a working directory that cannot be read.
+func TestWorkingDirectoryError(t *testing.T) {
+	original := workingDir
+	workingDir = func() (string, error) { return "", errors.New("boom") }
+	t.Cleanup(func() { workingDir = original })
+
+	if _, err := settingsFromFile(); err == nil {
+		t.Fatal("a failed working directory must fail the load")
+	}
+	capturePterm(t)
+	if code := run([]string{"config"}); code != 1 {
+		t.Fatalf("run exit code = %d, want 1", code)
+	}
+}
+
+// TestConfigCmdReportsTheWorkingDirectoryFile covers the report of both
+// paths.
+func TestConfigCmdReportsTheWorkingDirectoryFile(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.LocalFileName), []byte("# swag\n"), 0o644); err != nil {
+		t.Fatalf("write the working directory file: %v", err)
+	}
+	withWorkingDir(t, dir)
+	t.Setenv("SWAG_CONFIG", filepath.Join(t.TempDir(), "missing.toml"))
+	out := capturePterm(t)
+
+	if err := (&ConfigCmd{}).Run(newRunContext(false)); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if !strings.Contains(out.String(), "working directory configuration file") {
+		t.Errorf("the working directory path is missing:\n%s", out.String())
 	}
 }
 

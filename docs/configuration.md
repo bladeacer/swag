@@ -1,6 +1,6 @@
 # Configuration
 
-`swag` resolves one configuration file per user, and it follows the convention of the platform. This page records where the file lives, how to move it, and which settings it carries. The tool reads the file on every run, and a missing file changes no behaviour.
+`swag` reads two configuration files. The global file follows the convention of the platform, and a `swag.toml` in the working directory carries the settings of one project. This page records where each file lives, how to move it, how the tool merges them, and which settings they carry. The tool reads the files on every run, and a missing file changes no behaviour.
 
 ## The location
 
@@ -9,8 +9,21 @@
 | Linux and the other Unix systems | `$XDG_CONFIG_HOME/swag`, or `$HOME/.config/swag` when the variable is empty | `config.toml` |
 | macOS | `~/Library/Application Support/swag` | `config.toml` |
 | Windows | `%AppData%\swag` | `config.toml` |
+| Any platform, working directory | the working directory | `swag.toml` |
 
 The rules come from the freedesktop basedir specification on Linux and from the platform convention on macOS and Windows. [The basedir specification](https://specifications.freedesktop.org/basedir-spec/latest/) names the `$XDG_CONFIG_HOME` variable and its fallback.
+
+## The resolution chain
+
+One setting can arrive from five places. The first source that carries a value wins:
+
+1. The command line flag.
+2. The environment, for example `SWAG_LOCALE`.
+3. The working directory file, `swag.toml`.
+4. The global file.
+5. The built-in default.
+
+The working directory file wins over the global file, so a project can pin its own settings. The tool layers the two files setting by setting, so the working directory file can change one value and keep the rest of the global file. The `keybinds` table merges one action at a time, so a project can change one binding and keep the others. The `SWAG_CONFIG` and `SWAG_CONFIG_DIR` variables move the global file only, so the working directory file applies either way.
 
 ## Overrides
 
@@ -38,6 +51,8 @@ swag config
 ```
  INFO  The configuration file is /home/user/.config/swag/config.toml.
  INFO  The file is absent, so the tool uses its own defaults.
+ INFO  The working directory configuration file is /home/user/project/swag.toml.
+ INFO  The working directory file is absent, so the global file and the built-in defaults apply.
  INFO  This build runs on linux/amd64.
 ```
 
@@ -51,18 +66,9 @@ swag config --init
 
 The written file holds every setting as a comment, so writing it changes no behaviour until you edit it.
 
-## Precedence
-
-One setting can arrive from four places. The first source that carries a value wins:
-
-1. The command line.
-2. The environment, for example `SWAG_LOCALE`.
-3. The configuration file.
-4. The built-in default.
-
 ## The file format
 
-The file is TOML, and every setting is optional. An unknown key is an error, so a typo never passes in silence. A value of the wrong type is an error too, and a broken document names the file and the line that TOML reports. The file that `swag config --init` writes is [the default configuration file](../internal/config/default.toml), and the schema below is that file. The keybinds table at the end carries the built-in bindings as active entries, so the file changes no behaviour until you edit it.
+The file is TOML, and every setting is optional. An unknown key is an error, so a typo never passes in silence. A value of the wrong type is an error too, and a broken document names the file and the line that TOML reports. The file that `swag config --init` writes is [the default configuration file](../swag.toml), and the schema below is that file. The keybinds table at the end carries the built-in bindings as active entries, so the file changes no behaviour until you edit it. A working directory file carries the same schema.
 
 ```toml
 # The swag configuration file.
@@ -172,4 +178,4 @@ An entry replaces the built-in binding of its action, and an empty list removes 
 | `help` | `["<leader>", "?"]` | Print the bindings and ask again. |
 | `quit` | `["<leader>", "q"]` | End the run and write no file. |
 
-[The internationalisation page](i18n.md) covers the locale settings, and [the usage page](usage.md) covers the flags. [The terminal palette page](terminal-palette.md) covers the theme source that sits behind the file.
+[The internationalisation page](i18n.md) covers the locale settings, and [the usage page](usage.md) covers the flags. [The terminal palette page](terminal-palette.md) covers the theme source that sits behind the file, and [the default configuration file](../swag.toml) carries the built-in keybinds as active entries.

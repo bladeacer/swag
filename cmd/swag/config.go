@@ -18,21 +18,42 @@ import (
 // test can force the failure branch.
 var configFile = config.File
 
-// settingsFromFile loads the configuration file. A missing file returns the
-// defaults and no error, so the tool works with no configuration.
+// workingDir reports the working directory. It is a variable so a test can
+// force the failure branch.
+var workingDir = os.Getwd
+
+// settingsFromFile loads the two configuration files and layers them. The
+// order is the command line flag, then the working directory file, then the
+// global file, then the built-in default, so the working directory file wins
+// over the global one. A missing file returns the defaults and no error, so
+// the tool works with no configuration.
 func settingsFromFile() (config.Settings, error) {
 	path, err := configFile(runtime.GOOS, os.Getenv)
 	if err != nil {
 		return config.Settings{}, err
 	}
-	return config.Load(path)
+	global, err := config.Load(path)
+	if err != nil {
+		return config.Settings{}, err
+	}
+	dir, err := workingDir()
+	if err != nil {
+		return config.Settings{}, fmt.Errorf("config: the working directory could not be read: %w", err)
+	}
+	local, err := config.Load(config.LocalFile(dir))
+	if err != nil {
+		return config.Settings{}, err
+	}
+	return config.Merge(global, local), nil
 }
 
 // configResolver returns a kong resolver over the settings. The command
-// line wins over the environment, the environment wins over the file, and
-// the file wins over the built-in default. Kong consults a resolver only for
-// a flag that the command line left unset, and the environment check keeps
-// an exported variable ahead of the file.
+// line wins over the environment, the environment wins over the merged
+// files, and the merged files win over the built-in default. A flag that the
+// command line leaves unset therefore falls back to the working directory
+// file, then the global file, then the built-in default. Kong consults a
+// resolver only for a flag that the command line left unset, and the
+// environment check keeps an exported variable ahead of the files.
 func configResolver(settings config.Settings) kong.Resolver {
 	return kong.ResolverFunc(func(_ *kong.Context, _ *kong.Path, flag *kong.Flag) (any, error) {
 		if envSet(flag.Envs) {
@@ -82,11 +103,22 @@ func (c *ConfigCmd) Run(ictx *runContext) error {
 		pterm.Success.Println(t.F(i18n.MsgConfigInit, path))
 		return nil
 	}
+	dir, err := workingDir()
+	if err != nil {
+		return fmt.Errorf("%s", t.F(i18n.MsgConfigError, err))
+	}
+	local := config.LocalFile(dir)
 	pterm.Info.Println(t.F(i18n.MsgConfigFile, path))
 	if config.Exists(path) {
 		pterm.Success.Println(t.S(i18n.MsgConfigPresent))
 	} else {
 		pterm.Info.Println(t.S(i18n.MsgConfigAbsent))
+	}
+	pterm.Info.Println(t.F(i18n.MsgConfigLocal, local))
+	if config.Exists(local) {
+		pterm.Success.Println(t.S(i18n.MsgConfigPresent))
+	} else {
+		pterm.Info.Println(t.S(i18n.MsgConfigLocalAbsent))
 	}
 	pterm.Info.Println(t.F(i18n.MsgConfigPlatform, runtime.GOOS, runtime.GOARCH))
 	return nil

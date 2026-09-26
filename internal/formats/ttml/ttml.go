@@ -955,6 +955,7 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	}
 
 	var out strings.Builder
+	out.Grow(len(doc.Cues) * 256)
 	out.WriteString("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
 	out.WriteString("<tt xmlns=\"http://www.w3.org/ns/ttml\" xmlns:tts=\"http://www.w3.org/ns/ttml#styling\">\n")
 	out.WriteString("  <head>\n")
@@ -980,9 +981,11 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	out.WriteString("  </head>\n")
 	out.WriteString("  <body>\n")
 	out.WriteString("    <div>\n")
+	var groups []model.RubyGroup
 	for i := range doc.Cues {
 		cue := doc.Cues[i]
 		recordLosses(cue, &losses)
+		groups = model.RubyGroupsInto(groups[:0], cue.Spans)
 		fmt.Fprintf(&out, "      <p begin=\"%s\" end=\"%s\"", formatTime(cue.Start), formatTime(cue.End))
 		if len(doc.Styles) > 0 {
 			out.WriteString(" style=\"style0\"")
@@ -991,7 +994,7 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 			fmt.Fprintf(&out, " region=\"region%d\"", i)
 		}
 		out.WriteString(">")
-		renderSpans(&out, cue)
+		renderSpans(&out, groups)
 		out.WriteString("</p>\n")
 	}
 	out.WriteString("    </div>\n")
@@ -1132,11 +1135,11 @@ func recordLosses(cue model.Cue, losses *lossNotes) {
 	}
 }
 
-// renderSpans writes the spans of a cue with their inline attributes. A ruby
-// annotation falls back to brackets, because general TTML carries no ruby
-// form.
-func renderSpans(out *strings.Builder, cue model.Cue) {
-	for _, group := range model.RubyGroups(cue.Spans) {
+// renderSpans writes the groups of one cue with their inline attributes. A
+// ruby annotation falls back to brackets, because general TTML carries no
+// ruby form. The caller owns the grouping, so a render reuses it.
+func renderSpans(out *strings.Builder, groups []model.RubyGroup) {
+	for _, group := range groups {
 		renderSpan(out, group.Base)
 		for _, ann := range group.Annotations {
 			fmt.Fprintf(out, "(%s)", escapeText(ann.Text))

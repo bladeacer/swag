@@ -23,6 +23,7 @@ Formats and fidelity:
 Reference and governance:
 
 - [the architecture page](architecture.md): packages, the intermediate representation, the format matrix, and the ASS tag tiers
+- [the technical terms page](technical-terms.md): the fixed meaning of each project term, and the words the project refuses
 - [the internationalisation page](i18n.md): the message catalogue, the locales, and how to add a language
 - [the terminal palette page](terminal-palette.md): the OSC query for the terminal colours, what the prototype found, and the plan for theming
 - [the performance audit](performance.md): the tools, the numbers of every format, the bottlenecks, and the fixes
@@ -35,6 +36,7 @@ Reference and governance:
 Release notes, in Keep a Changelog form:
 
 - [the changelog index](changelogs/index.md): every release
+- [the v1.1.0 notes](changelogs/v1.1.0.md): the streaming readers, the reusable ruby grouping, the reserved writer buffers, and the external benchmark tools
 - [the v1.0.0 notes](changelogs/v1.0.0.md): the stable release, the frozen API, the browser demo, and the performance audit
 - [the v0.9.0 notes](changelogs/v0.9.0.md): the configuration file, the strict compatibility flag, the interactive keybinds, the system locale, and the parallel batch
 - [the v0.8.0 notes](changelogs/v0.8.0.md): the interactive command, the layout-diffing renderer, and the command line ergonomics

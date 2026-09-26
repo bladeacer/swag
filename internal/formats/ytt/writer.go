@@ -73,11 +73,15 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	positions := newPositionTable(dims)
 
 	var lines []renderedLine
+	var groups []model.RubyGroup
 	for i := range doc.Cues {
-		lines = append(lines, w.renderCue(doc.Cues[i], base, pens, windows, positions, &losses)...)
+		spans := model.NormaliseKaraoke(doc.Cues[i].Spans)
+		groups = model.RubyGroupsInto(groups[:0], spans)
+		lines = append(lines, w.renderCue(doc.Cues[i], spans, groups, base, pens, windows, positions, &losses)...)
 	}
 
 	var out strings.Builder
+	out.Grow(len(doc.Cues) * 256)
 	out.WriteString("<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n")
 	out.WriteString("<timedtext format=\"3\">\n<head>\n")
 	writePens(&out, pens)
@@ -100,6 +104,8 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 // one copy of the line per kind.
 func (w *Writer) renderCue(
 	cue model.Cue,
+	spans []model.TextSpan,
+	groups []model.RubyGroup,
 	base model.Style,
 	pens *penTable,
 	windows *windowTable,
@@ -108,7 +114,6 @@ func (w *Writer) renderCue(
 ) []renderedLine {
 	recordCueLosses(cue, losses)
 
-	spans := model.NormaliseKaraoke(cue.Spans)
 	if len(spans) == 0 {
 		return nil
 	}
@@ -135,7 +140,7 @@ func (w *Writer) renderCue(
 	lines := make([]renderedLine, 0, layers)
 	for layer := 0; layer < layers; layer++ {
 		kind, hasKind := activeKind(kinds, layer)
-		runs := w.buildRuns(spans, base, kind, hasKind, pens, losses)
+		runs := w.buildRuns(groups, base, kind, hasKind, pens, losses)
 		line := renderedLine{
 			start:    startMS,
 			duration: durationMS,
@@ -161,7 +166,7 @@ func (w *Writer) renderCue(
 // into the four-run sequence YouTube expects and choosing the shadow of the
 // current layer.
 func (w *Writer) buildRuns(
-	spans []model.TextSpan,
+	groups []model.RubyGroup,
 	base model.Style,
 	kind model.ShadowKind,
 	hasKind bool,
@@ -170,7 +175,7 @@ func (w *Writer) buildRuns(
 ) []renderedSegment {
 	var runs []renderedSegment
 
-	for _, group := range model.RubyGroups(spans) {
+	for _, group := range groups {
 		r := model.Resolve(base, group.Base)
 		shadow := chosenShadow(r.Shadows, kind, hasKind)
 		basePen := buildPen(r, group.Base, base, shadow, losses)

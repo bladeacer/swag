@@ -166,14 +166,20 @@ We credit [YTSubConverter](https://github.com/arcusmaximus/YTSubConverter) as th
 
 ### v1.1.0: performance and the smaller fixes
 
-- [ ] A writer path that pre-sizes its output slice, so a writer stops growing a slice many times
-- [ ] A streaming envelope reader, so `envelope.ReadLines` does not build a full slice of lines
-- [ ] A cached ruby grouping, so `model.RubyGroups` does not rebuild the grouping for every cue
-- [ ] A lighter configuration reader, so the first decode of a file costs less than it does today
-- [ ] A second full performance audit over the command with `hyperfine`, `strace`, `perf`, `pprof`, and `go tool trace`, and a fresh number for every open item
-  - [The performance audit page](docs/performance.md) holds the first numbers and the open items. Each item moves to this milestone, so the work is tracked rather than lost.
+- [x] A writer path that pre-sizes its output slice, so a writer stops growing a slice many times
+  - Every writer reserves its output buffer from the cue count, and [the audit](docs/performance.md) records the bytes.
+- [x] A streaming envelope reader, so the plain readers hold no slice of the whole file
+  - `envelope.Read` streams one line at a time into a handler. The SubRip and SBV readers use it, and the WebVTT reader keeps the whole list because its cue parser needs random access.
+- [x] A reusable ruby grouping, so `model.RubyGroups` does not rebuild the backing slice for every cue
+  - `model.RubyGroupsInto` writes into a slice that the writer owns, and every writer reuses it for the whole document.
+- [x] A second full performance audit over the command with `hyperfine`, `strace`, `perf`, `pprof`, and `go tool trace`, and a fresh number for every open item
+  - [The performance audit page](docs/performance.md) carries the second run. `make bench-tools` runs the three external tools over a shared fixture, and `make bench-audit` adds the Go profiles.
 
 ## Post-1.1 candidates
+
+### Performance
+
+- [ ] A hand-written configuration reader, so the first decode of a file does not spend its time in reflection and does not read the file twice. The decoder of BurntSushi/toml reads the whole file and then parses it, and this schema is small.
 
 ### Formats
 

@@ -123,7 +123,14 @@ type RubyGroup struct {
 // annotations. The walk does not separate a base from its annotations, so
 // converters can treat each group as one unit.
 func RubyGroups(spans []TextSpan) []RubyGroup {
-	var groups []RubyGroup
+	return RubyGroupsInto(nil, spans)
+}
+
+// RubyGroupsInto writes the groups of spans into dst and returns the grown
+// slice. A writer that renders many cues passes the same slice for every
+// cue, so the grouping reuses the backing array instead of building a fresh
+// slice per cue. The dst slice must be empty on entry.
+func RubyGroupsInto(dst []RubyGroup, spans []TextSpan) []RubyGroup {
 	for i := 0; i < len(spans); {
 		g := RubyGroup{Base: spans[i]}
 		i++
@@ -131,9 +138,9 @@ func RubyGroups(spans []TextSpan) []RubyGroup {
 			g.Annotations = append(g.Annotations, spans[i])
 			i++
 		}
-		groups = append(groups, g)
+		dst = append(dst, g)
 	}
-	return groups
+	return dst
 }
 
 // SungAt reports the spans of cue that are sung (their karaoke window has

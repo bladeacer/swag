@@ -1,6 +1,6 @@
 # Performance audit
 
-This page records the performance audit of the v1.0.0 release. It names the tools, the test machine, the numbers, the bottlenecks, and the work that stays open. The audit covers the parse, the render, and the conversion of every registered format.
+This page records the performance audit of the v1.0.0 and v1.1.0 releases. It names the tools, the test machine, the numbers, the bottlenecks, and the work that stays open. The audit covers the parse, the render, and the conversion of every registered format.
 
 ## Method
 
@@ -14,9 +14,13 @@ The benchmarks live in `pkg/sub/bench_test.go`. Each one builds a document of te
 
 Three more tools cover the command itself, so the wall time, the syscalls, and the counters of one run are visible:
 
-- `hyperfine` runs the release binary many times and reports the mean, the spread, and the range.
-- `strace -c` counts the syscalls of one conversion and reports the time each name takes.
-- `perf stat` reports the task-clock time, the page faults, and the hardware counters of the run.
+- `make bench-hyperfine` runs the release binary many times through `hyperfine` and reports the mean, the spread, and the range.
+- `make bench-strace` counts the syscalls of one conversion through `strace -c` and reports the time each name takes.
+- `make bench-perf` reports the task-clock time, the page faults, and the hardware counters of a run through `perf stat`.
+
+The three share one fixture, because `scripts/bench-fixture.sh` writes it. `make bench-tools` runs all three, and `make bench-audit` adds the CPU profile and the execution trace.
+
+The tools agree from different angles. `hyperfine` measures the wall time, `strace` counts the calls into the kernel, and `perf` counts the work of the processor. When the three point the same way, the result is hard to dispute.
 
 The machine has two kinds of core, so `perf stat` reports `cpu_core` and `cpu_atom` counters side by side. The trace gives two derived profiles through `go tool trace -pprof=sched` and `-pprof=syscall`.
 
@@ -38,15 +42,15 @@ Times are milliseconds per operation. The parse and the render run one format at
 
 | Format | Parse | Render | Convert to the format |
 |---|---:|---:|---:|
-| `ass` | 8.21 ms | 9.62 ms | 19.65 ms |
-| `json1` | 36.51 ms | 19.31 ms | 28.54 ms |
-| `kdenlive` | 10.06 ms | 13.99 ms | 28.25 ms |
-| `sbv` | 4.22 ms | 7.88 ms | 17.96 ms |
-| `srt` | 6.16 ms | 9.94 ms | 20.01 ms |
-| `srv3` | 15.32 ms | 23.88 ms | 33.10 ms |
-| `ttml` | 28.13 ms | 11.63 ms | 20.80 ms |
-| `vtt` | 7.23 ms | 9.09 ms | 18.88 ms |
-| `ytt` | 15.48 ms | 23.77 ms | 33.08 ms |
+| `ass` | 8.55 ms | 6.84 ms | 17.83 ms |
+| `json1` | 38.27 ms | 19.78 ms | 30.13 ms |
+| `kdenlive` | 10.55 ms | 10.51 ms | 22.35 ms |
+| `sbv` | 3.97 ms | 5.48 ms | 14.58 ms |
+| `srt` | 6.01 ms | 7.23 ms | 16.54 ms |
+| `srv3` | 16.15 ms | 21.18 ms | 30.22 ms |
+| `ttml` | 28.68 ms | 8.44 ms | 16.35 ms |
+| `vtt` | 7.49 ms | 7.33 ms | 15.26 ms |
+| `ytt` | 16.14 ms | 24.15 ms | 29.71 ms |
 
 ## The bottlenecks
 
@@ -54,7 +58,7 @@ The CPU profile gives most of its samples to the Go runtime, and the allocation 
 
 1. The WebVTT reader and writer built a character reference replacer for every cue. A replacer holds a trie, so the build cost time and memory. This finding is fixed, and the section below carries the numbers.
 2. Garbage collection and memory movement dominate the run. `runtime.memmove`, `runtime.memclrNoHeapPointers`, and `runtime.scanObjectsSmall` together take about a sixth of the CPU time. The allocation count is the cause.
-3. `runtime.growslice` sits at the top of the cumulative profile, which reached one sixth of the samples before the reader fix. A reader appended into a slice that grew many times, and a writer still does. The reader fix below removes the intermediate span slice.
+3. `runtime.growslice` sat at the top of the cumulative profile before the fixes below. A reader appended into a slice that grew many times, and a writer let its output buffer grow from nothing. The reader fix removes the intermediate span slice, and the writer fix reuses the grouping and reserves the buffer.
 4. `internal/envelope.ReadLines` allocates a slice of lines for the whole file. It sits high in the allocation profile, and it serves every read of a plain format.
 5. `model.RubyGroups` builds a fresh grouping on each call. The YTT and SRV3 writers call it per cue, so a document with ruby text pays the cost many times.
 6. The JSON1 reader and writer lean on the encoding library, which shows in `encoding/json` on both profiles. JSON1 is a debugging format rather than a hot path, so the cost stays documented.
@@ -82,12 +86,32 @@ The plain readers and the shared YouTube reader built a fresh span slice for eve
 
 | Benchmark | Before | After |
 |---|---:|---:|
-| Parse, `srt` | 8.52 ms, 140 038 allocs, 14.9 MB | 6.16 ms, 70 038 allocs, 10.1 MB |
-| Parse, `sbv` | 4.86 ms, 50 046 allocs, 9.9 MB | 4.22 ms, 30 046 allocs, 8.9 MB |
-| Parse, `ytt` | 17.00 ms, 200 123 allocs, 17.8 MB | 15.48 ms, 190 105 allocs, 15.1 MB |
-| Parse, `srv3` | 17.36 ms, 200 123 allocs, 17.8 MB | 15.32 ms, 190 105 allocs, 15.1 MB |
+| Parse, `srt` | 8.52 ms, 140 038 allocs, 14.9 MB | 6.01 ms, 70 016 allocs, 6.7 MB |
+| Parse, `sbv` | 4.86 ms, 50 046 allocs, 9.9 MB | 3.97 ms, 30 025 allocs, 6.3 MB |
+| Parse, `ytt` | 17.00 ms, 200 123 allocs, 17.8 MB | 16.14 ms, 190 105 allocs, 15.1 MB |
+| Parse, `srv3` | 17.36 ms, 200 123 allocs, 17.8 MB | 16.15 ms, 190 105 allocs, 15.1 MB |
 
-The SubRip parse allocates half as many objects. The SBV parse allocates about two fifths fewer. The YouTube pair allocates about five percent fewer objects and fifteen percent fewer bytes. The YTT and SRV3 readers share one path, so one change serves both.
+The plain readers now stream their lines, so they hold no slice of the whole file. The SubRip parse allocates half as many objects and less than half the bytes. The SBV parse allocates about two fifths fewer. The YouTube pair allocates about five percent fewer objects and fifteen percent fewer bytes. The YTT and SRV3 readers share one path, so one change serves both.
+
+## The writer fix
+
+Every writer rebuilt the ruby grouping for each cue, and every writer let the output buffer grow from nothing. Two changes cut the cost:
+
+- The writers group the spans into a reusable slice. `model.RubyGroupsInto` writes into a slice that the caller owns, so a render reuses one backing array for the whole document.
+- The writers reserve an output buffer from the cue count. The SubRip, SBV, and WebVTT writers reserve 64 bytes a cue, the ASS writer reserves 96, and the YouTube and TTML writers reserve 256.
+
+| Benchmark | Before (allocs, bytes) | After (allocs, bytes) |
+|---|---:|---:|
+| Render, `ass` | 80 075, 10.0 MB | 70 032, 3.3 MB |
+| Render, `kdenlive` | 80 042, 13.5 MB | 70 012, 5.3 MB |
+| Render, `sbv` | 70 040, 7.5 MB | 60 006, 2.5 MB |
+| Render, `srt` | 89 790, 9.0 MB | 79 754, 4.0 MB |
+| Render, `srv3` | 210 093, 20.9 MB | 200 054, 16.9 MB |
+| Render, `ttml` | 90 060, 10.7 MB | 80 021, 5.6 MB |
+| Render, `vtt` | 70 040, 7.5 MB | 60 007, 3.4 MB |
+| Render, `ytt` | 210 093, 20.9 MB | 200 055, 16.9 MB |
+
+Each writer drops about ten thousand objects, one for every cue. The bytes of a render fall by more than half in most formats, because the output buffer grows once instead of many times. The time follows the bytes, and the conversion table above carries the result.
 
 ## The interactive path
 
@@ -108,13 +132,13 @@ The decode of the configuration costs about fifty microseconds on a startup that
 
 ## The command line
 
-The command runs one conversion of the ten-thousand-cue SubRip document in about twenty-five milliseconds. The binary is a release build, so the linker flags `-s -w` and `CGO_ENABLED=0` are in force.
+The command runs one conversion of the ten-thousand-cue SubRip document in about twenty milliseconds. The binary is a release build, so the linker flags `-s -w` and `CGO_ENABLED=0` are in force.
 
 | Command | Mean | Spread | Range |
 |---|---:|---:|---:|
-| Convert `srt` to `srt` | 26.1 ms | 2.7 ms | 21.9 to 31.9 ms |
-| Convert `srt` to `vtt` | 24.3 ms | 2.8 ms | 19.1 to 28.8 ms |
-| Bare run | 3.1 ms | 0.9 ms | 2.0 to 4.8 ms |
+| Convert `srt` to `srt` | 21.1 ms | 1.6 ms | 18.4 to 24.4 ms |
+| Convert `srt` to `vtt` | 21.4 ms | 2.7 ms | 17.4 to 27.0 ms |
+| Bare run | 2.5 ms | 0.7 ms | 1.7 to 4.4 ms |
 
 `hyperfine` ran each command twenty times after three warm-up runs. The bare run opens the banner and exits, so it measures the startup alone. The startup is about one tenth of a conversion, and it covers the flag parse, the message catalogue, and the configuration load.
 
@@ -122,27 +146,25 @@ The command runs one conversion of the ten-thousand-cue SubRip document in about
 
 | Counter | Value |
 |---|---:|
-| Task clock | 35.07 ms |
-| Page faults | 3 425 |
+| Task clock | 29.92 ms |
+| Page faults | 2 969 |
 | Context switches | 0 |
 | CPU migrations | 0 |
-| Cycles, `cpu_core` | 73.7 M |
-| Instructions, `cpu_core` | 233.5 M |
-| Cache misses, `cpu_core` | 158 015 |
-| Cycles, `cpu_atom` | 75.0 M |
-| Instructions, `cpu_atom` | 187.2 M |
-| Cache misses, `cpu_atom` | 191 239 |
+| Cycles, `cpu_core` | 53.9 M |
+| Instructions, `cpu_core` | 169.0 M |
+| Cache misses, `cpu_core` | 110 793 |
+| Cycles, `cpu_atom` | 57.0 M |
+| Instructions, `cpu_atom` | 141.1 M |
+| Cache misses, `cpu_atom` | 157 928 |
 
 The table carries the mean of five runs. The command runs on one core and never migrates. The instruction count is about two to three times the cycle count on each core, which shows the superscalar width of the machine. The cache misses are low, because the document fits in the last-level cache.
 
-`strace -c` counts 1 098 syscalls in the traced run, and 50 of them report an error. The count moves between runs, because the Go runtime starts a different number of threads. The tracer slows every syscall, so the times below name the shape of the calls rather than the cost of the untraced command:
+`strace -c` counts 801 syscalls in the traced run, and 57 of them report an error. The count moves between runs, because the Go runtime starts a different number of threads. The tracer slows every syscall, so the times below name the shape of the calls rather than the cost of the untraced command:
 
 | Syscall | Share of the traced time | Calls |
 |---|---:|---:|
-| `futex` | 70.4 percent | 322 |
-| `nanosleep` | 19.0 percent | 160 |
-| `tgkill` | 1.9 percent | 39 |
-| `sched_yield` | 0.8 percent | 54 |
+| `futex` | 73.7 percent | 272 |
+| `nanosleep` | 18.4 percent | 63 |
 
 Almost all of the traced time sits in the scheduler and the sleep of the Go runtime, which is the shape of a short-lived process. The file work is small: the run reads one input and writes one output.
 
@@ -150,10 +172,8 @@ Almost all of the traced time sits in the scheduler and the sleep of the Go runt
 
 The remaining findings stay documented rather than fixed, because each one needs a larger change than the v1.0.0 window allows. They now carry their own milestone, so the work is tracked rather than lost. [The roadmap](../ROADMAP.md) records [the v1.1.0 items](../ROADMAP.md#v110-performance-and-the-smaller-fixes). The list is:
 
-- The writers append into slices that grow many times. A pre-sized buffer or a reused scratch slice can remove the growth. The reader fix above shows the shape of the change.
-- `envelope.ReadLines` builds a full slice of lines. A streaming reader can remove that allocation, and it changes the shape of the block handling.
-- `model.RubyGroups` builds a fresh grouping per call. A cached grouping on the document, or a grouping that writes into a caller slice, can remove the repeated work.
-- The first decode of a configuration path carries its full cost. A lighter reader can cut the startup of a run that reads a file.
+- The WebVTT reader still holds the whole file, because its cue parser needs random access to the lines. A parser that works on a window can remove that slice.
+- The first decode of a configuration path carries its full cost. The decoder spends its time in reflection and reads the file before it parses. A hand-written reader can cut the cost, and the change is larger than this window allows. It moves to the post-1.1 candidates.
 - `perf` and `strace` on the command show a startup cost from the registry and the configuration load. The cost is small beside a conversion, so it stays measured rather than removed.
 
 A later audit can measure each item with the same tools. The `bench.txt` baseline makes a regression visible.

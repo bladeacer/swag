@@ -35,47 +35,48 @@ func NewReader() *Reader { return &Reader{} }
 // Name returns the registry name of the format.
 func (r *Reader) Name() string { return FormatName }
 
-// Parse reads an SBV document from source.
+// Parse reads an SBV document from source. It streams the body one line at a
+// time, so a large file builds no slice of lines.
 func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
-	lines, err := envelope.ReadLines(source)
-	if err != nil {
-		return nil, fmt.Errorf("read sbv: %w", err)
+	doc := &model.Document{
+		Metadata:        map[string]string{},
+		VideoDimensions: model.Point{X: 1280, Y: 720},
+		Styles:          []model.Style{DefaultStyle()},
 	}
-	body, embedded, err := envelope.Extract(lines)
+	embedded, err := envelope.Read(source, func(line string) error {
+		return parseLine(doc, line)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("parse sbv: %w", err)
 	}
 	if embedded != nil {
 		return embedded, nil
 	}
-
-	doc := &model.Document{
-		Metadata:        map[string]string{},
-		VideoDimensions: model.Point{X: 1280, Y: 720},
-		Styles:          []model.Style{DefaultStyle()},
-	}
-	for _, line := range body {
-		trimmed := strings.TrimSpace(line)
-
-		switch {
-		case trimmed == "":
-			// A blank line closes the current cue.
-		case looksLikeTiming(trimmed):
-			start, end, err := parseTiming(trimmed)
-			if err != nil {
-				return nil, err
-			}
-			doc.Cues = append(doc.Cues, model.Cue{Start: start, End: end})
-		case len(doc.Cues) > 0:
-			cue := &doc.Cues[len(doc.Cues)-1]
-			if len(cue.Spans) > 0 {
-				// Each extra text line is its own display line.
-				cue.Spans[len(cue.Spans)-1].Text += "\n"
-			}
-			cue.Spans = append(cue.Spans, model.TextSpan{Text: line})
-		}
-	}
 	return doc, nil
+}
+
+// parseLine folds one SBV body line into doc.
+func parseLine(doc *model.Document, line string) error {
+	trimmed := strings.TrimSpace(line)
+
+	switch {
+	case trimmed == "":
+		// A blank line closes the current cue.
+	case looksLikeTiming(trimmed):
+		start, end, err := parseTiming(trimmed)
+		if err != nil {
+			return err
+		}
+		doc.Cues = append(doc.Cues, model.Cue{Start: start, End: end})
+	case len(doc.Cues) > 0:
+		cue := &doc.Cues[len(doc.Cues)-1]
+		if len(cue.Spans) > 0 {
+			// Each extra text line is its own display line.
+			cue.Spans[len(cue.Spans)-1].Text += "\n"
+		}
+		cue.Spans = append(cue.Spans, model.TextSpan{Text: line})
+	}
+	return nil
 }
 
 // looksLikeTiming reports whether the line carries the SBV timing shape:
@@ -168,8 +169,11 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	note := func(what string) { losses = append(losses, what) }
 
 	var out strings.Builder
+	out.Grow(len(doc.Cues) * 64)
+	var groups []model.RubyGroup
 	for i := range doc.Cues {
 		cue := doc.Cues[i]
+		groups = model.RubyGroupsInto(groups[:0], cue.Spans)
 		if cue.Karaoke() {
 			note("karaoke timing")
 		}
@@ -192,7 +196,7 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 		}
 
 		fmt.Fprintf(&out, "%s,%s\n", formatTime(cue.Start), formatTime(cue.End))
-		out.WriteString(renderText(cue))
+		out.WriteString(renderText(groups))
 		out.WriteString("\n\n")
 	}
 
@@ -209,11 +213,12 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	return losses, nil
 }
 
-// renderText renders the spans of cue, falling back to brackets for ruby
-// annotations.
-func renderText(cue model.Cue) string {
+// renderText renders the groups of one cue, falling back to brackets for
+// ruby annotations. The caller owns the grouping, so a render reuses it for
+// the next cue.
+func renderText(groups []model.RubyGroup) string {
 	var b strings.Builder
-	for _, group := range model.RubyGroups(cue.Spans) {
+	for _, group := range groups {
 		b.WriteString(group.Base.Text)
 		for _, ann := range group.Annotations {
 			b.WriteString("(" + ann.Text + ")")

@@ -54,6 +54,8 @@ make bench
 make bench-all
 ```
 
+`make bench-tools` runs the release binary through `hyperfine`, `strace`, and `perf` over one fixture, and `make bench-audit` adds the CPU profile and the execution trace. The tools report from different angles: `hyperfine` gives the wall time, `strace` counts the syscalls, and `perf` gives the counters. [The performance audit](performance.md) reads the three against each other, so one number never carries the claim alone.
+
 For a regression check, save a baseline on the same machine and compare a fresh run with `benchstat`:
 
 ```sh

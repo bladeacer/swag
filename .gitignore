@@ -1,11 +1,14 @@
 # Build and test artefacts
 /bin/
 /dist/
+/.bench/
 coverage.out
 build-errors.log
 *.test
 cpu.prof
 trace.out
+bench.txt
+new-bench.txt
 
 # Upstream samples pulled for the end-to-end tests
 /testdata/upstream/

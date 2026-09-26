@@ -209,13 +209,15 @@ func (w *Writer) Name() string { return FormatName }
 func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	var losses lossNotes
 	entries := make([]entry, 0, len(doc.Cues))
+	var groups []model.RubyGroup
 	for i := range doc.Cues {
 		cue := doc.Cues[i]
 		recordLosses(cue, &losses)
+		groups = model.RubyGroupsInto(groups[:0], cue.Spans)
 		entries = append(entries, entry{
 			Layer:    0,
 			StartPos: float64(cue.Start) / float64(time.Second),
-			Dialogue: dialogueLine(cue),
+			Dialogue: dialogueLine(cue, groups),
 		})
 	}
 
@@ -231,17 +233,18 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 }
 
 // dialogueLine renders the event line of a cue.
-func dialogueLine(cue model.Cue) string {
-	text := strings.ReplaceAll(renderText(cue), "\n", `\N`)
+func dialogueLine(cue model.Cue, groups []model.RubyGroup) string {
+	text := strings.ReplaceAll(renderText(groups), "\n", `\N`)
 	return fmt.Sprintf("%s 0,%s,%s,Default,,0,0,0,,%s",
 		dialoguePrefix, formatTime(cue.Start), formatTime(cue.End), text)
 }
 
-// renderText renders the spans of cue, falling back to brackets for ruby
-// annotations.
-func renderText(cue model.Cue) string {
+// renderText renders the groups of one cue, falling back to brackets for
+// ruby annotations. The caller owns the grouping, so a render reuses it for
+// the next cue.
+func renderText(groups []model.RubyGroup) string {
 	var b strings.Builder
-	for _, group := range model.RubyGroups(cue.Spans) {
+	for _, group := range groups {
 		b.WriteString(group.Base.Text)
 		for _, ann := range group.Annotations {
 			b.WriteString("(" + ann.Text + ")")

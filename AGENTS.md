@@ -14,6 +14,7 @@ The architecture and the intermediate representation live in [the architecture p
 6. When you check existing text, follow the CHECK mode in the skill. Quote the rule number from [the rule catalogue](skills/simple-english/references/rule-catalog.md) for each finding.
 7. Do not write em-dashes or en-dashes anywhere. This rule covers code comments, documentation, commit messages, release notes, and the chat reply. Write two sentences, use a colon, or name the relation with a word such as "because".
 8. Every markdown link carries a human-readable alias. Never use a bare file path, file name, or URL as the link text.
+9. Use the project vocabulary from [the technical terms page](docs/technical-terms.md). Read the term table before you draft, use each term exactly as the table defines it, and do not invent a synonym. When your work introduces a term, add it to the table in the same change. The page also lists the words the project refuses, so a draft that carries one of them is not ready.
 
 ## Code rules
 

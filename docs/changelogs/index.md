@@ -6,6 +6,7 @@ Unreleased work lands in the file for the next planned version. The release comm
 
 ## Releases
 
+- [v1.1.0, performance and the smaller fixes](v1.1.0.md): the streaming envelope reader, the reusable ruby grouping, the reserved writer buffers, and the external benchmark tools (unreleased)
 - [v1.0.0, stable](v1.0.0.md): the frozen public API, the browser demo, the performance audit, and the migration guide (unreleased)
 - [v0.9.0, configuration, compatibility, and the release candidate](v0.9.0.md): the configuration file, the interactive keybinds, the system locale, and the parallel batch (unreleased)
 - [v0.8.0, the terminal interface and command line ergonomics](v0.8.0.md): the interactive command, the layout-diffing renderer, and the WebVTT and TTML integrity block (unreleased)

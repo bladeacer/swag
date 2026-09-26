@@ -354,3 +354,119 @@ func TestWriteSinkErrors(t *testing.T) {
 		t.Errorf("a healthy sink must accept the block: %v", err)
 	}
 }
+
+// collectRead returns a handler that records every line it sees.
+func collectRead(lines *[]string) func(string) error {
+	return func(line string) error {
+		*lines = append(*lines, line)
+		return nil
+	}
+}
+
+// TestReadStreamsTheBody covers a file without a block, so the handler sees
+// every line and Read returns no document.
+func TestReadStreamsTheBody(t *testing.T) {
+	var seen []string
+	doc, err := Read(strings.NewReader("one\r\ntwo\n\nthree"), collectRead(&seen))
+	if err != nil {
+		t.Fatalf("Read: %v", err)
+	}
+	if doc != nil {
+		t.Fatalf("document = %+v, want nil", doc)
+	}
+	want := []string{"one", "two", "", "three"}
+	if !reflect.DeepEqual(seen, want) {
+		t.Fatalf("lines = %q, want %q", seen, want)
+	}
+}
+
+// TestReadRecoversTheBlock covers the streaming scan of a file with an
+// integrity block. The handler sees only the lines before the marker, and
+// Read returns the document of the block.
+func TestReadRecoversTheBlock(t *testing.T) {
+	doc := richDocument()
+	payload, err := encode(doc)
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	source := "1\n00:00:01,000 --> 00:00:04,000\nplain\n\n" + Marker + " " + Version + "\n" + payload + "\n"
+	var seen []string
+	got, err := Read(strings.NewReader(source), collectRead(&seen))
+	if err != nil {
+		t.Fatalf("Read: %v", err)
+	}
+	if !reflect.DeepEqual(got, doc) {
+		t.Fatalf("recovered document differs:\nwant %+v\ngot  %+v", doc, got)
+	}
+	if len(seen) != 4 {
+		t.Fatalf("body = %v, want the four lines before the block", seen)
+	}
+}
+
+// TestReadErrors covers every damaged block that a stream can reach.
+func TestReadErrors(t *testing.T) {
+	payload, err := encode(richDocument())
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	tests := []struct {
+		name   string
+		source string
+		want   string
+	}{
+		{"no version", Marker + "\n", "no version"},
+		{"unknown version", Marker + " 9\n" + payload + "\n", "unsupported version"},
+		{"no payload", Marker + " " + Version + "\n\n\n", "no payload"},
+		{"bad base64", Marker + " " + Version + "\n!!!!\n", "decode the payload"},
+		{"bad payload", Marker + " " + Version + "\n" + base64.StdEncoding.EncodeToString([]byte("nope")) + "\n", "read the payload"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Read(strings.NewReader(tt.source), func(string) error { return nil })
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("error = %v, want %q", err, tt.want)
+			}
+		})
+	}
+}
+
+// TestReadScanError covers a source that fails before any line.
+func TestReadScanError(t *testing.T) {
+	boom := errors.New("boom")
+	if _, err := Read(errReader{boom}, func(string) error { return nil }); !errors.Is(err, boom) {
+		t.Fatalf("error = %v, want %v", err, boom)
+	}
+}
+
+// TestReadPayloadScanError covers a source that carries the marker and then
+// fails before the payload.
+func TestReadPayloadScanError(t *testing.T) {
+	boom := errors.New("boom")
+	source := &partialReader{data: Marker + " " + Version + "\n", err: boom}
+	if _, err := Read(source, func(string) error { return nil }); !errors.Is(err, boom) {
+		t.Fatalf("error = %v, want %v", err, boom)
+	}
+}
+
+// TestReadHandlerError covers a body line that the handler refuses.
+func TestReadHandlerError(t *testing.T) {
+	boom := errors.New("boom")
+	if _, err := Read(strings.NewReader("one\ntwo\n"), func(string) error { return boom }); !errors.Is(err, boom) {
+		t.Fatalf("error = %v, want %v", err, boom)
+	}
+}
+
+// partialReader returns its data once, then fails every later read.
+type partialReader struct {
+	data string
+	err  error
+	done bool
+}
+
+func (r *partialReader) Read(p []byte) (int, error) {
+	if r.done {
+		return 0, r.err
+	}
+	r.done = true
+	return copy(p, r.data), nil
+}

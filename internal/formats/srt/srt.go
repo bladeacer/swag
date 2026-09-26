@@ -42,50 +42,51 @@ func NewReader() *Reader { return &Reader{} }
 // Name returns the registry name of the format.
 func (r *Reader) Name() string { return FormatName }
 
-// Parse reads a SubRip document from source.
+// Parse reads a SubRip document from source. It streams the body one line at
+// a time, so a large file builds no slice of lines.
 func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
-	lines, err := envelope.ReadLines(source)
-	if err != nil {
-		return nil, fmt.Errorf("read srt: %w", err)
+	doc := &model.Document{
+		Metadata:        map[string]string{},
+		VideoDimensions: model.Point{X: 1280, Y: 720},
+		Styles:          []model.Style{DefaultStyle()},
 	}
-	body, embedded, err := envelope.Extract(lines)
+	embedded, err := envelope.Read(source, func(line string) error {
+		return parseLine(doc, line)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("parse srt: %w", err)
 	}
 	if embedded != nil {
 		return embedded, nil
 	}
-
-	doc := &model.Document{
-		Metadata:        map[string]string{},
-		VideoDimensions: model.Point{X: 1280, Y: 720},
-		Styles:          []model.Style{DefaultStyle()},
-	}
-	for _, line := range body {
-		trimmed := strings.TrimSpace(line)
-
-		switch {
-		case trimmed == "":
-			// A blank line closes the current cue.
-		case isCounter(trimmed):
-			// A cue counter line: the next non-blank line is the timing.
-		case strings.Contains(trimmed, "-->"):
-			start, end, err := parseTiming(trimmed)
-			if err != nil {
-				return nil, err
-			}
-			doc.Cues = append(doc.Cues, model.Cue{Start: start, End: end})
-		case len(doc.Cues) > 0:
-			cue := &doc.Cues[len(doc.Cues)-1]
-			if len(cue.Spans) > 0 {
-				// A new physical line continues the cue: mark the break on
-				// the span that ended the line before this one.
-				cue.Spans[len(cue.Spans)-1].Text += "\n"
-			}
-			cue.Spans = appendSpans(cue.Spans, line)
-		}
-	}
 	return doc, nil
+}
+
+// parseLine folds one SubRip body line into doc.
+func parseLine(doc *model.Document, line string) error {
+	trimmed := strings.TrimSpace(line)
+
+	switch {
+	case trimmed == "":
+		// A blank line closes the current cue.
+	case isCounter(trimmed):
+		// A cue counter line: the next non-blank line is the timing.
+	case strings.Contains(trimmed, "-->"):
+		start, end, err := parseTiming(trimmed)
+		if err != nil {
+			return err
+		}
+		doc.Cues = append(doc.Cues, model.Cue{Start: start, End: end})
+	case len(doc.Cues) > 0:
+		cue := &doc.Cues[len(doc.Cues)-1]
+		if len(cue.Spans) > 0 {
+			// A new physical line continues the cue: mark the break on
+			// the span that ended the line before this one.
+			cue.Spans[len(cue.Spans)-1].Text += "\n"
+		}
+		cue.Spans = appendSpans(cue.Spans, line)
+	}
+	return nil
 }
 
 // isCounter reports whether the line is a decimal cue counter. It rejects a

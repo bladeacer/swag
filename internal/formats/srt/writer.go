@@ -35,14 +35,19 @@ func (w *Writer) Name() string { return FormatName }
 func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	var losses lossNotes
 	var out strings.Builder
+	// One allocation for the output keeps the builder from growing many
+	// times on a large document.
+	out.Grow(len(doc.Cues) * 64)
+	var groups []model.RubyGroup
 
 	for i := range doc.Cues {
 		cue := doc.Cues[i]
 		recordLosses(cue, &losses)
+		groups = model.RubyGroupsInto(groups[:0], cue.Spans)
 
 		fmt.Fprintf(&out, "%d\n", i+1)
 		fmt.Fprintf(&out, "%s --> %s\n", formatTime(cue.Start), formatTime(cue.End))
-		out.WriteString(renderText(cue))
+		out.WriteString(renderText(groups))
 		out.WriteString("\n\n")
 	}
 
@@ -110,10 +115,9 @@ func recordLosses(cue model.Cue, losses *lossNotes) {
 // it.
 func scaleChanged(v *float64) bool { return v != nil && *v != 100 }
 
-// renderText renders the spans of cue as one SRT text block.
-func renderText(cue model.Cue) string {
-	groups := model.RubyGroups(cue.Spans)
-	var lines []string
+// renderText renders the groups of one cue as one SRT text block. The
+// caller owns the grouping, so a render reuses it for the next cue.
+func renderText(groups []model.RubyGroup) string {
 	var b strings.Builder
 	for _, group := range groups {
 		b.WriteString(renderSpan(group.Base))
@@ -122,8 +126,7 @@ func renderText(cue model.Cue) string {
 			b.WriteString("(" + ann.Text + ")")
 		}
 	}
-	lines = append(lines, b.String())
-	return strings.Join(lines, "\n")
+	return b.String()
 }
 
 // renderSpan renders one span with its italic and bold tags.

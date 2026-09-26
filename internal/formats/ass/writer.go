@@ -45,12 +45,15 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	}
 
 	var out strings.Builder
+	out.Grow(len(doc.Cues) * 96)
 	writeScriptInfo(&out, doc)
 	writeStyles(&out, styles)
 	out.WriteString("[Events]\n")
 	out.WriteString("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
+	var groups []model.RubyGroup
 	for i := range doc.Cues {
-		text := w.renderCue(doc.Cues[i], base, &losses)
+		groups = model.RubyGroupsInto(groups[:0], doc.Cues[i].Spans)
+		text := w.renderCue(doc.Cues[i], base, &losses, groups)
 		fmt.Fprintf(&out, "Dialogue: 0,%s,%s,%s,,0,0,0,,%s\n",
 			formatASSTime(doc.Cues[i].Start), formatASSTime(doc.Cues[i].End), base.Name, text)
 	}
@@ -109,7 +112,7 @@ func writeStyles(out *strings.Builder, styles []model.Style) {
 }
 
 // renderCue builds one Dialogue text field.
-func (w *Writer) renderCue(cue model.Cue, base model.Style, losses *lossNotes) string {
+func (w *Writer) renderCue(cue model.Cue, base model.Style, losses *lossNotes, groups []model.RubyGroup) string {
 	var b strings.Builder
 	if tags := cueLevelTags(cue, base, losses); len(tags) > 0 {
 		writeBraces(&b, tags)
@@ -120,7 +123,7 @@ func (w *Writer) renderCue(cue model.Cue, base model.Style, losses *lossNotes) s
 	kursor := time.Duration(0)
 	var prevStart, prevEnd time.Duration
 	havePrev := false
-	for _, group := range model.RubyGroups(cue.Spans) {
+	for _, group := range groups {
 		baseSpan := group.Base
 		// ASS has no voice form, so a speaker name drops on write.
 		if baseSpan.Voice != nil {

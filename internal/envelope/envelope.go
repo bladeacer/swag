@@ -57,8 +57,8 @@ const Version = "1"
 const maxLineBytes = 32 * 1024 * 1024
 
 // ReadLines reads a whole text file into lines with the carriage return
-// removed. A plain format reads the whole list, because the envelope sits at
-// the end of the file.
+// removed. A format that needs random access reads the whole list, because
+// the envelope sits at the end of the file.
 func ReadLines(source io.Reader) ([]string, error) {
 	scanner := bufio.NewScanner(source)
 	scanner.Buffer(make([]byte, 0, 64*1024), maxLineBytes)
@@ -70,6 +70,57 @@ func ReadLines(source io.Reader) ([]string, error) {
 		return nil, err
 	}
 	return lines, nil
+}
+
+// Read streams the lines of a plain document through handle, with the
+// carriage return removed. A line that opens the integrity block ends the
+// stream: Read decodes the payload and returns the document. A file without
+// a block returns a nil document, and handle saw every line.
+//
+// A format that parses one line at a time uses Read, so it holds no slice of
+// the whole file. A damaged block returns an error instead of passing as a
+// plain file.
+func Read(source io.Reader, handle func(line string) error) (*model.Document, error) {
+	scanner := bufio.NewScanner(source)
+	scanner.Buffer(make([]byte, 0, 64*1024), maxLineBytes)
+	for scanner.Scan() {
+		line := strings.TrimRight(scanner.Text(), "\r")
+		found, err := markerFound(line, Marker)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			payload, err := nextPayload(scanner)
+			if err != nil {
+				return nil, err
+			}
+			return Decode(payload)
+		}
+		if err := handle(line); err != nil {
+			return nil, err
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+// nextPayload returns the first line after the marker that carries content.
+// A blank line is skipped, and the end of the file reports a missing
+// payload.
+func nextPayload(scanner *bufio.Scanner) (string, error) {
+	for scanner.Scan() {
+		text := strings.TrimSpace(scanner.Text())
+		if text == "" {
+			continue
+		}
+		return text, nil
+	}
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+	return "", fmt.Errorf("envelope: the block carries no payload")
 }
 
 // Decode reads a base64 payload into a document.

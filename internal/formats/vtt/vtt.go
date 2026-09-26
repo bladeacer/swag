@@ -23,7 +23,6 @@
 package vtt
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strconv"
@@ -68,13 +67,10 @@ func DefaultStyle() model.Style {
 
 // Parse reads a WebVTT document from source.
 func (r *Reader) Parse(source io.Reader) (*model.Document, error) {
-	scanner := bufio.NewScanner(source)
-	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
-	var lines []string
-	for scanner.Scan() {
-		lines = append(lines, strings.TrimRight(scanner.Text(), "\r"))
-	}
-	if err := scanner.Err(); err != nil {
+	// The WebVTT cue parser needs random access to the lines, so the reader
+	// keeps the whole list. The plain readers stream instead.
+	lines, err := envelope.ReadLines(source)
+	if err != nil {
 		return nil, fmt.Errorf("read vtt: %w", err)
 	}
 
@@ -365,12 +361,15 @@ func (w *Writer) Render(doc *model.Document, sink io.Writer) ([]string, error) {
 	}
 
 	var out strings.Builder
+	out.Grow(len(doc.Cues)*64 + 8)
 	out.WriteString("WEBVTT\n\n")
+	var groups []model.RubyGroup
 	for i := range doc.Cues {
 		cue := doc.Cues[i]
 		recordLosses(cue, &losses)
+		groups = model.RubyGroupsInto(groups[:0], cue.Spans)
 		fmt.Fprintf(&out, "%s --> %s%s\n", formatTime(cue.Start), formatTime(cue.End), cueSettings(cue, width))
-		out.WriteString(renderSpans(cue))
+		out.WriteString(renderSpans(groups))
 		out.WriteString("\n\n")
 	}
 
@@ -500,11 +499,12 @@ func vttAlign(a model.Anchor) string {
 	return ""
 }
 
-// renderSpans renders the spans of a cue with their inline tags. A ruby
-// annotation falls back to brackets, because WebVTT has no ruby form.
-func renderSpans(cue model.Cue) string {
+// renderSpans renders the groups of one cue with their inline tags. A ruby
+// annotation falls back to brackets, because WebVTT has no ruby form. The
+// caller owns the grouping, so a render reuses it for the next cue.
+func renderSpans(groups []model.RubyGroup) string {
 	var b strings.Builder
-	for _, group := range model.RubyGroups(cue.Spans) {
+	for _, group := range groups {
 		span := group.Base
 		var close []string
 		if span.Voice != nil {
